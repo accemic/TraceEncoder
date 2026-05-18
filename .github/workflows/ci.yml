@@ -1,0 +1,37 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: SystemVerilog lint (verible)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: TODO — install verible and run make lint
+        run: |
+          echo "TODO: install verible-verilog-lint and run 'make lint'"
+          # Sketch:
+          #   curl -L <verible-release> -o verible.tar.gz
+          #   tar -xzf verible.tar.gz
+          #   export PATH=$PWD/verible/bin:$PATH
+          #   make lint
+
+  sim:
+    name: Simulation (Vivado xsim)
+    # TODO: needs a self-hosted runner with Vivado installed.
+    # Once available, change to: runs-on: [self-hosted, vivado]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: TODO — run make sim on a Vivado-equipped runner
+        run: |
+          echo "TODO: requires self-hosted runner with Vivado + abc."
+          echo "Skipping for now."

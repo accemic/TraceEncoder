@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+#
+# REUSE configuration for files that cannot carry an in-file SPDX header
+# (e.g. plain-text version files, empty placeholders).
+
+version = 1
+SPDX-PackageName = "C-Trace"
+SPDX-PackageSupplier = "Accemic Technologies GmbH <oss@accemic.com>"
+SPDX-PackageDownloadLocation = "https://github.com/accemic/C-Trace"
+
+[[annotations]]
+path = ["VERSION", "**/.gitkeep"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
+SPDX-License-Identifier = "CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial"

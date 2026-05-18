@@ -1,0 +1,36 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+# abc-flow build output
+bld/
+
+# Vivado
+*.jou
+*.log
+*.str
+.Xil/
+vivado_*.backup.*
+vivado_pid*.str
+xsim.dir/
+webtalk*.log
+webtalk*.jou
+.cxl.*.log
+
+# Editor / IDE
+*.swp
+*.swo
+.vscode/
+.idea/
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python (PeakRDL toolchain)
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# NOTE: rdl/gen/*.sv is intentionally NOT ignored — generated SV is committed.

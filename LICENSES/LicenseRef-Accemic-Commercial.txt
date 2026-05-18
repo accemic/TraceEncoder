@@ -1,0 +1,10 @@
+LicenseRef-Accemic-Commercial
+
+This identifier refers to the commercial licensing option
+for the C-Trace IP provided by Accemic Technologies GmbH.
+
+Commercial licenses allow integration without the copyleft
+obligations of CERN-OHL-S-2.0.
+
+For commercial licensing inquiries contact:
+sales@accemic.com
