@@ -34,7 +34,8 @@ module run_overflow_reset_tb;
 		.CYCLES_PER_INSTR   (4),
 		.ATB_DUMP_PATH      ("run_overflow_reset_tb.atb.bin"),
 		.TIP_DUMP_TXT_PATH  ("run_overflow_reset_tb.tip.txt"),
-		.NEXRV_INFO_PATH    ("run_overflow_reset_tb.nexrv.info")
+		.NEXRV_INFO_PATH    ("run_overflow_reset_tb.nexrv.info"),
+		.EXPECTED_PCS_PATH  ("run_overflow_reset_tb.expected.pcs")
 	) env ();
 
 	int bytes_after_A;

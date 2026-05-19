@@ -38,7 +38,8 @@ module basic_tb;
 		.TIP_DUMP_TXT_PATH  ("basic_tb.tip.txt"),
 		// NexRv PCInfo derived from the cpu_model event log — drop-in
 		// input for the NexRv reference decoder.
-		.NEXRV_INFO_PATH    ("basic_tb.nexrv.info")
+		.NEXRV_INFO_PATH    ("basic_tb.nexrv.info"),
+		.EXPECTED_PCS_PATH  ("basic_tb.expected.pcs")
 	) env ();
 
 	initial begin

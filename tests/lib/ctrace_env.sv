@@ -46,7 +46,11 @@ module ctrace_env #(
 	// log. Same address-by-address format the original tip_generator
 	// emitted; suitable as input to the NexRv reference decoder.
 	// Empty = no file.
-	string NEXRV_INFO_PATH   = ""
+	string NEXRV_INFO_PATH   = "",
+	// Optional: execution-ordered list of PCs the cpu_model retired,
+	// one per line. Used as the reference by the NexRv decode-check
+	// script (the decoded .pcout should match this line-for-line).
+	string EXPECTED_PCS_PATH = ""
 ) ();
 
 	// ------------------------------------------------------------------
@@ -113,8 +117,9 @@ module ctrace_env #(
 	// TIP stimulus — scripted CPU model
 	// ------------------------------------------------------------------
 	cpu_model #(
-		.CYCLES_PER_INSTR (CYCLES_PER_INSTR),
-		.NEXRV_INFO_PATH  (NEXRV_INFO_PATH)
+		.CYCLES_PER_INSTR   (CYCLES_PER_INSTR),
+		.NEXRV_INFO_PATH    (NEXRV_INFO_PATH),
+		.EXPECTED_PCS_PATH  (EXPECTED_PCS_PATH)
 	) cpu (
 		.clk (tip_clk),
 		.rst (tip_rst),

@@ -64,10 +64,17 @@ module cpu_model #(
 	// Optional path for a NexRv PCInfo file derived from the scripted
 	// scenario. Format (one line per retired instruction):
 	//   0x<src_pc>,<type><length_bytes>[,0x<target_pc>]
-	// Type codes (NexRv): L=Linear, BD=Branch Direct, JD=Jump Direct,
-	// JI=Jump Indirect, CD=Call Direct, CI=Call Indirect, R=Return,
-	// E=Exception, XX=Unknown. Written on simulation end. Empty = no file.
-	parameter string NEXRV_INFO_PATH = ""
+	// Type codes: L=Linear, BD=Branch Direct, JD=Jump Direct,
+	// JI=Jump Indirect, CD=Call Direct, R=Return. NexRv loads this
+	// as a dense, sorted array — entries are sorted and gaps in the
+	// address range are filled with sentinel L entries. Written on
+	// simulation end. Empty = no file.
+	parameter string NEXRV_INFO_PATH    = "",
+	// Optional path for an execution-ordered "expected PC sequence"
+	// file, one PC per line in the order the cpu_model executed them.
+	// This is what the decoded NexRv output should match
+	// line-for-line. Empty = no file.
+	parameter string EXPECTED_PCS_PATH  = ""
 ) (
 	input  uwire logic clk,    // tip_clk
 	input  uwire logic rst,    // tip_rst (active high)
@@ -309,12 +316,15 @@ module cpu_model #(
 	// faulting address for page faults, etc.). Interrupts ignore it.
 	// ------------------------------------------------------------------
 	task automatic interrupt(input int cause, input tip_iaddr_t handler);
+		// Asynchronous interrupt: the iaddr instruction retired, then
+		// the trap fired. Resume at the NEXT pc on mret so we don't
+		// re-classify the trap PC as both E (here) and L (after mret).
 		drive_instr_pulse(
 			.itype_  (INTERRUPT),
 			.iaddr_  (cur_pc),
 			.ecause_ (tip_ecause_e'(cause))
 		);
-		trap_stack.push_back(cur_pc);
+		trap_stack.push_back(cur_pc + 4);
 		log_event(CPU_INTERRUPT, cur_pc, handler, cause);
 		cur_pc = handler;
 	endtask
@@ -324,13 +334,18 @@ module cpu_model #(
 		input tip_iaddr_t handler,
 		input tip_iaddr_t tval = '0
 	);
+		// Synchronous exception: the faulting instruction did NOT
+		// retire. In real RISC-V the handler fixes the cause and the
+		// instruction is re-executed. For PCInfo compatibility we
+		// simplify and resume at pc+4, treating the fault as a
+		// non-recoverable diagnostic in trace.
 		drive_instr_pulse(
 			.itype_  (EXCEPTION_TRAP),
 			.iaddr_  (cur_pc),
 			.ecause_ (tip_ecause_e'(cause)),
 			.tval_   (tval)
 		);
-		trap_stack.push_back(cur_pc);
+		trap_stack.push_back(cur_pc + 4);
 		log_event(CPU_EXCEPTION, cur_pc, handler, cause);
 		cur_pc = handler;
 	endtask
@@ -439,49 +454,99 @@ module cpu_model #(
 	// same length; extend the event_q to carry per-event size if RVC
 	// support is needed.
 	// ------------------------------------------------------------------
+	// Maps a cpu_event to the static PCInfo type code the NexRv decoder
+	// expects (single character of L/B/J/C/R/E, plus the D/I direct /
+	// indirect qualifier where it matters).
+	function automatic string pcinfo_type_str(cpu_event_kind_e k);
+		// NEXRV pcinfo is a STATIC instruction-type table. The
+		// interrupt/exception semantics are carried by the trace
+		// messages themselves (TCODE), not by an E entry in pcinfo,
+		// so we report the underlying instruction type (Linear) for
+		// trap PCs — the decoder doesn't need to know "an interrupt
+		// CAN happen here" to decode the trace.
+		case (k)
+			CPU_RUN, CPU_LOAD, CPU_STORE,
+			CPU_BRANCH_NOT_TAKEN,
+			CPU_INTERRUPT, CPU_EXCEPTION: return "L";
+			CPU_BRANCH_TAKEN:        return "BD";
+			CPU_JUMP:                return "JD";
+			CPU_UNINFERABLE_JUMP:    return "JI";
+			CPU_CALL:                return "CD";
+			CPU_RET, CPU_MRET:       return "R";
+			default:                 return "";   // skipped
+		endcase
+	endfunction
+
 	function automatic int write_nexrv_info(input string path);
+		// NexRv loads the PCInfo into an array indexed by
+		// (addr - base) / 4. Entries MUST be sorted by address and
+		// each address MUST appear at most once. Build a sorted
+		// (pc, type, target) table here, dedupe, then emit.
 		int fd;
 		int n_written = 0;
 		int unsigned len_bytes = 1 << (DEFAULT_ILASTSIZE + 1);
+		tip_iaddr_t  pcs        [$];
+		string       types_at   [tip_iaddr_t];   // associative array pc -> type
+		tip_iaddr_t  targets_at [tip_iaddr_t];
+
 		if (path == "") return 0;
+
+		// Build the (pc -> type, target) map in event order. First
+		// observation of a PC wins; later visits with the same type
+		// are no-ops, later visits with a DIFFERENT type are a test
+		// authoring error and are flagged.
+		foreach (event_q[i]) begin
+			string t;
+			t = pcinfo_type_str(event_q[i].kind);
+			if (t == "") continue;
+			if (types_at.exists(event_q[i].pc)) begin
+				if (types_at[event_q[i].pc] != t) begin
+					$error("[cpu_model] write_nexrv_info: PC 0x%08x has conflicting types '%s' and '%s' — NexRv pcinfo requires one type per PC. Restructure the test scenario.",
+						event_q[i].pc, types_at[event_q[i].pc], t);
+				end
+				continue;
+			end
+			types_at[event_q[i].pc]   = t;
+			targets_at[event_q[i].pc] = event_q[i].target;
+			pcs.push_back(event_q[i].pc);
+		end
+
+		// Sort PCs ascending.
+		pcs.sort();
+
 		fd = $fopen(path, "w");
 		if (fd == 0) begin
 			$error("[cpu_model] failed to open '%s' for NexRv info write", path);
 			return 0;
 		end
-		foreach (event_q[i]) begin
-			case (event_q[i].kind)
-				CPU_RUN, CPU_LOAD, CPU_STORE, CPU_BRANCH_NOT_TAKEN: begin
-					$fwrite(fd, "0x%08x,L%0d\n", event_q[i].pc, len_bytes);
-					n_written++;
+
+		// NexRv loads pcinfo as a dense array indexed by
+		// (addr - base) / len_bytes. Any 4-byte slot in [base..top]
+		// that the cpu_model never visited must still be present in
+		// the file or array lookups break. Fill those with a
+		// neutral L4 sentinel — the trace will never reference these
+		// addresses, so the sentinel type is irrelevant.
+		begin
+			automatic tip_iaddr_t base = pcs[0];
+			automatic tip_iaddr_t top  = pcs[pcs.size() - 1];
+			automatic int        n_gap = 0;
+			for (tip_iaddr_t a = base; a <= top; a += len_bytes) begin
+				if (types_at.exists(a)) begin
+					automatic string t = types_at[a];
+					if (t == "L" || t == "R") begin
+						$fwrite(fd, "0x%08x,%s%0d\n", a, t, len_bytes);
+					end else begin
+						$fwrite(fd, "0x%08x,%s%0d,0x%08x\n", a, t, len_bytes, targets_at[a]);
+					end
+				end else begin
+					$fwrite(fd, "0x%08x,L%0d\n", a, len_bytes);  // gap-fill sentinel
+					n_gap++;
 				end
-				CPU_BRANCH_TAKEN: begin
-					$fwrite(fd, "0x%08x,BD%0d,0x%08x\n", event_q[i].pc, len_bytes, event_q[i].target);
-					n_written++;
-				end
-				CPU_JUMP: begin
-					$fwrite(fd, "0x%08x,JD%0d,0x%08x\n", event_q[i].pc, len_bytes, event_q[i].target);
-					n_written++;
-				end
-				CPU_UNINFERABLE_JUMP: begin
-					$fwrite(fd, "0x%08x,JI%0d,0x%08x\n", event_q[i].pc, len_bytes, event_q[i].target);
-					n_written++;
-				end
-				CPU_CALL: begin
-					$fwrite(fd, "0x%08x,CD%0d,0x%08x\n", event_q[i].pc, len_bytes, event_q[i].target);
-					n_written++;
-				end
-				CPU_RET, CPU_MRET: begin
-					$fwrite(fd, "0x%08x,R%0d\n", event_q[i].pc, len_bytes);
-					n_written++;
-				end
-				CPU_INTERRUPT, CPU_EXCEPTION: begin
-					$fwrite(fd, "0x%08x,E%0d,0x%08x\n", event_q[i].pc, len_bytes, event_q[i].target);
-					n_written++;
-				end
-				// CPU_ENTER, CPU_EXIT, CPU_CSR_WRITE, CPU_CSR_READ: skipped
-				default: ;
-			endcase
+				n_written++;
+			end
+			if (n_gap > 0)
+				$display("*** INFO (%m, line %0d) nexrv_info: %0d gap-fill L sentinels inserted",
+					`__LINE__, n_gap);
 		end
 		$fclose(fd);
 		$display("*** INFO (%m, line %0d) nexrv_info saved to %s (%0d entries)",
@@ -489,9 +554,33 @@ module cpu_model #(
 		return n_written;
 	endfunction
 
+	// Execution-ordered list of PCs the cpu_model actually retired (no
+	// dedup, no sort, no gap-fill). This is the reference the NexRv
+	// decoder output is compared against.
+	function automatic int write_expected_pcs(input string path);
+		int fd;
+		int n_written = 0;
+		if (path == "") return 0;
+		fd = $fopen(path, "w");
+		if (fd == 0) begin
+			$error("[cpu_model] failed to open '%s' for expected-PC write", path);
+			return 0;
+		end
+		foreach (event_q[i]) begin
+			if (pcinfo_type_str(event_q[i].kind) == "") continue;
+			$fwrite(fd, "0x%08x\n", event_q[i].pc);
+			n_written++;
+		end
+		$fclose(fd);
+		$display("*** INFO (%m, line %0d) expected_pcs saved to %s (%0d entries)",
+			`__LINE__, path, n_written);
+		return n_written;
+	endfunction
+
 	// Auto-write on simulation end if a path was supplied.
 	final begin
-		if (NEXRV_INFO_PATH != "") void'(write_nexrv_info(NEXRV_INFO_PATH));
+		if (NEXRV_INFO_PATH != "")   void'(write_nexrv_info(NEXRV_INFO_PATH));
+		if (EXPECTED_PCS_PATH != "") void'(write_expected_pcs(EXPECTED_PCS_PATH));
 	end
 
 	// ------------------------------------------------------------------

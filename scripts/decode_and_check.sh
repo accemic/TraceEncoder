@@ -38,10 +38,11 @@ fi
 
 atb_bin="$sim_dir/${test_name}.atb.bin"
 pcinfo="$sim_dir/${test_name}.nexrv.info"
+expected="$sim_dir/${test_name}.expected.pcs"
 pcout="$sim_dir/${test_name}.decoded.pcout"
 log="$sim_dir/${test_name}.nexrv.log"
 
-for f in "$atb_bin" "$pcinfo"; do
+for f in "$atb_bin" "$pcinfo" "$expected"; do
     if [ ! -s "$f" ]; then
         echo "[decode] ERROR: missing or empty: $f"
         exit 2
@@ -64,10 +65,11 @@ if [ ! -s "$pcout" ]; then
     exit 3
 fi
 
-# Extract the address column from both files and compare.
-exp_pcs="$sim_dir/${test_name}.expected.pcs"
+# Extract the address column from the decoded pcout. The expected
+# sequence (execution-ordered, no gap-fill) was already produced by
+# cpu_model in `$expected`.
+exp_pcs="$expected"
 got_pcs="$sim_dir/${test_name}.decoded.pcs"
-cut -d, -f1 "$pcinfo" > "$exp_pcs"
 cut -d, -f1 "$pcout"  > "$got_pcs"
 
 n_exp=$(wc -l < "$exp_pcs")

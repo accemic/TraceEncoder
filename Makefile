@@ -12,7 +12,7 @@ SHELL := /bin/bash
 
 NOT_IMPL = @echo "[$@] not implemented yet — skeleton release. See CLAUDE.md."
 
-.PHONY: help rdl sim sim-basic sim-overflow lint format doc clean
+.PHONY: help rdl sim sim-basic sim-interrupts sim-overflow lint format doc clean
 
 ## help: List available targets.
 help:
@@ -26,12 +26,17 @@ rdl:
 	$(NOT_IMPL)
 
 ## sim:    Run all top-level testbenches; sim phase + NexRv decode check per test.
-sim: sim-basic sim-overflow
+sim: sim-basic sim-interrupts sim-overflow
 
 ## sim-basic: tests/instruction/01_basic — sim + NexRv decode + address match.
 sim-basic: | bld
 	@cd bld && abc -sim ../tests/instruction/01_basic/basic_tb.abc
 	@scripts/decode_and_check.sh basic_tb
+
+## sim-interrupts: tests/instruction/02_interrupts — sim + NexRv decode + address match.
+sim-interrupts: | bld
+	@cd bld && abc -sim ../tests/instruction/02_interrupts/interrupts_tb.abc
+	@scripts/decode_and_check.sh interrupts_tb
 
 ## sim-overflow: tests/overflow/01_run_overflow_reset — sim + NexRv decode (soft).
 ##                Soft mode: overflow tests intentionally lose trace bytes
