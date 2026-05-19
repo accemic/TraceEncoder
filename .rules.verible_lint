@@ -1,0 +1,12 @@
++always-comb-blocking
++always-ff-non-blocking=catch_modifying_assignments:on;waive_for_locals:on
++module-begin-block
++parameter-name-style=localparam_style:ALL_CAPS;parameter_style:ALL_CAPS
++module-filename
++module-parameter   
++module-begin-block
++mismatched-labels
++invalid-system-task-function
++forbid-consecutive-null-statements
++plusarg-assignment
++void-cast

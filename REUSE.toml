@@ -32,3 +32,12 @@ path = "bin/NexRv"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
 SPDX-License-Identifier = "CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial"
+
+# Verible lint rule files. The format is a bare list of +rule / -rule
+# lines and doesn't accept in-file comments without risking parser
+# rejection, so license info lives here.
+[[annotations]]
+path = "**/.rules.verible_lint"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
+SPDX-License-Identifier = "CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial"

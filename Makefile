@@ -49,9 +49,9 @@ sim-overflow: | bld
 bld:
 	@mkdir -p bld
 
-## lint:   Run verible-verilog-lint over rtl/ and tests/.
+## lint:   Run verible-verilog-lint over rtl/ and tests/ (rules in .rules.verible_lint).
 lint:
-	$(NOT_IMPL)
+	@scripts/lint.sh
 
 ## format: Run verible-verilog-format in-place over rtl/ and tests/.
 format:
