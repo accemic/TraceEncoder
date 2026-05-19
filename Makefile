@@ -25,22 +25,21 @@ help:
 rdl:
 	$(NOT_IMPL)
 
-## sim:    Run all top-level testbenches under tests/ via abc -sim (artifacts in bld/).
-sim: | bld
-	@cd bld && \
-	  for tb in ../tests/instruction/01_basic/basic_tb.abc \
-	            ../tests/overflow/01_run_overflow_reset/run_overflow_reset_tb.abc; do \
-	    echo "==> abc -sim $$tb"; \
-	    abc -sim $$tb || exit $$?; \
-	  done
+## sim:    Run all top-level testbenches; sim phase + NexRv decode check per test.
+sim: sim-basic sim-overflow
 
-## sim-basic: Run only tests/instruction/01_basic/.
+## sim-basic: tests/instruction/01_basic — sim + NexRv decode + address match.
 sim-basic: | bld
 	@cd bld && abc -sim ../tests/instruction/01_basic/basic_tb.abc
+	@scripts/decode_and_check.sh basic_tb
 
-## sim-overflow: Run only tests/overflow/01_run_overflow_reset/.
+## sim-overflow: tests/overflow/01_run_overflow_reset — sim + NexRv decode (soft).
+##                Soft mode: overflow tests intentionally lose trace bytes
+##                during the stall window, so address mismatches are
+##                reported but not treated as test failures.
 sim-overflow: | bld
 	@cd bld && abc -sim ../tests/overflow/01_run_overflow_reset/run_overflow_reset_tb.abc
+	@scripts/decode_and_check.sh --soft run_overflow_reset_tb
 
 bld:
 	@mkdir -p bld

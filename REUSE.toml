@@ -22,3 +22,13 @@ path = "tests/legacy/fixtures/**"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2025 Accemic Technologies GmbH"
 SPDX-License-Identifier = "CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial"
+
+# Vendored NexRv reference decoder binary. Pre-release; upstream will
+# live at https://github.com/accemic/NexRv. License will be confirmed
+# against upstream when it publishes; the dual-license expression is
+# applied here in the meantime for REUSE compliance.
+[[annotations]]
+path = "bin/NexRv"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
+SPDX-License-Identifier = "CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial"

@@ -60,7 +60,14 @@ module cpu_model #(
 	parameter int CYCLES_PER_INSTR = 4,
 	// Default size of a retired instruction, in log2(halfwords) per spec.
 	// 1 = 32-bit (RV32I), 0 = 16-bit (RVC). Tests can override per-task.
-	parameter int DEFAULT_ILASTSIZE = 1
+	parameter int DEFAULT_ILASTSIZE = 1,
+	// Optional path for a NexRv PCInfo file derived from the scripted
+	// scenario. Format (one line per retired instruction):
+	//   0x<src_pc>,<type><length_bytes>[,0x<target_pc>]
+	// Type codes (NexRv): L=Linear, BD=Branch Direct, JD=Jump Direct,
+	// JI=Jump Indirect, CD=Call Direct, CI=Call Indirect, R=Return,
+	// E=Exception, XX=Unknown. Written on simulation end. Empty = no file.
+	parameter string NEXRV_INFO_PATH = ""
 ) (
 	input  uwire logic clk,    // tip_clk
 	input  uwire logic rst,    // tip_rst (active high)
@@ -408,6 +415,84 @@ module cpu_model #(
 		r_context = ctx;
 		r_ctype   = ct;
 	endtask
+
+	// ------------------------------------------------------------------
+	// NexRv PCInfo writer
+	//
+	// Walks event_q and produces a NexRv-format PCInfo file describing
+	// the scripted scenario as a sequence of retired instructions. The
+	// NexRv reference decoder uses this file as its "program memory"
+	// when validating encoder output messages.
+	//
+	// Type-code mapping (matches tip_pkg::GetPCInfoType in the encoder):
+	//   CPU_RUN, CPU_LOAD, CPU_STORE, CPU_BRANCH_NOT_TAKEN  -> L
+	//   CPU_BRANCH_TAKEN                                    -> BD
+	//   CPU_JUMP                                            -> JD
+	//   CPU_UNINFERABLE_JUMP                                -> JI
+	//   CPU_CALL                                            -> CD
+	//   CPU_RET, CPU_MRET                                   -> R
+	//   CPU_INTERRUPT, CPU_EXCEPTION                        -> E
+	//   CPU_ENTER, CPU_EXIT, CPU_CSR_*                      -> skipped
+	//
+	// Length is `1 << (DEFAULT_ILASTSIZE + 1)` bytes (4 for RV32I,
+	// 2 for RVC). All instructions in the current scenario share the
+	// same length; extend the event_q to carry per-event size if RVC
+	// support is needed.
+	// ------------------------------------------------------------------
+	function automatic int write_nexrv_info(input string path);
+		int fd;
+		int n_written = 0;
+		int unsigned len_bytes = 1 << (DEFAULT_ILASTSIZE + 1);
+		if (path == "") return 0;
+		fd = $fopen(path, "w");
+		if (fd == 0) begin
+			$error("[cpu_model] failed to open '%s' for NexRv info write", path);
+			return 0;
+		end
+		foreach (event_q[i]) begin
+			case (event_q[i].kind)
+				CPU_RUN, CPU_LOAD, CPU_STORE, CPU_BRANCH_NOT_TAKEN: begin
+					$fwrite(fd, "0x%08x,L%0d\n", event_q[i].pc, len_bytes);
+					n_written++;
+				end
+				CPU_BRANCH_TAKEN: begin
+					$fwrite(fd, "0x%08x,BD%0d,0x%08x\n", event_q[i].pc, len_bytes, event_q[i].target);
+					n_written++;
+				end
+				CPU_JUMP: begin
+					$fwrite(fd, "0x%08x,JD%0d,0x%08x\n", event_q[i].pc, len_bytes, event_q[i].target);
+					n_written++;
+				end
+				CPU_UNINFERABLE_JUMP: begin
+					$fwrite(fd, "0x%08x,JI%0d,0x%08x\n", event_q[i].pc, len_bytes, event_q[i].target);
+					n_written++;
+				end
+				CPU_CALL: begin
+					$fwrite(fd, "0x%08x,CD%0d,0x%08x\n", event_q[i].pc, len_bytes, event_q[i].target);
+					n_written++;
+				end
+				CPU_RET, CPU_MRET: begin
+					$fwrite(fd, "0x%08x,R%0d\n", event_q[i].pc, len_bytes);
+					n_written++;
+				end
+				CPU_INTERRUPT, CPU_EXCEPTION: begin
+					$fwrite(fd, "0x%08x,E%0d,0x%08x\n", event_q[i].pc, len_bytes, event_q[i].target);
+					n_written++;
+				end
+				// CPU_ENTER, CPU_EXIT, CPU_CSR_WRITE, CPU_CSR_READ: skipped
+				default: ;
+			endcase
+		end
+		$fclose(fd);
+		$display("*** INFO (%m, line %0d) nexrv_info saved to %s (%0d entries)",
+			`__LINE__, path, n_written);
+		return n_written;
+	endfunction
+
+	// Auto-write on simulation end if a path was supplied.
+	final begin
+		if (NEXRV_INFO_PATH != "") void'(write_nexrv_info(NEXRV_INFO_PATH));
+	end
 
 	// ------------------------------------------------------------------
 	// Debug print

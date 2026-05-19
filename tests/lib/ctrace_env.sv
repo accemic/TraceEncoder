@@ -41,7 +41,12 @@ module ctrace_env #(
 	// retired control-flow event, source PC + type + target). Useful
 	// for cross-checking the cpu_model's drive against what the
 	// encoder ingested. Empty = no dump.
-	string TIP_DUMP_TXT_PATH = ""
+	string TIP_DUMP_TXT_PATH = "",
+	// Optional: NexRv PCInfo file derived from the cpu_model event
+	// log. Same address-by-address format the original tip_generator
+	// emitted; suitable as input to the NexRv reference decoder.
+	// Empty = no file.
+	string NEXRV_INFO_PATH   = ""
 ) ();
 
 	// ------------------------------------------------------------------
@@ -107,7 +112,10 @@ module ctrace_env #(
 	// ------------------------------------------------------------------
 	// TIP stimulus — scripted CPU model
 	// ------------------------------------------------------------------
-	cpu_model #(.CYCLES_PER_INSTR(CYCLES_PER_INSTR)) cpu (
+	cpu_model #(
+		.CYCLES_PER_INSTR (CYCLES_PER_INSTR),
+		.NEXRV_INFO_PATH  (NEXRV_INFO_PATH)
+	) cpu (
 		.clk (tip_clk),
 		.rst (tip_rst),
 		.tip (tip.master)
@@ -144,8 +152,18 @@ module ctrace_env #(
 
 	// Always-ready ATB sink. atb_if's slave-driven signals (atready,
 	// afready) are tied high so the sink unconditionally accepts.
+	//
+	// `atb_force_flush` (-> afvalid) and `atb_force_sync` (-> syncreq)
+	// give tests an end-of-scenario hook to force the encoder to drain
+	// its pipeline, so the offline NexRv decode sees a complete trace.
+	// Both default to 0 and are forwarded back through the stall
+	// injector to ct_encoder's ATB master-side inputs.
+	logic atb_force_flush = 0;
+	logic atb_force_sync  = 0;
 	assign atb_dn.atready = 1'b1;
 	assign atb_dn.afready = 1'b1;
+	assign atb_dn.afvalid = atb_force_flush;
+	assign atb_dn.syncreq = atb_force_sync;
 
 	// ------------------------------------------------------------------
 	// AXIS always-ready slave

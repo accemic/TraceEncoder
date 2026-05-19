@@ -33,7 +33,8 @@ module run_overflow_reset_tb;
 		.SPLIT_DATA_ACCESS  (0),
 		.CYCLES_PER_INSTR   (4),
 		.ATB_DUMP_PATH      ("run_overflow_reset_tb.atb.bin"),
-		.TIP_DUMP_TXT_PATH  ("run_overflow_reset_tb.tip.txt")
+		.TIP_DUMP_TXT_PATH  ("run_overflow_reset_tb.tip.txt"),
+		.NEXRV_INFO_PATH    ("run_overflow_reset_tb.nexrv.info")
 	) env ();
 
 	int bytes_after_A;
@@ -126,6 +127,8 @@ module run_overflow_reset_tb;
 		$system("realpath run_overflow_reset_tb.atb.bin");
 		$display("[overflow_tb] TIP text dump:");
 		$system("realpath run_overflow_reset_tb.tip.txt");
+		$display("[overflow_tb] NexRv PCInfo:");
+		$system("realpath run_overflow_reset_tb.nexrv.info");
 		$finish;
 	end
 

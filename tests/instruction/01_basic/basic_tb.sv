@@ -35,7 +35,10 @@ module basic_tb;
 		// the encoder produced).
 		.ATB_DUMP_PATH      ("basic_tb.atb.bin"),
 		// Secondary artifact: per-instruction TIP text log.
-		.TIP_DUMP_TXT_PATH  ("basic_tb.tip.txt")
+		.TIP_DUMP_TXT_PATH  ("basic_tb.tip.txt"),
+		// NexRv PCInfo derived from the cpu_model event log — drop-in
+		// input for the NexRv reference decoder.
+		.NEXRV_INFO_PATH    ("basic_tb.nexrv.info")
 	) env ();
 
 	initial begin
@@ -92,8 +95,23 @@ module basic_tb;
 
 		env.cpu.exit_trace();
 
-		// Drain any in-flight messages
+		// Drain: force the encoder to flush its pipeline so the
+		// offline NexRv decode sees a complete trace.
+		//   - InstSyncReq (CSR) requests a sync message
+		//   - atb_force_sync (ATB syncreq) asks the encoder to emit a
+		//     sync, which trailing-flushes pending history bits
+		//   - atb_force_flush (ATB afvalid) signals the sink wants to
+		//     flush; encoder drains its message-gen FIFO
+		// Then deactivate tracing and wait for the pipeline to empty.
+		env.csr.Set_te_trTeControl_InstSyncReq(1'b1);
+		env.wait_cycles(200);
+		env.atb_force_sync  = 1'b1;
+		env.atb_force_flush = 1'b1;
 		env.wait_cycles(2000);
+		env.atb_force_sync  = 1'b0;
+		env.atb_force_flush = 1'b0;
+		env.csr.Set_te_trTeControl_Active(1'b0);
+		env.wait_cycles(10000);
 
 		// ---- Sanity checks (placeholder scoreboard) ----------------
 		if (env.cpu.event_count() == 0) begin
@@ -116,6 +134,8 @@ module basic_tb;
 		$system("realpath basic_tb.atb.bin");
 		$display("[basic_tb] TIP text dump:");
 		$system("realpath basic_tb.tip.txt");
+		$display("[basic_tb] NexRv PCInfo:");
+		$system("realpath basic_tb.nexrv.info");
 		$finish;
 	end
 
