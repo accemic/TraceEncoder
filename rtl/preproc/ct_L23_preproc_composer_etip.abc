@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+import  @rtl/pkg : ct_act_cap_if tip_if ct_cs_cpuif_pkg ct_cs_cpuif_types_pkg nexus_vendor_riscv_pkg ct_etip_pkg ct_preproc_if ct_pkg
+import	@rtl/external/stream          : sink_if  source_if  cvsink_if  cvsource_if2  ovf_injector  cvs_fifo2  cvs_cdc_fifo2
+import	@rtl/external/memory/fifo     : fifo2clk_fwft
+import  @rtl/external/common          : signal_cdc  signal_ack_lock_fsm
+
+read_sv	ct_L23_preproc_composer_etip.sv

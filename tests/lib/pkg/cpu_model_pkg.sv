@@ -1,0 +1,78 @@
+// vim: set ts=4 et:
+// -*- indent-tabs-mode: t; tab-width: 4 -*-
+/**
+* Copyright (c) 2026 Accemic Technologies GmbH
+* SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+*
+* @brief    Types for the scripted CPU model that drives the TIP interface.
+*
+* @details
+*   `cpu_model` (tests/lib/cpu_model.sv) presents a task-based API
+*   (.enter(), .run(), .branch_taken(), .call_to(), .ret(), .load(),
+*   .store(), .interrupt(), ...) that mimics a RISC-V core.
+*
+*   Each task does two things:
+*     (1) drives the encoder's TIP interface with the right itype /
+*         iaddr / daddr / ... signals;
+*     (2) appends a high-level event record to an in-sim event queue
+*         that the scoreboard consumes.
+*
+*   The fact that the encoder's decoded output and the cpu_model's
+*   event queue must agree IS the test. No real binary, no instruction
+*   memory, no DPI required.
+*/
+
+package cpu_model_pkg;
+
+	import tip_pkg::*;
+
+	typedef enum int {
+		CPU_ENTER,                  // tracing region begins
+		CPU_EXIT,                   // tracing region ends
+		CPU_RUN,                    // a single linear instruction retired
+		CPU_JUMP,                   // direct (inferable) jump
+		CPU_BRANCH_TAKEN,
+		CPU_BRANCH_NOT_TAKEN,
+		CPU_CALL,                   // inferable call (push return addr)
+		CPU_RET,                    // return (pop)
+		CPU_UNINFERABLE_JUMP,       // indirect / computed jump
+		CPU_INTERRUPT,              // asynchronous interrupt taken
+		CPU_EXCEPTION,              // synchronous exception trap
+		CPU_MRET,                   // exception/interrupt return
+		CPU_LOAD,                   // data load retired
+		CPU_STORE,                  // data store retired
+		CPU_CSR_WRITE,              // CSR write — drives HSI events
+		CPU_CSR_READ
+	} cpu_event_kind_e;
+
+	typedef struct {
+		cpu_event_kind_e kind;
+		tip_iaddr_t      pc;        // PC at which the event happened
+		tip_iaddr_t      target;    // jump/call/branch target; exception handler; load/store addr; csr addr
+		longint unsigned payload;   // data, cause, csr value, etc.
+		int unsigned     size;      // for loads/stores (2^size bytes)
+	} cpu_event_t;
+
+	function automatic string event_kind_str(cpu_event_kind_e k);
+		case (k)
+			CPU_ENTER:               return "ENTER";
+			CPU_EXIT:                return "EXIT";
+			CPU_RUN:                 return "RUN";
+			CPU_JUMP:                return "JUMP";
+			CPU_BRANCH_TAKEN:        return "BRANCH_TAKEN";
+			CPU_BRANCH_NOT_TAKEN:    return "BRANCH_NOT_TAKEN";
+			CPU_CALL:                return "CALL";
+			CPU_RET:                 return "RET";
+			CPU_UNINFERABLE_JUMP:    return "UNINFERABLE_JUMP";
+			CPU_INTERRUPT:           return "INTERRUPT";
+			CPU_EXCEPTION:           return "EXCEPTION";
+			CPU_MRET:                return "MRET";
+			CPU_LOAD:                return "LOAD";
+			CPU_STORE:               return "STORE";
+			CPU_CSR_WRITE:           return "CSR_WRITE";
+			CPU_CSR_READ:            return "CSR_READ";
+			default:                 return "UNKNOWN";
+		endcase
+	endfunction
+
+endpackage : cpu_model_pkg

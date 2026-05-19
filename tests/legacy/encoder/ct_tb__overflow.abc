@@ -1,0 +1,52 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+import	@rtl/pkg : tip_if tip_pkg ct_cs_if ct_cs_cpuif_pkg ct_cs_cpuif_wb ct_cs_cpuif_wb_pkg
+import	@tests/lib : ct_cs_cpuif_wb_helper
+import	@rtl         : ct_encoder
+import	@tests/lib        : ct_nexus_decoder  ct_axis_dump
+import	@rtl/external/wishbone           : wb_package
+import	@rtl/external/amba               : axis_if  atb_if
+import  @rtl/external/testtools          : tt
+
+read_sim  ct_tb__overflow.sv
+
+set timeout_cycles 200000
+set atb_stall_start_cycles 16
+set atb_stall_cycles 4096
+set drain_cycles 512
+set drive_mode 1
+
+if {[info exists ::env(CT_TIMEOUT_CYCLES)] && ($::env(CT_TIMEOUT_CYCLES) ne "")} {
+	set timeout_cycles $::env(CT_TIMEOUT_CYCLES)
+}
+if {[info exists ::env(CT_DRIVE_MODE)] && ($::env(CT_DRIVE_MODE) ne "")} {
+	set drive_mode $::env(CT_DRIVE_MODE)
+}
+# CF (1) / MIXED (2) back up much more state on the ATB than DF (0), so
+# default to a shorter stimulus - just long enough to outlast the stall
+# window so msgs_after_recovery > 0 can still be observed.
+if {$drive_mode == 0} {
+	set drive_cycles 30000
+} else {
+	set drive_cycles 22000
+}
+if {[info exists ::env(CT_DRIVE_CYCLES)] && ($::env(CT_DRIVE_CYCLES) ne "")} {
+	set drive_cycles $::env(CT_DRIVE_CYCLES)
+}
+if {[info exists ::env(CT_ATB_STALL_START_CYCLES)] && ($::env(CT_ATB_STALL_START_CYCLES) ne "")} {
+	set atb_stall_start_cycles $::env(CT_ATB_STALL_START_CYCLES)
+}
+if {[info exists ::env(CT_ATB_STALL_CYCLES)] && ($::env(CT_ATB_STALL_CYCLES) ne "")} {
+	set atb_stall_cycles $::env(CT_ATB_STALL_CYCLES)
+}
+if {[info exists ::env(CT_DRAIN_CYCLES)] && ($::env(CT_DRAIN_CYCLES) ne "")} {
+	set drain_cycles $::env(CT_DRAIN_CYCLES)
+}
+if {[info exists ::env(CT_DRIVE_MODE)] && ($::env(CT_DRIVE_MODE) ne "")} {
+	set drive_mode $::env(CT_DRIVE_MODE)
+}
+
+set_property -name {xsim.simulate.xsim.more_options} -value  [list  -testplusarg "CT_TIMEOUT_CYCLES=$timeout_cycles"  -testplusarg "CT_DRIVE_CYCLES=$drive_cycles"  -testplusarg "CT_ATB_STALL_START_CYCLES=$atb_stall_start_cycles"  -testplusarg "CT_ATB_STALL_CYCLES=$atb_stall_cycles"  -testplusarg "CT_DRAIN_CYCLES=$drain_cycles"  -testplusarg "CT_DRIVE_MODE=$drive_mode"  ] -objects [current_fileset -simset]
+
+simulate  ct_tb__overflow

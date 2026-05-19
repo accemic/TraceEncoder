@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+import	@rtl/pkg : tip_if tip_pkg ct_cs_if ct_cs_cpuif_pkg ct_perfcnt_if ct_perfcnt_pkg
+import	@tests/lib/pkg : tip_utils_pkg
+import	@rtl/preproc : ct_L23_preproc_perfcnt
+import  @rtl/external/testtools          : tt
+
+# Check Simulation
+read_sim	ct_L23_preproc_perfcnt_tb.sv
+simulate	ct_L23_preproc_perfcnt_tb

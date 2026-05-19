@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+import	@rtl/pkg : tip_if tip_pkg ct_cs_if ct_cs_cpuif_pkg ct_cs_cpuif_types_pkg ct_cs_cpuif_wb ct_pkg ct_comp_filters_pkg
+import	@tests/lib/pkg : tip_utils_pkg
+import	@rtl         : ct_L23_preproc
+import	@rtl/external/wishbone           : wb_package
+import	@rtl/external/wishbone/test      : wb_helper
+import	@rtl/external/amba               : axis_if  atb_if
+import  @rtl/external/testtools          : tt
+import  @rtl/external/common             : math_pkg
+
+# Check Simulation
+read_sim	ct_L23_preproc_tb.sv
+simulate	ct_L23_preproc_tb

@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+# Wishbone CSR programming helper for tests. The committed
+# ct_cs_cpuif_wb_helper.sv is the source of truth at build time;
+# regeneration logic was stripped pending the C-Trace path rewrites.
+
+import @rtl/pkg               : tip_pkg ct_cs_cpuif_wb_pkg
+import @rtl/external/wishbone : wb_package
+
+read_sim ct_cs_cpuif_wb_helper.sv

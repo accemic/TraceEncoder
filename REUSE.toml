@@ -14,3 +14,11 @@ path = ["VERSION", "**/.gitkeep"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
 SPDX-License-Identifier = "CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial"
+
+# Trace-replay fixtures captured from real runs. Binary / opaque dumps
+# carry no in-file header; license info is recorded here.
+[[annotations]]
+path = "tests/legacy/fixtures/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2025 Accemic Technologies GmbH"
+SPDX-License-Identifier = "CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial"

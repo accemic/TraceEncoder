@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+import @rtl/pkg                : tip_if tip_pkg
+import @rtl/external/amba      : atb_if axis_if
+import @rtl/external/amba/test : atb_stall_injector atb_dump
+import @rtl/external/wishbone  : wb_package
+import @rtl                    : ct_encoder
+import @tests/lib              : cpu_model ct_cs_cpuif_wb_helper tip_dump
+
+read_sim ctrace_env.sv

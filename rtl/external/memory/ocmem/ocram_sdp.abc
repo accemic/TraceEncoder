@@ -1,0 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+import	ocram_write_if ocram_read_if
+read_sv	ocram_sdp.sv
+constraints impl ocram_sdp.xdc

@@ -1,0 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+import	cvsink_if cvsource_if
+import	../memory/fifo/fifo1clk_fwft
+read_sv	cvs_fifo.sv

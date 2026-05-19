@@ -12,7 +12,7 @@ SHELL := /bin/bash
 
 NOT_IMPL = @echo "[$@] not implemented yet — skeleton release. See CLAUDE.md."
 
-.PHONY: help rdl sim lint format doc clean
+.PHONY: help rdl sim sim-basic sim-overflow lint format doc clean
 
 ## help: List available targets.
 help:
@@ -25,9 +25,25 @@ help:
 rdl:
 	$(NOT_IMPL)
 
-## sim:    Run all testbenches (per-module under rtl/<module>/test/, system tests under tests/).
-sim:
-	$(NOT_IMPL)
+## sim:    Run all top-level testbenches under tests/ via abc -sim (artifacts in bld/).
+sim: | bld
+	@cd bld && \
+	  for tb in ../tests/instruction/01_basic/basic_tb.abc \
+	            ../tests/overflow/01_run_overflow_reset/run_overflow_reset_tb.abc; do \
+	    echo "==> abc -sim $$tb"; \
+	    abc -sim $$tb || exit $$?; \
+	  done
+
+## sim-basic: Run only tests/instruction/01_basic/.
+sim-basic: | bld
+	@cd bld && abc -sim ../tests/instruction/01_basic/basic_tb.abc
+
+## sim-overflow: Run only tests/overflow/01_run_overflow_reset/.
+sim-overflow: | bld
+	@cd bld && abc -sim ../tests/overflow/01_run_overflow_reset/run_overflow_reset_tb.abc
+
+bld:
+	@mkdir -p bld
 
 ## lint:   Run verible-verilog-lint over rtl/ and tests/.
 lint:

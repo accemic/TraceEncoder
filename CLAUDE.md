@@ -144,3 +144,7 @@ Until these are decided, follow the global `~/.claude/CLAUDE.md` rules
 
 If a task starts to touch any of these, propose a separate branch and
 clarify scope with the user first.
+
+## Other / Manual
+
+Simulations must be run always from the gitignored bld/ directory.
