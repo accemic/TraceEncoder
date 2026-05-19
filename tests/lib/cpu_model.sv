@@ -74,7 +74,14 @@ module cpu_model #(
 	// file, one PC per line in the order the cpu_model executed them.
 	// This is what the decoded NexRv output should match
 	// line-for-line. Empty = no file.
-	parameter string EXPECTED_PCS_PATH  = ""
+	parameter string EXPECTED_PCS_PATH  = "",
+	// Optional path for an execution-ordered "expected data trace"
+	// file. One line per data access:
+	//   LOAD|STORE,0x<daddr>,<size_bytes>
+	// Used by scripts/decode_and_check_data.sh to verify the encoder
+	// emitted exactly the load/store sequence the cpu_model issued.
+	// Empty = no file.
+	parameter string EXPECTED_DATA_PATH = ""
 ) (
 	input  uwire logic clk,    // tip_clk
 	input  uwire logic rst,    // tip_rst (active high)
@@ -577,10 +584,44 @@ module cpu_model #(
 		return n_written;
 	endfunction
 
+	// Execution-ordered list of data accesses the cpu_model issued.
+	// Format per line:  LOAD|STORE,0x<daddr>,<size_bytes>
+	// size_bytes is in DECIMAL (1/2/4/8) — same encoding NexRv prints
+	// in its data-message decode, so the two are diff-able as-is.
+	function automatic int write_expected_data(input string path);
+		int fd;
+		int n_written = 0;
+		if (path == "") return 0;
+		fd = $fopen(path, "w");
+		if (fd == 0) begin
+			$error("[cpu_model] failed to open '%s' for expected-data write", path);
+			return 0;
+		end
+		foreach (event_q[i]) begin
+			automatic int unsigned size_bytes = 1 << event_q[i].size;
+			case (event_q[i].kind)
+				CPU_LOAD:  begin
+					$fwrite(fd, "LOAD,0x%08x,%0d\n", event_q[i].target, size_bytes);
+					n_written++;
+				end
+				CPU_STORE: begin
+					$fwrite(fd, "STORE,0x%08x,%0d\n", event_q[i].target, size_bytes);
+					n_written++;
+				end
+				default: ;
+			endcase
+		end
+		$fclose(fd);
+		$display("*** INFO (%m, line %0d) expected_data saved to %s (%0d entries)",
+			`__LINE__, path, n_written);
+		return n_written;
+	endfunction
+
 	// Auto-write on simulation end if a path was supplied.
 	final begin
-		if (NEXRV_INFO_PATH != "")   void'(write_nexrv_info(NEXRV_INFO_PATH));
-		if (EXPECTED_PCS_PATH != "") void'(write_expected_pcs(EXPECTED_PCS_PATH));
+		if (NEXRV_INFO_PATH    != "") void'(write_nexrv_info(NEXRV_INFO_PATH));
+		if (EXPECTED_PCS_PATH  != "") void'(write_expected_pcs(EXPECTED_PCS_PATH));
+		if (EXPECTED_DATA_PATH != "") void'(write_expected_data(EXPECTED_DATA_PATH));
 	end
 
 	// ------------------------------------------------------------------

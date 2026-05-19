@@ -50,7 +50,11 @@ module ctrace_env #(
 	// Optional: execution-ordered list of PCs the cpu_model retired,
 	// one per line. Used as the reference by the NexRv decode-check
 	// script (the decoded .pcout should match this line-for-line).
-	string EXPECTED_PCS_PATH = ""
+	string EXPECTED_PCS_PATH  = "",
+	// Optional: execution-ordered list of data accesses (LOAD/STORE,
+	// addr, size). Used by decode_and_check_data.sh to verify the
+	// encoder emitted the expected DataRead/DataWrite messages.
+	string EXPECTED_DATA_PATH = ""
 ) ();
 
 	// ------------------------------------------------------------------
@@ -117,9 +121,10 @@ module ctrace_env #(
 	// TIP stimulus — scripted CPU model
 	// ------------------------------------------------------------------
 	cpu_model #(
-		.CYCLES_PER_INSTR   (CYCLES_PER_INSTR),
-		.NEXRV_INFO_PATH    (NEXRV_INFO_PATH),
-		.EXPECTED_PCS_PATH  (EXPECTED_PCS_PATH)
+		.CYCLES_PER_INSTR    (CYCLES_PER_INSTR),
+		.NEXRV_INFO_PATH     (NEXRV_INFO_PATH),
+		.EXPECTED_PCS_PATH   (EXPECTED_PCS_PATH),
+		.EXPECTED_DATA_PATH  (EXPECTED_DATA_PATH)
 	) cpu (
 		.clk (tip_clk),
 		.rst (tip_rst),

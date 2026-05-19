@@ -12,7 +12,7 @@ SHELL := /bin/bash
 
 NOT_IMPL = @echo "[$@] not implemented yet — skeleton release. See CLAUDE.md."
 
-.PHONY: help rdl sim sim-basic sim-interrupts sim-overflow lint format doc clean
+.PHONY: help rdl sim sim-basic sim-interrupts sim-data-basic sim-overflow lint format doc clean
 
 ## help: List available targets.
 help:
@@ -26,7 +26,7 @@ rdl:
 	$(NOT_IMPL)
 
 ## sim:    Run all top-level testbenches; sim phase + NexRv decode check per test.
-sim: sim-basic sim-interrupts sim-overflow
+sim: sim-basic sim-interrupts sim-data-basic sim-overflow
 
 ## sim-basic: tests/instruction/01_basic — sim + NexRv decode + address match.
 sim-basic: | bld
@@ -37,6 +37,14 @@ sim-basic: | bld
 sim-interrupts: | bld
 	@cd bld && abc -sim ../tests/instruction/02_interrupts/interrupts_tb.abc
 	@scripts/decode_and_check.sh interrupts_tb
+
+## sim-data-basic: tests/data/01_basic — sim + NexRv data-trace check.
+##                  Instruction trace is OFF in this scenario; verification
+##                  compares the cpu_model's load/store sequence against
+##                  the NexRv-decoded DataRead/DataWrite messages.
+sim-data-basic: | bld
+	@cd bld && abc -sim ../tests/data/01_basic/data_basic_tb.abc
+	@scripts/decode_and_check_data.sh data_basic_tb
 
 ## sim-overflow: tests/overflow/01_run_overflow_reset — sim + NexRv decode (soft).
 ##                Soft mode: overflow tests intentionally lose trace bytes
