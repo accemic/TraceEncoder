@@ -269,14 +269,24 @@ module ct_L23_preproc_composer_etip #(
 						//   sync instruction; the next message's walk emits it
 						//   as its first PC. Carry the sync instruction's own
 						//   halfwords into the next accumulator.
-						// msg_gen picks ProgTraceSync (TCODE=9) both when tip.itype
-						// is non-CF AND unconditionally for EXIT_FROM_SYS_RST (the
-						// very first sync always uses ProgTraceSync, regardless of
-						// what happens to retire on that cycle). Both cases need
-						// the EXCLUSIVE path so that the decoder's subsequent walk
-						// (which begins at the sync PC and re-counts its halfwords)
-						// stays in sync with CurrICnt.
-						if (IsControlFlowInstruction(tip.itype)
+						// The inclusive/exclusive choice must track the message
+						// type msg_gen will emit, which keys off whether the
+						// instruction CHANGED control flow:
+						//   - HasChangedControlFlow (taken branch, jump, call,
+						//     return, trap) -> DirectBranchSync / IndirectBranchSync,
+						//     FADDR is the target -> INCLUSIVE (decoder walks the
+						//     branch and lands on the target).
+						//   - otherwise (OTHER, NOT_TAKEN_BRANCH) -> ProgTraceSync,
+						//     FADDR is the sync instruction itself -> EXCLUSIVE
+						//     (the decoder re-counts the sync instruction's
+						//     half-words on its next walk).
+						// A NOT_TAKEN_BRANCH is a control-flow instruction but does
+						// not change control flow, so it must take the EXCLUSIVE
+						// path here; msg_gen seeds its direction into the post-sync
+						// history (see send_cf_msg) so the branch is counted and
+						// resolved exactly once in the next segment. EXIT_FROM_SYS_RST
+						// is always exclusive (it never changes control flow).
+						if (HasChangedControlFlow(tip.itype)
 						 && sync.reason != NEXUS_SYNC_EXIT_FROM_SYS_RST) begin
 							etip_msg_next[msg_id_next].sub.cf.icnt = icnt_cum_next;
 							icnt_cum_next = 0;

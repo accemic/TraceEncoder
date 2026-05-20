@@ -251,6 +251,26 @@ module ct_L2_msg_gen (
 				Hist		<= 1; // pre-load the stop bit
 				HistCount	<= 1;
 
+				// A conditional branch can itself carry a sync reason — most
+				// notably the EXIT_FROM_SYS_RST sync, which is attached to the
+				// first retired instruction (often a branch). The sync path
+				// emits a ProgTraceSync and resets the history WITHOUT running
+				// the branch-HIST accumulation, so this branch's direction
+				// would be lost: the very first HIST overflow then flushes one
+				// extra branch and a following indirect branch's ICNT collapses
+				// (see tests/instruction/04_sync_indirect_collapse).
+				//
+				// Seed the fresh history with this branch's direction so the
+				// decoder can resolve it when it walks forward from the sync
+				// FADDR. The branch's half-words are carried into the next
+				// segment by the composer's EXCLUSIVE sync path (it keys off
+				// HasChangedControlFlow, which is 0 for a not-taken branch), so
+				// counting and history stay in agreement — no double count.
+				if (etip_cf.itype == TAKEN_BRANCH || etip_cf.itype == NOT_TAKEN_BRANCH) begin
+					Hist      <= (1 << 1) | (etip_cf.itype == TAKEN_BRANCH ? 1'b1 : 1'b0);
+					HistCount <= 2;
+				end
+
 					case (etip_cf.sync_reason)
 						NEXUS_SYNC_EXIT_FROM_SYS_RST: begin
 							TraceMsg.tcode <= NEXUS_MSG_PROGRAM_TRACE_SYNC;

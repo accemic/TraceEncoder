@@ -12,7 +12,7 @@ SHELL := /bin/bash
 
 NOT_IMPL = @echo "[$@] not implemented yet — skeleton release. See CLAUDE.md."
 
-.PHONY: help rdl sim sim-basic sim-interrupts sim-stress sim-data-basic sim-overflow lint format doc clean
+.PHONY: help rdl sim sim-basic sim-interrupts sim-stress sim-sync-indirect sim-data-basic sim-overflow lint format doc clean
 
 ## help: List available targets.
 help:
@@ -26,7 +26,7 @@ rdl:
 	$(NOT_IMPL)
 
 ## sim:    Run all top-level testbenches; sim phase + NexRv decode check per test.
-sim: sim-basic sim-interrupts sim-stress sim-data-basic sim-overflow
+sim: sim-basic sim-interrupts sim-stress sim-sync-indirect sim-data-basic sim-overflow
 
 ## sim-basic: tests/instruction/01_basic — sim + NexRv decode + address match.
 sim-basic: | bld
@@ -45,6 +45,16 @@ sim-interrupts: | bld
 sim-stress: | bld
 	@cd bld && abc -sim ../tests/instruction/03_stress_sync_resourcefull/stress_sync_resourcefull_tb.abc
 	@scripts/decode_and_check.sh stress_sync_resourcefull_tb
+
+## sim-sync-indirect: tests/instruction/04_sync_indirect_collapse — sim + NexRv decode (HARD).
+##              Regression gate for the IBH / sync-coincident-branch ICNT collapse:
+##              a conditional branch carrying a sync reason (e.g. the
+##              EXIT_FROM_SYS_RST on the first instruction) used to lose its HIST
+##              bit, shifting the first overflow and collapsing the following
+##              indirect branch's ICNT. Decoded PC stream must match the cpu_model.
+sim-sync-indirect: | bld
+	@cd bld && abc -sim ../tests/instruction/04_sync_indirect_collapse/sync_indirect_collapse_tb.abc
+	@scripts/decode_and_check.sh sync_indirect_collapse_tb
 
 ## sim-data-basic: tests/data/01_basic — sim + NexRv data-trace check.
 ##                  Instruction trace is OFF in this scenario; verification
