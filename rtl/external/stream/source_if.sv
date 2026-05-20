@@ -97,7 +97,7 @@ interface source_if #(
 		input  clk, input rst,
 		input valid, input q, output ack,
 		input empty, input aempty,
-		input .underrun(Underrun),
+		input Underrun,
 		input cnt_avail,
 		import have_available
 	);

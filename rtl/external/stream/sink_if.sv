@@ -86,7 +86,7 @@ interface sink_if #(
 		input  clk, input rst,
 		output full, input d, input wr,
 		output cnt_avail,
-		input .overrun(Overrun),
+		input Overrun,
 		import have_available
 	);
 
@@ -95,7 +95,7 @@ interface sink_if #(
 		input  clk, input rst,
 		input full, output d, output wr,
 		input afull,
-		input .overrun(Overrun),
+		input Overrun,
 		input cnt_avail,
 		import have_available
 	);

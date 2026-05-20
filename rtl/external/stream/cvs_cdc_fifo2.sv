@@ -56,7 +56,8 @@ module cvs_cdc_fifo2 #(
 		? '0
 		: CVS_MIN_DEPTH[$clog2(CVS_MIN_DEPTH+1)-1:0] - cvs_cnt_avail;
 
-	sink_if  #(.T(T[PO-1:0])) cdc_d (.clk (d.clk), .rst (d.rst));
+	typedef T [PO-1:0] T_vec;
+	sink_if  #(.T(T_vec)) cdc_d (.clk (d.clk), .rst (d.rst));
 
 	assign cdc_d.d    =   cvs_q.q;
 	assign cdc_d.wr   = ((cvs_q.cnt > PO-1) && !(cdc_d.full)) ?  1 : 0; 	// write PO values to CDC FIFO
@@ -64,7 +65,7 @@ module cvs_cdc_fifo2 #(
 
 	// CDC FIFO (clk -> q.clk)
 	fifo2clk_fwft #(
-		.T(T[PO-1:0]),
+		.T(T_vec),
 		.MIN_DEPTH  (CDC_MIN_DEPTH),
 		.FIFO_STYLE (CDC_FIFO_STYLE),
 		.SAFE_RESETS(SAFE_RESETS),

@@ -174,8 +174,9 @@ module ct_L23_preproc_composer_axis (
 	assign axis.tstrb   = Strb;
 	assign axis.tid     = Id;
 
-	typedef logic[axis.TDATA_WIDTH-1:0] packed_tdatawidth;
-	assign axis.tdata       = packed_tdatawidth'(DataElements);
+	for (genvar i = 0; i < NUM_ELEMENTS; i++) begin : g_tdata_pack
+		assign axis.tdata[i*ACT_CAP_DATA_WIDTH +: ACT_CAP_DATA_WIDTH] = DataElements[i];
+	end
 	assign internal_delay   = 1;
 
 endmodule
