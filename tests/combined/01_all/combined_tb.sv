@@ -19,14 +19,26 @@
 *       mid-stream, which makes the encoder transmit an instruction
 *       synchronization message.
 *
-*   Verification (offline, from the Makefile — one sim, three checks):
-*     - scripts/decode_and_check.sh       : decoded PC stream matches the
-*                                           cpu_model's executed PCs.
+*   Verification (offline, from the Makefile — one sim, three checks, all
+*   driven by the NexRv reference decoder on the ATB dump):
+*     - scripts/decode_and_check.sh       : NexRv -deco reconstructs the
+*                                           PC stream from the trace and it
+*                                           matches the cpu_model's executed
+*                                           PCs (proves the combined
+*                                           instruction trace decodes).
 *     - scripts/decode_and_check_data.sh  : decoded DataRead/DataWrite
 *                                           sequence matches the loads/stores.
-*     - scripts/decode_and_check_sync.sh  : >= 2 synchronization messages
-*                                           (startup + the CF_SYNC one;
-*                                           the final drain adds more).
+*     - scripts/decode_and_check_sync.sh  : >= 3 synchronization messages
+*                                           (startup + the mid-stream
+*                                           CF_SYNC + the final flush CF_SYNC).
+*
+*   Two CF_SYNCs are issued: one mid-stream (the feature under test, shown
+*   working amid a real instruction+data mix) and one just before exit.
+*   The latter flushes the trailing instructions into a real ProgTraceSync
+*   so NexRv -deco sees the whole functional workload — necessary here
+*   because, with periodic sync off, there is no other in-band flush (the
+*   ATB syncreq is only honoured in ITR_SYNC_ATB mode). Only the final
+*   flushing csrw itself is left undecoded (exclusive-ICNT sync semantics).
 *
 *   Configuration: instruction trace ON, data trace ON, periodic sync
 *   OFF, timestamps OFF (deterministic, minimal byte stream for the
@@ -107,6 +119,12 @@ module combined_tb;
 		                   .data(64'h0000_0000_0000_0055));       // byte store @0x2008
 		env.cpu.ret();                                           // @0x200c -> ret addr
 		env.cpu.run(8);                                          // tail linear
+		// A final CF_SYNC flushes the trailing linear run into a real
+		// ProgTraceSync message, so the offline NexRv decode sees the
+		// whole functional scenario instead of an undrained tail.
+		env.cpu.act_cap_cmd(.cmd(CMD_CF_SYNC),
+		                    .sink(SINK_NEXUS),
+		                    .direct_data(24'h0));
 
 		env.cpu.exit_trace();
 

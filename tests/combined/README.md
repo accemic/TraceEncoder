@@ -15,7 +15,7 @@ tests miss in isolation.
 
 | # | Directory | Scenario | Verification |
 |---|-----------|----------|--------------|
-| 01 | `01_all/` | Mixed workload with instruction trace + data trace + ACT-CAP instrumentation on together: linear code, a taken branch, a call and a return, varied-size loads/stores, and one `ACT_CAP_ST_CF_SYNC` (CSR-CAP initiated instruction synchronization) mid-stream. | Three offline checks on one trace: PC stream (`decode_and_check.sh`), DataRead/DataWrite sequence (`decode_and_check_data.sh`), and synchronization-message count (`decode_and_check_sync.sh`, ≥ 2: startup + CF_SYNC). `make sim-combined`, part of `make sim`. |
+| 01 | `01_all/` | Mixed workload with instruction trace + data trace + ACT-CAP instrumentation on together: linear code, a taken branch, a call and a return, varied-size loads/stores, and `ACT_CAP_ST_CF_SYNC` (CSR-CAP initiated instruction synchronization). | Three offline NexRv checks on one trace: `NexRv -deco` PC reconstruction matches the model (`decode_and_check.sh`), DataRead/DataWrite sequence matches (`decode_and_check_data.sh`), and synchronization-message count ≥ 3 (`decode_and_check_sync.sh`: startup + mid-stream CF_SYNC + final flush CF_SYNC). `make sim-combined`, part of `make sim`. |
 
 ### Deferred (future additions to 01_all or siblings)
 

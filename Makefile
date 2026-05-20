@@ -89,14 +89,18 @@ sim-hsi-csr-sync: | bld
 
 ## sim-combined: tests/combined/01_all — instruction + data + ACT-CAP sync.
 ##              Mixed workload (linear, branch, call/return, varied
-##              loads/stores, one ACT-CAP CF_SYNC). Verified three ways on the
-##              same trace: PC stream, DataRead/DataWrite sequence, and
-##              synchronization-message count (>= 2: startup + CF_SYNC).
+##              loads/stores, ACT-CAP CF_SYNC). Verified three ways on the same
+##              trace via the NexRv reference decoder:
+##                - decode_and_check.sh      : NexRv -deco reconstructs the PC
+##                                             stream and it matches the model.
+##                - decode_and_check_data.sh : DataRead/DataWrite sequence matches.
+##                - decode_and_check_sync.sh : >= 3 sync messages (startup +
+##                                             mid-stream CF_SYNC + final flush).
 sim-combined: | bld
 	@cd bld && abc -sim ../tests/combined/01_all/combined_tb.abc
 	@scripts/decode_and_check.sh combined_tb
 	@scripts/decode_and_check_data.sh combined_tb
-	@scripts/decode_and_check_sync.sh combined_tb 2
+	@scripts/decode_and_check_sync.sh combined_tb 3
 
 bld:
 	@mkdir -p bld
