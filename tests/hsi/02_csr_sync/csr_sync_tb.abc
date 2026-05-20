@@ -4,5 +4,5 @@
 import @tests/lib     : ctrace_env
 import @tests/lib/pkg : cpu_model_pkg
 
-read_sim csr_sync_xfail_tb.sv
-simulate csr_sync_xfail_tb
+read_sim csr_sync_tb.sv
+simulate csr_sync_tb

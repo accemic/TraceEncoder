@@ -110,7 +110,13 @@ module ct_L23_preproc_act_proc (
 						ct_cs_cpuif__trActCapStCmd_e__ACT_CAP_ST_DAQ_IFETCH_TH,
 						ct_cs_cpuif__trActCapStCmd_e__ACT_CAP_ST_DAQ_DATA_RD_TH,
 						ct_cs_cpuif__trActCapStCmd_e__ACT_CAP_ST_DAQ_DATA_WR,
-						ct_cs_cpuif__trActCapStCmd_e__ACT_CAP_ST_DAQ_DATA_RD: begin
+						ct_cs_cpuif__trActCapStCmd_e__ACT_CAP_ST_DAQ_DATA_RD,
+						// CF_SYNC carries no DAQ payload; it is forwarded so the
+						// eTIP composer can turn it into an instruction
+						// synchronization message (Nexus only). The composer
+						// suppresses the DAQ message for this command and the
+						// AXIS composer ignores it (default arm).
+						ct_cs_cpuif__trActCapStCmd_e__ACT_CAP_ST_CF_SYNC: begin
 							ActProcPipe[0].valid <= 1;
 							ActProcPipe[0].cmd   <= act_cap_cmd;
 							ActProcPipe[0].data  <= act_cap_data;

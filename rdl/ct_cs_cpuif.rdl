@@ -57,7 +57,7 @@ addrmap ct_cs_cpuif #(
         ACT_CAP_ST_DAQ_DATA_RD_TH    =  9 { desc = "Transmit DAQ message with count of read accesses exceeding cycle threshold per region (direct_data[7:0]), plus direct data[23:8], then reset the counter."; };
         ACT_CAP_ST_DAQ_DATA_WR       = 10 { desc = "Transmit DAQ message with count of write accesses for region (direct_data[7:0]), plus direct data[23:8], then reset the counter."; };
         ACT_CAP_ST_DAQ_DATA_RD       = 11 { desc = "Transmit DAQ message with count of read accesses for region (direct_data[7:0]), plus direct data[23:8], then reset the counter."; };
-        ACT_CAP_ST_CF_SYNC           = 12 { desc = "Transmit instruction synchronization message (Nexus message only). [NOT IMPLEMENTED]"; };
+        ACT_CAP_ST_CF_SYNC           = 12 { desc = "Transmit instruction synchronization message (Nexus message only)."; };
         ACT_CAP_ST_TE                = 13 { desc = "Set TE field (direct_data[7:0]), value: direct_data[23:8].
 //                                                  TE field 0: trTeControl.InstTracing (set/clear instruction tracing)
 //                                                  TE field 1: trTeControl.DataTracing (set/clear data tracing)

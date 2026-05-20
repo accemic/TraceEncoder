@@ -18,7 +18,7 @@ on the Nexus and/or AXIS sink). See `rdl/ct_cs_cpuif.rdl`
 | # | Directory | Scenario | Verification |
 |---|-----------|----------|--------------|
 | 01 | `01_csr_cap/` | ACT-CAP CSR-based instrumentation: `DAQ_DIRECT_DATA` issued via CSR 0x0B10, routed to the AXIS sink. | In-sim `ct_axis_decoder` (env `ENABLE_DECODERS`): asserts decoded command (TID) + payload (element 0). `make sim-hsi-csr-cap`. |
-| 02 | `02_csr_sync_xfail/` | ACT-CAP `CF_SYNC` (instruction-sync command) issued via CSR 0x0B10. **Known-failing**: the command is not implemented (see the `[NOT IMPLEMENTED]` marker in the RDL) — it should emit an instruction-sync message but does not. | Offline NexRv sync-message count (`scripts/decode_and_check_sync.sh`): requires ≥ 2 syncs (startup + CF_SYNC). Fails today; flips to pass when CF_SYNC is implemented. **Non-gating** — `make sim-hsi-csr-sync`, not part of `make sim`. |
+| 02 | `02_csr_sync/` | ACT-CAP `CF_SYNC` issued via CSR 0x0B10: requests an instruction synchronization message (Nexus only). | Offline NexRv sync-message count (`scripts/decode_and_check_sync.sh`): requires ≥ 2 syncs (startup + the one CF_SYNC produces). `make sim-hsi-csr-sync`, part of `make sim`. |
 
 ### Notes / deferred coverage
 
