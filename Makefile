@@ -12,7 +12,7 @@ SHELL := /bin/bash
 
 NOT_IMPL = @echo "[$@] not implemented yet — skeleton release. See CLAUDE.md."
 
-.PHONY: help rdl sim sim-basic sim-interrupts sim-data-basic sim-overflow lint format doc clean
+.PHONY: help rdl sim sim-basic sim-interrupts sim-stress sim-data-basic sim-overflow lint format doc clean
 
 ## help: List available targets.
 help:
@@ -26,7 +26,7 @@ rdl:
 	$(NOT_IMPL)
 
 ## sim:    Run all top-level testbenches; sim phase + NexRv decode check per test.
-sim: sim-basic sim-interrupts sim-data-basic sim-overflow
+sim: sim-basic sim-interrupts sim-stress sim-data-basic sim-overflow
 
 ## sim-basic: tests/instruction/01_basic — sim + NexRv decode + address match.
 sim-basic: | bld
@@ -37,6 +37,14 @@ sim-basic: | bld
 sim-interrupts: | bld
 	@cd bld && abc -sim ../tests/instruction/02_interrupts/interrupts_tb.abc
 	@scripts/decode_and_check.sh interrupts_tb
+
+## sim-stress: tests/instruction/03_stress_sync_resourcefull — sim + NexRv decode.
+##              Long branch stream that forces many periodic syncs and many
+##              ResourceFull (HIST_OVERFLOW) messages; the decoded PC stream
+##              must match the cpu_model exactly.
+sim-stress: | bld
+	@cd bld && abc -sim ../tests/instruction/03_stress_sync_resourcefull/stress_sync_resourcefull_tb.abc
+	@scripts/decode_and_check.sh stress_sync_resourcefull_tb
 
 ## sim-data-basic: tests/data/01_basic — sim + NexRv data-trace check.
 ##                  Instruction trace is OFF in this scenario; verification

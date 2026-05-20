@@ -24,11 +24,15 @@ test_name="${1:?usage: $0 [--soft] <test_name>}"
 repo_root="$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
 nexrv="$repo_root/bin/NexRv"
 
-sim_dir="$repo_root/bld/${test_name}.abc.vivado/${test_name}.abc.sim/sim_1/behav/xsim"
-if [ ! -d "$sim_dir" ]; then
-    echo "[decode-data] ERROR: simulation dir not found: $sim_dir"
+# Locate the simulator working directory by finding the ATB dump
+# (abc-flow's directory layout varies by version).
+atb_bin="$(find "$repo_root/bld" -name "${test_name}.atb.bin" -printf '%T@ %p\n' 2>/dev/null \
+            | sort -rn | head -1 | cut -d' ' -f2-)"
+if [ -z "$atb_bin" ]; then
+    echo "[decode-data] ERROR: no ${test_name}.atb.bin found under bld/"
     exit 2
 fi
+sim_dir="$(dirname "$atb_bin")"
 
 atb_bin="$sim_dir/${test_name}.atb.bin"
 pcinfo="$sim_dir/${test_name}.nexrv.info"

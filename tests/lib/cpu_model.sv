@@ -280,9 +280,14 @@ module cpu_model #(
 		cur_pc = target;
 	endtask
 
-	task automatic branch_not_taken();
+	// A not-taken conditional branch. `target` is the address the branch
+	// WOULD jump to if taken — recorded in PCInfo as the BD target even
+	// though execution falls through to cur_pc+4. Defaults to cur_pc+8.
+	task automatic branch_not_taken(input tip_iaddr_t target = '0);
+		tip_iaddr_t tgt;
+		tgt = (target == '0) ? (cur_pc + 8) : target;
 		drive_instr_pulse(.itype_(NOT_TAKEN_BRANCH), .iaddr_(cur_pc));
-		log_event(CPU_BRANCH_NOT_TAKEN, cur_pc);
+		log_event(CPU_BRANCH_NOT_TAKEN, cur_pc, tgt);
 		cur_pc = cur_pc + 4;
 	endtask
 
@@ -473,9 +478,14 @@ module cpu_model #(
 		// CAN happen here" to decode the trace.
 		case (k)
 			CPU_RUN, CPU_LOAD, CPU_STORE,
-			CPU_BRANCH_NOT_TAKEN,
 			CPU_INTERRUPT, CPU_EXCEPTION: return "L";
-			CPU_BRANCH_TAKEN:        return "BD";
+			// A conditional branch is a "BD" (Branch Direct) in PCInfo
+			// whether or not it was taken at runtime — the HIST bit in
+			// the trace resolves the direction. A not-taken branch
+			// continues to pc+len (no gap); a taken branch jumps to the
+			// PCInfo target.
+			CPU_BRANCH_TAKEN,
+			CPU_BRANCH_NOT_TAKEN:    return "BD";
 			CPU_JUMP:                return "JD";
 			CPU_UNINFERABLE_JUMP:    return "JI";
 			CPU_CALL:                return "CD";
