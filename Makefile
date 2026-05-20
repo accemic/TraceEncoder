@@ -12,7 +12,7 @@ SHELL := /bin/bash
 
 NOT_IMPL = @echo "[$@] not implemented yet — skeleton release. See CLAUDE.md."
 
-.PHONY: help rdl sim sim-basic sim-interrupts sim-stress sim-sync-indirect sim-data-basic sim-overflow sim-hsi-csr-cap sim-hsi-csr-sync lint format doc clean
+.PHONY: help rdl sim sim-basic sim-interrupts sim-stress sim-sync-indirect sim-data-basic sim-overflow sim-hsi-csr-cap sim-hsi-csr-sync sim-combined lint format doc clean
 
 ## help: List available targets.
 help:
@@ -26,7 +26,7 @@ rdl:
 	$(NOT_IMPL)
 
 ## sim:    Run all top-level testbenches; sim phase + NexRv decode check per test.
-sim: sim-basic sim-interrupts sim-stress sim-sync-indirect sim-data-basic sim-overflow sim-hsi-csr-cap sim-hsi-csr-sync
+sim: sim-basic sim-interrupts sim-stress sim-sync-indirect sim-data-basic sim-overflow sim-hsi-csr-cap sim-hsi-csr-sync sim-combined
 
 ## sim-basic: tests/instruction/01_basic — sim + NexRv decode + address match.
 sim-basic: | bld
@@ -86,6 +86,17 @@ sim-hsi-csr-cap: | bld
 sim-hsi-csr-sync: | bld
 	@cd bld && abc -sim ../tests/hsi/02_csr_sync/csr_sync_tb.abc
 	@scripts/decode_and_check_sync.sh csr_sync_tb
+
+## sim-combined: tests/combined/01_all — instruction + data + ACT-CAP sync.
+##              Mixed workload (linear, branch, call/return, varied
+##              loads/stores, one ACT-CAP CF_SYNC). Verified three ways on the
+##              same trace: PC stream, DataRead/DataWrite sequence, and
+##              synchronization-message count (>= 2: startup + CF_SYNC).
+sim-combined: | bld
+	@cd bld && abc -sim ../tests/combined/01_all/combined_tb.abc
+	@scripts/decode_and_check.sh combined_tb
+	@scripts/decode_and_check_data.sh combined_tb
+	@scripts/decode_and_check_sync.sh combined_tb 2
 
 bld:
 	@mkdir -p bld

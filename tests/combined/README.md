@@ -13,9 +13,15 @@ tests miss in isolation.
 
 ## Test matrix
 
-| # | Directory | Scenario | `cpu_model` tasks exercised |
-|---|-----------|----------|------------------------------|
-| 01 | `01_all/` | Realistic mixed workload: linear code, branches, calls/returns, a couple of interrupts, varied-size loads/stores, HSI events from CSR writes — all with timestamps on. Scoreboard verifies the full decoded message stream. | Most of the `cpu_model` task surface. |
+| # | Directory | Scenario | Verification |
+|---|-----------|----------|--------------|
+| 01 | `01_all/` | Mixed workload with instruction trace + data trace + ACT-CAP instrumentation on together: linear code, a taken branch, a call and a return, varied-size loads/stores, and one `ACT_CAP_ST_CF_SYNC` (CSR-CAP initiated instruction synchronization) mid-stream. | Three offline checks on one trace: PC stream (`decode_and_check.sh`), DataRead/DataWrite sequence (`decode_and_check_data.sh`), and synchronization-message count (`decode_and_check_sync.sh`, ≥ 2: startup + CF_SYNC). `make sim-combined`, part of `make sim`. |
+
+### Deferred (future additions to 01_all or siblings)
+
+- **Interrupts/exceptions** alongside data trace.
+- **Timestamps** on — kept off here for a deterministic, minimal byte
+  stream for the offline NexRv decode.
 
 ## What this group does NOT cover
 

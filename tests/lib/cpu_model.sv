@@ -507,7 +507,11 @@ module cpu_model #(
 		// trap PCs — the decoder doesn't need to know "an interrupt
 		// CAN happen here" to decode the trace.
 		case (k)
-			CPU_RUN, CPU_LOAD, CPU_STORE,
+			// CPU_CSR_WRITE models a `csrw` (e.g. an ACT-CAP command @0x0B10)
+			// — a normal retired instruction (itype=OTHER) from the trace's
+			// point of view, so it occupies a Linear PCInfo slot and a PC in
+			// the executed stream.
+			CPU_RUN, CPU_LOAD, CPU_STORE, CPU_CSR_WRITE,
 			CPU_INTERRUPT, CPU_EXCEPTION: return "L";
 			// A conditional branch is a "BD" (Branch Direct) in PCInfo
 			// whether or not it was taken at runtime — the HIST bit in
