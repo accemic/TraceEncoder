@@ -12,7 +12,7 @@ SHELL := /bin/bash
 
 NOT_IMPL = @echo "[$@] not implemented yet — skeleton release. See CLAUDE.md."
 
-.PHONY: help rdl sim sim-basic sim-interrupts sim-stress sim-sync-indirect sim-data-basic sim-overflow lint format doc clean
+.PHONY: help rdl sim sim-basic sim-interrupts sim-stress sim-sync-indirect sim-data-basic sim-overflow sim-hsi-csr-cap sim-hsi-csr-sync lint format doc clean
 
 ## help: List available targets.
 help:
@@ -26,7 +26,9 @@ rdl:
 	$(NOT_IMPL)
 
 ## sim:    Run all top-level testbenches; sim phase + NexRv decode check per test.
-sim: sim-basic sim-interrupts sim-stress sim-sync-indirect sim-data-basic sim-overflow
+##          (sim-hsi-csr-sync is intentionally excluded — it is a known-failing
+##          pending-feature gate; run it explicitly with `make sim-hsi-csr-sync`.)
+sim: sim-basic sim-interrupts sim-stress sim-sync-indirect sim-data-basic sim-overflow sim-hsi-csr-cap
 
 ## sim-basic: tests/instruction/01_basic — sim + NexRv decode + address match.
 sim-basic: | bld
@@ -71,6 +73,22 @@ sim-data-basic: | bld
 sim-overflow: | bld
 	@cd bld && abc -sim ../tests/overflow/01_run_overflow_reset/run_overflow_reset_tb.abc
 	@scripts/decode_and_check.sh --soft run_overflow_reset_tb
+
+## sim-hsi-csr-cap: tests/hsi/01_csr_cap — ACT-CAP CSR-based instrumentation.
+##              Drives a DAQ_DIRECT_DATA command via the ACT-CAP CSR (0x0B10)
+##              and verifies the decoded command + payload on the AXIS sink
+##              in-sim (self-checking; $fatal on mismatch).
+sim-hsi-csr-cap: | bld
+	@cd bld && abc -sim ../tests/hsi/01_csr_cap/csr_cap_tb.abc
+
+## sim-hsi-csr-sync: tests/hsi/02_csr_sync_xfail — ACT-CAP CF_SYNC (KNOWN-FAILING).
+##              Pending-feature gate for the unimplemented ACT_CAP_ST_CF_SYNC
+##              command: it should emit an instruction-sync message but does
+##              not. EXPECTED TO FAIL until CF_SYNC is implemented; deliberately
+##              NOT part of `make sim`.
+sim-hsi-csr-sync: | bld
+	@cd bld && abc -sim ../tests/hsi/02_csr_sync_xfail/csr_sync_xfail_tb.abc
+	@scripts/decode_and_check_sync.sh csr_sync_xfail_tb
 
 bld:
 	@mkdir -p bld

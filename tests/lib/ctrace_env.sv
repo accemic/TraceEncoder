@@ -54,7 +54,17 @@ module ctrace_env #(
 	// Optional: execution-ordered list of data accesses (LOAD/STORE,
 	// addr, size). Used by decode_and_check_data.sh to verify the
 	// encoder emitted the expected DataRead/DataWrite messages.
-	string EXPECTED_DATA_PATH = ""
+	string EXPECTED_DATA_PATH = "",
+	// Optional: instantiate the in-sim AXIS verification decoder
+	// (ct_axis_decoder) which taps the AXIS sink and exposes the decoded
+	// ACT-CAP/DAQ command + payload on dec_axis_msg/dec_axis_valid.
+	// (The in-sim Nexus decoder is not wired up here — see the note on
+	// the ATB sink below — so Nexus-side content is checked offline with
+	// the NexRv reference decoder on the ATB dump.)
+	// Default OFF: when 0 the env behaves exactly as before (always-ready
+	// AXIS sink, no decoder elaborated). HSI tests set this to 1 to tap
+	// the in-sim AXIS decoder.
+	bit ENABLE_DECODERS    = 0
 ) ();
 
 	// ------------------------------------------------------------------
@@ -170,15 +180,46 @@ module ctrace_env #(
 	// injector to ct_encoder's ATB master-side inputs.
 	logic atb_force_flush = 0;
 	logic atb_force_sync  = 0;
+	// The ATB sink is always-ready in this env. (The in-sim Nexus
+	// decoder, which would otherwise act as a back-pressuring sink, is
+	// NOT instantiated here: tests/lib/ct_nexus_decoder depends on
+	// mseo2_decoder, which has not been ported into this repo. Nexus-side
+	// message content is verified offline via the NexRv reference decoder
+	// on the ATB dump instead.)
 	assign atb_dn.atready = 1'b1;
 	assign atb_dn.afready = 1'b1;
 	assign atb_dn.afvalid = atb_force_flush;
 	assign atb_dn.syncreq = atb_force_sync;
 
 	// ------------------------------------------------------------------
-	// AXIS always-ready slave
+	// In-sim AXIS verification decoder (optional).
+	//
+	// When ENABLE_DECODERS=0 the AXIS sink is the original always-ready
+	// slave. When ENABLE_DECODERS=1 the ct_axis_decoder becomes the AXIS
+	// sink (it drives tready) and exposes the decoded ACT-CAP/DAQ command
+	// + payload on dec_axis_msg/dec_axis_valid for the test to assert.
 	// ------------------------------------------------------------------
-	assign axis.tready = 1'b1;
+	logic                              dec_axis_valid;
+	logic                              dec_axis_error;
+	ct_axis_decoder_pkg::ct_axis_msg_t dec_axis_msg;
+
+	generate
+		if (ENABLE_DECODERS) begin : g_dec
+			ct_axis_decoder axisdec (
+				.clk            (wb_clk),
+				.rst            (wb_rst),
+				.axis           (axis),
+				.dec_axis_valid,
+				.dec_axis_error,
+				.dec_axis_msg
+			);
+		end else begin : g_nodec
+			assign dec_axis_valid = 1'b0;
+			assign dec_axis_error = 1'b0;
+			assign dec_axis_msg   = '0;
+			assign axis.tready    = 1'b1;
+		end
+	endgenerate
 
 	// ------------------------------------------------------------------
 	// Observers

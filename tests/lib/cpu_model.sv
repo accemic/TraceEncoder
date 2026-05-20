@@ -90,6 +90,7 @@ module cpu_model #(
 
 	import tip_pkg::*;
 	import cpu_model_pkg::*;
+	import nexus_vendor::*;   // ACT_CAP_CMD (CSR id of the ACT-CAP command register)
 
 	// ------------------------------------------------------------------
 	// Output regs (continuously assigned to the TIP interface)
@@ -427,6 +428,35 @@ module cpu_model #(
 	// ------------------------------------------------------------------
 	task automatic csr_write(input int csr_addr, input tip_data_t val);
 		log_event(CPU_CSR_WRITE, cur_pc, tip_iaddr_t'(csr_addr), val);
+	endtask
+
+	// ------------------------------------------------------------------
+	// ACT-CAP (CSR Access Protocol) command — CSR-based instrumentation.
+	//
+	// Models the CPU executing `csrw ACT_CAP_CMD, x`: a functional NOP
+	// (no system-bus side effect) whose write the encoder observes on the
+	// TIP data channel. The ACT-CAP preprocessor (ct_L23_preproc_act_cap)
+	// fires on (dretire && dtype==CSR_READ_WRITE && daddr==ACT_CAP_CMD)
+	// and decodes tip.data with the RDL bit layout of trActCapStCmd
+	// @ 0x0B10 (see tip_pkg::cmd_to_tip_data / tip_data_to_cmd):
+	//   data[5:0]  = Cmd         (trActCapStCmd_e)
+	//   data[7:6]  = Sink        (trActCapStSink_e: NEXUS / AXIS / AXIS_NEXUS / TE)
+	//   data[31:8] = DirectData  (24-bit payload)
+	// The retiring csrw itself is reported as an OTHER instruction so the
+	// instruction stream stays well-formed.
+	// ------------------------------------------------------------------
+	task automatic act_cap_cmd(input logic [5:0]  cmd,
+	                           input logic [1:0]  sink,
+	                           input logic [23:0] direct_data = '0);
+		tip_data_t d;
+		d        = '0;
+		d[5:0]   = cmd;
+		d[7:6]   = sink;
+		d[31:8]  = direct_data;
+		drive_dretire_pulse(CSR_READ_WRITE, tip_iaddr_t'(ACT_CAP_CMD),
+		                    tip_dsize_t'(2) /* word */, d);
+		log_event(CPU_CSR_WRITE, cur_pc, tip_iaddr_t'(ACT_CAP_CMD), d);
+		cur_pc = cur_pc + 4;
 	endtask
 
 	// ------------------------------------------------------------------
