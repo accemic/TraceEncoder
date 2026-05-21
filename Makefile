@@ -29,20 +29,18 @@ rdl:
 sim: sim-basic sim-interrupts sim-stress sim-sync-indirect sim-data-basic sim-overflow sim-hsi-csr-cap sim-hsi-csr-sync sim-combined
 
 ## sim-basic: tests/instruction/01_basic — sim + NexRv decode + address match.
-##              Trace-off is via Enable=0, which emits a Program Trace
-##              Correlation Message (TCODE 33, EVCODE=Program Trace Disabled);
-##              the decode is a full PC match and decode_and_check_disabled.sh
-##              confirms the trace-off message.
+##              Exercises instruction-trace pause/resume; trace-off emits a
+##              Program Trace Correlation Message (TCODE 33, EVCODE=Program
+##              Trace Disabled). --pc checks the PC stream, --disabled the
+##              trace-off message.
 sim-basic: | bld
 	@cd bld && abc -sim ../tests/instruction/01_basic/basic_tb.abc
-	@scripts/decode_and_check.sh basic_tb
-	@scripts/decode_and_check_disabled.sh basic_tb
+	@scripts/decode_and_check.sh --pc --disabled basic_tb
 
 ## sim-interrupts: tests/instruction/02_interrupts — sim + NexRv decode + address match.
 sim-interrupts: | bld
 	@cd bld && abc -sim ../tests/instruction/02_interrupts/interrupts_tb.abc
-	@scripts/decode_and_check.sh interrupts_tb
-	@scripts/decode_and_check_disabled.sh interrupts_tb
+	@scripts/decode_and_check.sh --pc --disabled interrupts_tb
 
 ## sim-stress: tests/instruction/03_stress_sync_resourcefull — sim + NexRv decode.
 ##              Long branch stream that forces many periodic syncs and many
@@ -50,8 +48,7 @@ sim-interrupts: | bld
 ##              must match the cpu_model exactly.
 sim-stress: | bld
 	@cd bld && abc -sim ../tests/instruction/03_stress_sync_resourcefull/stress_sync_resourcefull_tb.abc
-	@scripts/decode_and_check.sh stress_sync_resourcefull_tb
-	@scripts/decode_and_check_disabled.sh stress_sync_resourcefull_tb
+	@scripts/decode_and_check.sh --pc --disabled stress_sync_resourcefull_tb
 
 ## sim-sync-indirect: tests/instruction/04_sync_indirect_collapse — sim + NexRv decode (HARD).
 ##              Regression gate for the IBH / sync-coincident-branch ICNT collapse:
@@ -61,8 +58,7 @@ sim-stress: | bld
 ##              indirect branch's ICNT. Decoded PC stream must match the cpu_model.
 sim-sync-indirect: | bld
 	@cd bld && abc -sim ../tests/instruction/04_sync_indirect_collapse/sync_indirect_collapse_tb.abc
-	@scripts/decode_and_check.sh sync_indirect_collapse_tb
-	@scripts/decode_and_check_disabled.sh sync_indirect_collapse_tb
+	@scripts/decode_and_check.sh --pc --disabled sync_indirect_collapse_tb
 
 ## sim-data-basic: tests/data/01_basic — sim + NexRv data-trace check.
 ##                  Instruction trace is OFF in this scenario; verification
@@ -70,7 +66,7 @@ sim-sync-indirect: | bld
 ##                  the NexRv-decoded DataRead/DataWrite messages.
 sim-data-basic: | bld
 	@cd bld && abc -sim ../tests/data/01_basic/data_basic_tb.abc
-	@scripts/decode_and_check_data.sh data_basic_tb
+	@scripts/decode_and_check.sh --data data_basic_tb
 
 ## sim-overflow: tests/overflow/01_run_overflow_reset — sim + NexRv decode (soft).
 ##                Soft mode: overflow tests intentionally lose trace bytes
@@ -78,7 +74,7 @@ sim-data-basic: | bld
 ##                reported but not treated as test failures.
 sim-overflow: | bld
 	@cd bld && abc -sim ../tests/overflow/01_run_overflow_reset/run_overflow_reset_tb.abc
-	@scripts/decode_and_check.sh --soft run_overflow_reset_tb
+	@scripts/decode_and_check.sh --soft --pc run_overflow_reset_tb
 
 ## sim-hsi-csr-cap: tests/hsi/01_csr_cap — ACT-CAP CSR-based instrumentation.
 ##              Drives a DAQ_DIRECT_DATA command via the ACT-CAP CSR (0x0B10)
@@ -93,23 +89,18 @@ sim-hsi-csr-cap: | bld
 ##              is emitted (>= 2 syncs: startup + CF_SYNC).
 sim-hsi-csr-sync: | bld
 	@cd bld && abc -sim ../tests/hsi/02_csr_sync/csr_sync_tb.abc
-	@scripts/decode_and_check_sync.sh csr_sync_tb
+	@scripts/decode_and_check.sh --sync 2 csr_sync_tb
 
 ## sim-combined: tests/combined/01_all — instruction + data + ACT-CAP sync.
 ##              Mixed workload (linear, branch, call/return, varied
-##              loads/stores, ACT-CAP CF_SYNC). Verified three ways on the same
-##              trace via the NexRv reference decoder:
-##                - decode_and_check.sh      : NexRv -deco reconstructs the PC
-##                                             stream and it matches the model.
-##                - decode_and_check_data.sh : DataRead/DataWrite sequence matches.
-##                - decode_and_check_sync.sh : >= 3 sync messages (startup +
-##                                             mid-stream CF_SYNC + final flush).
+##              loads/stores, ACT-CAP CF_SYNC). One NexRv decode, four checks:
+##                --pc       : reconstructed PC stream matches the model.
+##                --data     : DataRead/DataWrite sequence matches.
+##                --sync 3   : >= 3 sync messages (startup + mid CF_SYNC + final).
+##                --disabled : trace-off correlation message present.
 sim-combined: | bld
 	@cd bld && abc -sim ../tests/combined/01_all/combined_tb.abc
-	@scripts/decode_and_check.sh combined_tb
-	@scripts/decode_and_check_data.sh combined_tb
-	@scripts/decode_and_check_sync.sh combined_tb 3
-	@scripts/decode_and_check_disabled.sh combined_tb
+	@scripts/decode_and_check.sh --pc --data --sync 3 --disabled combined_tb
 
 bld:
 	@mkdir -p bld
