@@ -86,7 +86,10 @@ module csr_sync_tb;
 		//      extra *synchronization* message is injected by the drain.
 		//      Disabling instruction tracing emits a Program Trace Correlation
 		//      Message (TCODE 33) — NOT a sync — so the sync count is
-		//      unaffected; Enable=0 then only flushes queued trace data. ----
+		//      unaffected; Enable=0 then only flushes queued trace data. A short
+		//      drain first lets the trace tail propagate through the
+		//      pipeline-delayed composer while tracing is still effectively on. ----
+		env.wait_cycles(50);
 		env.csr.Set_te_trTeControl_InstTracing (1'b0);
 		env.wait_cycles(200);
 		env.csr.Set_te_trTeControl_Enable      (1'b0);

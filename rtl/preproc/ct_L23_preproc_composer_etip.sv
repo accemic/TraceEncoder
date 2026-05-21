@@ -211,12 +211,22 @@ module ct_L23_preproc_composer_etip #(
 			// of the user's CF filter selection.
 			automatic logic is_trap_event =
 				(tip.itype == EXCEPTION_TRAP) || (tip.itype == INTERRUPT);
+			// Instruction tracing must be effectively active (Enable &&
+			// InstTracing) to generate any instruction-trace message or
+			// accumulate ICNT. While paused (InstTracing=0 with Enable still
+			// high, or Enable=0) the encoder emits nothing and counts nothing;
+			// the trace-off correlation message (do_corr_disable path below)
+			// has already carried the residual, and on resume a TRACE_ENABLE
+			// sync re-anchors the decoder. Traps during a pause are not traced
+			// either.
 			automatic logic process_now =
-				(tip.iretire && cf_qualifier.hit_valid && cf_qualifier.hit)
-				|| is_trap_event;
+				inst_trace_active
+				&& ( (tip.iretire && cf_qualifier.hit_valid && cf_qualifier.hit)
+				     || is_trap_event );
 			// See the comment block below at the icnt accumulation.
 			automatic logic count_halfwords =
-				tip.iretire || (tip.itype == EXCEPTION_TRAP);
+				inst_trace_active
+				&& (tip.iretire || (tip.itype == EXCEPTION_TRAP));
 
 			// ACT-CAP CF_SYNC: a CSR-driven request for an instruction
 			// synchronization message (Nexus only). It rides on the

@@ -135,6 +135,12 @@ module sync_indirect_collapse_tb;
 				env.cpu.uninferable_jump(.target(32'h0000_2000));  // JI @ pc, drain
 		end
 
+		// CF-quiet linear tail: trace-off must land after a non-control-flow
+		// instruction (see test 03). The final loop iteration ends on an
+		// indirect jump to the drain address; a couple of linear instructions
+		// there give the encoder a clean tail so the trace-off correlation
+		// flushes cleanly instead of stranding the jump's target address.
+		env.cpu.run(8);
 		env.cpu.exit_trace();
 
 		// ---- Trace-off (same recipe as test 03) ----
@@ -142,7 +148,11 @@ module sync_indirect_collapse_tb;
 		// Message (EVCODE=Program Trace Disabled) that flushes the residual
 		// ICNT/HIST, so the offline decode resolves the final instructions.
 		// Enable=0 then only flushes queued trace data; atb_force_flush
-		// pushes the last ATB bytes to the sink.
+		// pushes the last ATB bytes to the sink. A short drain first lets the
+		// trace tail propagate through the pipeline-delayed composer while
+		// instruction tracing is still effectively on (the InstTracing gate is
+		// on the undelayed control signal).
+		env.wait_cycles(50);
 		env.csr.Set_te_trTeControl_InstTracing (1'b0);
 		env.wait_cycles(200);
 		env.csr.Set_te_trTeControl_Enable      (1'b0);

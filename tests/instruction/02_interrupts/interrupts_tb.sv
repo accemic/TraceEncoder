@@ -114,11 +114,16 @@ module interrupts_tb;
 		env.cpu.exit_trace();
 
 		// ---- Trace-off ----
-		// Disabling instruction tracing emits a Program Trace Correlation
-		// Message (EVCODE=Program Trace Disabled) that flushes the residual
-		// ICNT/HIST, so the offline decode resolves the final instructions.
-		// Enable=0 then only flushes queued trace data; atb_force_flush
-		// pushes the last ATB bytes to the sink.
+		// Quiesce first so the trace tail drains through the (pipeline-delayed)
+		// composer while instruction tracing is still effectively on -- the
+		// InstTracing gate acts on the undelayed control signal, so an
+		// in-flight instruction at the disable edge would otherwise be
+		// mis-gated. Disabling instruction tracing then emits a Program Trace
+		// Correlation Message (EVCODE=Program Trace Disabled) that flushes the
+		// residual ICNT/HIST, so the offline decode resolves the final
+		// instructions. Enable=0 then only flushes queued trace data;
+		// atb_force_flush pushes the last ATB bytes to the sink.
+		env.wait_cycles(50);
 		env.csr.Set_te_trTeControl_InstTracing (1'b0);
 		env.wait_cycles(200);
 		env.csr.Set_te_trTeControl_Enable      (1'b0);

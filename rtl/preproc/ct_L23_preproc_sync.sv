@@ -153,12 +153,18 @@ module ct_L23_preproc_sync (
 
 	nexus_sync_reason_e	SyncReason = NEXUS_SYNC_NONE;
 	logic               ExitFromSystemReset = '1;
-	// Pending TRACE_ENABLE one-shot: latched on every Enable 0->1 transition
-	// and consumed by the first qualifying retired instruction. The
-	// post-reset EXIT_FROM_SYS_RST opportunity wins over this when both are
-	// pending in the same cycle.
-	logic               ExitFromTraceEnable = '0;
-	logic               PrevTrTeEnableSync  = '0;
+	// Pending TRACE_ENABLE one-shot: latched on every rising edge of effective
+	// instruction tracing and consumed by the first qualifying retired
+	// instruction. The post-reset EXIT_FROM_SYS_RST opportunity wins over this
+	// when both are pending in the same cycle.
+	//
+	// Effective instruction tracing = trTeEnable && trTeInstTracing. Keying the
+	// one-shot on this (rather than just trTeEnable) means resuming instruction
+	// tracing mid-stream -- whether by Enable 0->1 or by InstTracing 0->1 with
+	// Enable already high -- re-anchors the decoder with a TRACE_ENABLE sync.
+	logic               ExitFromTraceEnable    = '0;
+	logic               PrevInstTraceActiveSync = '0;
+	uwire               inst_trace_active = cs_tip.trTeEnable && cs_tip.trTeInstTracing;
 
 	uwire is_overflow =   (cnt_tipcycles.overflow       && (cs_tip.trTeInstSyncMode == ct_cs_cpuif__te__trTeControl__trTeInstSyncMode_e__ITR_SYNC_CLK_CYCLES  ))
 						 ||(cnt_tiphalfword.overflow     && (cs_tip.trTeInstSyncMode == ct_cs_cpuif__te__trTeControl__trTeInstSyncMode_e__ITR_SYNC_HALFWORDS   ))
@@ -172,7 +178,7 @@ module ct_L23_preproc_sync (
 		if (rst) begin
 			ExitFromSystemReset     <= '1;
 			ExitFromTraceEnable     <= '0;
-			PrevTrTeEnableSync      <= '0;
+			PrevInstTraceActiveSync <= '0;
 			ExtSyncAck              <= '0;
 			SyncCntClr              <= '1;
 		end
@@ -181,12 +187,14 @@ module ct_L23_preproc_sync (
 				ExtSyncAck <= 0;
 			end
 
-			// Latch a pending TRACE_ENABLE on every 0->1 transition of the
-			// master enable bit. The one-shot fires on the next qualifying
-			// iretire (and is overridden by the post-reset EXIT_FROM_SYS_RST
-			// path when both are pending).
-			PrevTrTeEnableSync <= cs_tip.trTeEnable;
-			if (cs_tip.trTeEnable && !PrevTrTeEnableSync) begin
+			// Latch a pending TRACE_ENABLE on every 0->1 transition of effective
+			// instruction tracing (Enable && InstTracing). The one-shot fires on
+			// the next qualifying iretire (and is overridden by the post-reset
+			// EXIT_FROM_SYS_RST path when both are pending). Keying on the
+			// combined signal handles both initial enable and mid-stream resume
+			// after an instruction-tracing pause.
+			PrevInstTraceActiveSync <= inst_trace_active;
+			if (inst_trace_active && !PrevInstTraceActiveSync) begin
 				ExitFromTraceEnable <= '1;
 			end
 

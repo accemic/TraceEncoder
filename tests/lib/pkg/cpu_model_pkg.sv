@@ -51,6 +51,8 @@ package cpu_model_pkg;
 		tip_iaddr_t      target;    // jump/call/branch target; exception handler; load/store addr; csr addr
 		longint unsigned payload;   // data, cause, csr value, etc.
 		int unsigned     size;      // for loads/stores (2^size bytes)
+		bit              traced;    // 1 if instruction tracing was active when this retired;
+		                            // untraced instructions are excluded from the expected-PC reference
 	} cpu_event_t;
 
 	function automatic string event_kind_str(cpu_event_kind_e k);

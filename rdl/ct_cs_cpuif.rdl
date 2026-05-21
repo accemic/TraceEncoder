@@ -130,12 +130,26 @@ addrmap ct_cs_cpuif #(
                     trTeDataTracing to turn tracing on and off. Setting trTeEnable to 0
                     flushes any queued trace data to the sink or funnel attached to this
                     encoder. This bit can be set to 1 only by direct writing to it. This write
-                    of 1 should be done after all other settings are done.";
+                    of 1 should be done after all other settings are done.
+                    Enable gates instruction and data tracing: effective instruction
+                    tracing is (Enable AND trTeInstTracing). Clearing Enable therefore
+                    implicitly disables instruction (and data) tracing without rewriting
+                    those bits; the resulting instruction-tracing-disabled edge generates
+                    the trace-off Program Trace Correlation Message (see trTeInstTracing).
+                    [C-Trace: the implicit-disable gating is RTL, not an RDL auto-clear.]";
             sw = rw;
         } Enable[1:1] = 0;
 
         field {
-            desc = "Indicates if instruction trace is being generated";
+            desc = "Instruction trace generation. Effective instruction tracing is
+                    (trTeControl.Enable AND this bit). The 1->0 edge of effective
+                    instruction tracing (this bit cleared, or Enable cleared) makes the
+                    encoder emit a Program Trace Correlation Message (TCODE 33,
+                    EVCODE=Program Trace Disabled) carrying the residual instruction
+                    count and branch history, so a decoder can resolve the final
+                    instructions up to the trace-off point; the 0->1 edge emits a
+                    TRACE_ENABLE synchronization message to re-anchor the decoder.
+                    [C-Trace]";
             sw = rw; hwclr; hwset;
         } InstTracing[2:2] = 0;
 

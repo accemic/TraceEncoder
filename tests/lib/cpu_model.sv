@@ -160,6 +160,11 @@ module cpu_model #(
 	tip_iaddr_t call_stack[$];     // inferable-call return addresses
 	tip_iaddr_t trap_stack[$];     // mepc-style trap return addresses
 	logic       enabled       = 0;
+	// TB-side mirror of "instruction tracing active". The test sets this
+	// (via set_inst_traced) to match when it programs trTeControl.InstTracing/
+	// Enable, so events retired during an instruction-tracing pause are tagged
+	// untraced and excluded from the expected-PC reference. Default: traced.
+	bit         inst_traced   = 1'b1;
 
 	cpu_event_t event_q[$];
 
@@ -190,8 +195,18 @@ module cpu_model #(
 		e.target  = target;
 		e.payload = payload;
 		e.size    = size;
+		e.traced  = inst_traced;
 		event_q.push_back(e);
 	endfunction
+
+	// Mirror the encoder's instruction-tracing enable state for expected-PC
+	// bookkeeping. Call with 0 just before driving instructions that execute
+	// while instruction tracing is paused (InstTracing=0 / Enable=0), and with
+	// 1 again after tracing resumes. Events logged while 0 are kept in the
+	// event log (for liveness/debug) but omitted from the expected-PC list.
+	task automatic set_inst_traced(input bit on);
+		inst_traced = on;
+	endtask
 
 	// ------------------------------------------------------------------
 	// Low-level pulse helper: drive one retired instruction for one
@@ -619,6 +634,9 @@ module cpu_model #(
 		end
 		foreach (event_q[i]) begin
 			if (pcinfo_type_str(event_q[i].kind) == "") continue;
+			// Instructions retired while instruction tracing was paused are
+			// not in the trace, so they are not in the decoded PC stream.
+			if (!event_q[i].traced) continue;
 			$fwrite(fd, "0x%08x\n", event_q[i].pc);
 			n_written++;
 		end

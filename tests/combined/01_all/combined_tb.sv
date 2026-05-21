@@ -133,7 +133,11 @@ module combined_tb;
 		// Message (EVCODE=Program Trace Disabled) that flushes the residual
 		// ICNT/HIST so the whole PC stream is emitted for the offline decode.
 		// Enable=0 then only flushes queued trace data; atb_force_flush pushes
-		// the last ATB bytes to the sink.
+		// the last ATB bytes to the sink. A short drain first lets the trace
+		// tail propagate through the pipeline-delayed composer while instruction
+		// tracing is still effectively on (the InstTracing gate is on the
+		// undelayed control signal).
+		env.wait_cycles(50);
 		env.csr.Set_te_trTeControl_InstTracing (1'b0);
 		env.wait_cycles(200);
 		env.csr.Set_te_trTeControl_Enable      (1'b0);

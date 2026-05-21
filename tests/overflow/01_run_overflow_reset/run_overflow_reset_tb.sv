@@ -118,7 +118,10 @@ module run_overflow_reset_tb;
 		// ---- Trace-off ----
 		// Disabling instruction tracing emits a Program Trace Correlation
 		// Message (EVCODE=Program Trace Disabled); Enable=0 then flushes
-		// queued trace data. (Decode is soft for this overflow test.)
+		// queued trace data. (Decode is soft for this overflow test.) A short
+		// drain first lets the trace tail propagate through the pipeline-delayed
+		// composer while instruction tracing is still effectively on.
+		env.wait_cycles(50);
 		env.csr.Set_te_trTeControl_InstTracing (1'b0);
 		env.wait_cycles(200);
 		env.csr.Set_te_trTeControl_Enable      (1'b0);

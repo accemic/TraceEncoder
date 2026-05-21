@@ -110,6 +110,13 @@ module stress_sync_resourcefull_tb;
 		// is the next sequential slot to keep the address space
 		// contiguous. After this there is no pending history left.
 		env.cpu.uninferable_jump(.target(pc + 32'd4));
+		// CF-quiet linear tail: trace-off must land after a non-control-flow
+		// instruction. Disabling instruction tracing immediately after an
+		// indirect branch would strand that branch's (not-yet-retired) target
+		// address — the gating suppresses the retire that would resolve it, so
+		// the message generator stalls on the unpaired CF. A couple of linear
+		// instructions at the jump target give it a clean tail.
+		env.cpu.run(8);
 		env.cpu.exit_trace();
 
 		// ---- Trace-off ----
@@ -117,7 +124,11 @@ module stress_sync_resourcefull_tb;
 		// Message (EVCODE=Program Trace Disabled) that flushes the residual
 		// ICNT/HIST, so the offline decode resolves the final instructions.
 		// Enable=0 then only flushes queued trace data; atb_force_flush
-		// pushes the last ATB bytes to the sink.
+		// pushes the last ATB bytes to the sink. A short drain first lets the
+		// trace tail propagate through the pipeline-delayed composer while
+		// instruction tracing is still effectively on (the InstTracing gate is
+		// on the undelayed control signal).
+		env.wait_cycles(50);
 		env.csr.Set_te_trTeControl_InstTracing (1'b0);
 		env.wait_cycles(200);
 		env.csr.Set_te_trTeControl_Enable      (1'b0);
