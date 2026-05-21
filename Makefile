@@ -42,6 +42,7 @@ sim-basic: | bld
 sim-interrupts: | bld
 	@cd bld && abc -sim ../tests/instruction/02_interrupts/interrupts_tb.abc
 	@scripts/decode_and_check.sh interrupts_tb
+	@scripts/decode_and_check_disabled.sh interrupts_tb
 
 ## sim-stress: tests/instruction/03_stress_sync_resourcefull — sim + NexRv decode.
 ##              Long branch stream that forces many periodic syncs and many
@@ -50,6 +51,7 @@ sim-interrupts: | bld
 sim-stress: | bld
 	@cd bld && abc -sim ../tests/instruction/03_stress_sync_resourcefull/stress_sync_resourcefull_tb.abc
 	@scripts/decode_and_check.sh stress_sync_resourcefull_tb
+	@scripts/decode_and_check_disabled.sh stress_sync_resourcefull_tb
 
 ## sim-sync-indirect: tests/instruction/04_sync_indirect_collapse — sim + NexRv decode (HARD).
 ##              Regression gate for the IBH / sync-coincident-branch ICNT collapse:
@@ -60,6 +62,7 @@ sim-stress: | bld
 sim-sync-indirect: | bld
 	@cd bld && abc -sim ../tests/instruction/04_sync_indirect_collapse/sync_indirect_collapse_tb.abc
 	@scripts/decode_and_check.sh sync_indirect_collapse_tb
+	@scripts/decode_and_check_disabled.sh sync_indirect_collapse_tb
 
 ## sim-data-basic: tests/data/01_basic — sim + NexRv data-trace check.
 ##                  Instruction trace is OFF in this scenario; verification
@@ -106,6 +109,7 @@ sim-combined: | bld
 	@scripts/decode_and_check.sh combined_tb
 	@scripts/decode_and_check_data.sh combined_tb
 	@scripts/decode_and_check_sync.sh combined_tb 3
+	@scripts/decode_and_check_disabled.sh combined_tb
 
 bld:
 	@mkdir -p bld

@@ -114,6 +114,18 @@ module run_overflow_reset_tb;
 		env.cpu.branch_taken(.target(32'h0000_3100));
 		env.cpu.run(64);
 		env.cpu.exit_trace();
+
+		// ---- Trace-off ----
+		// Disabling instruction tracing emits a Program Trace Correlation
+		// Message (EVCODE=Program Trace Disabled); Enable=0 then flushes
+		// queued trace data. (Decode is soft for this overflow test.)
+		env.csr.Set_te_trTeControl_InstTracing (1'b0);
+		env.wait_cycles(200);
+		env.csr.Set_te_trTeControl_Enable      (1'b0);
+		env.atb_force_flush = 1'b1;
+		env.wait_cycles(2000);
+		env.atb_force_flush = 1'b0;
+		env.csr.Set_te_trTeControl_Active      (1'b0);
 		env.wait_cycles(2000);
 
 		bytes_after_C = env.atb_bytes_seen;

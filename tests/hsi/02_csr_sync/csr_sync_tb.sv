@@ -82,9 +82,14 @@ module csr_sync_tb;
 		env.cpu.run(16);                                      // 0x1014..0x1020
 		env.cpu.exit_trace();
 
-		// ---- Drain: flush ONLY (no sync request, no force_sync), so no
-		//      extra synchronization message is injected by the drain. ----
+		// ---- Trace-off: flush ONLY (no sync request, no force_sync), so no
+		//      extra *synchronization* message is injected by the drain.
+		//      Disabling instruction tracing emits a Program Trace Correlation
+		//      Message (TCODE 33) — NOT a sync — so the sync count is
+		//      unaffected; Enable=0 then only flushes queued trace data. ----
+		env.csr.Set_te_trTeControl_InstTracing (1'b0);
 		env.wait_cycles(200);
+		env.csr.Set_te_trTeControl_Enable      (1'b0);
 		env.atb_force_flush = 1'b1;
 		env.wait_cycles(4000);
 		env.atb_force_flush = 1'b0;

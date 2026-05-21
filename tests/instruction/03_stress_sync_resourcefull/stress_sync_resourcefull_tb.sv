@@ -112,13 +112,17 @@ module stress_sync_resourcefull_tb;
 		env.cpu.uninferable_jump(.target(pc + 32'd4));
 		env.cpu.exit_trace();
 
-		// ---- Drain ----
-		env.csr.Set_te_trTeControl_InstSyncReq (1'b1);
+		// ---- Trace-off ----
+		// Disabling instruction tracing emits a Program Trace Correlation
+		// Message (EVCODE=Program Trace Disabled) that flushes the residual
+		// ICNT/HIST, so the offline decode resolves the final instructions.
+		// Enable=0 then only flushes queued trace data; atb_force_flush
+		// pushes the last ATB bytes to the sink.
+		env.csr.Set_te_trTeControl_InstTracing (1'b0);
 		env.wait_cycles(200);
-		env.atb_force_sync  = 1'b1;
+		env.csr.Set_te_trTeControl_Enable      (1'b0);
 		env.atb_force_flush = 1'b1;
 		env.wait_cycles(4000);
-		env.atb_force_sync  = 1'b0;
 		env.atb_force_flush = 1'b0;
 		env.csr.Set_te_trTeControl_Active(1'b0);
 		env.wait_cycles(20000);
