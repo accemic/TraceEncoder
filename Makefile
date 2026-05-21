@@ -25,8 +25,26 @@ help:
 rdl:
 	$(NOT_IMPL)
 
-## sim:    Run all top-level testbenches; sim phase + NexRv decode check per test.
-sim: sim-basic sim-interrupts sim-stress sim-sync-indirect sim-data-basic sim-overflow sim-hsi-csr-cap sim-hsi-csr-sync sim-combined
+## sim:    Run all top-level testbenches and print a PASS/FAIL summary.
+##          Every test runs even if an earlier one fails; exits non-zero iff
+##          any failed. (Run a single test with its own `make sim-<name>`.)
+SIM_TESTS := basic interrupts stress sync-indirect data-basic overflow hsi-csr-cap hsi-csr-sync combined
+
+sim:
+	@overall=0; declare -A st; \
+	for t in $(SIM_TESTS); do \
+		printf '\n========================= sim-%s =========================\n' "$$t"; \
+		if $(MAKE) --no-print-directory sim-$$t; then st[$$t]=PASS; else st[$$t]=FAIL; overall=1; fi; \
+	done; \
+	printf '\n======================= make sim summary =======================\n'; \
+	for t in $(SIM_TESTS); do printf '  %-4s  sim-%s\n' "$${st[$$t]}" "$$t"; done; \
+	printf '================================================================\n'; \
+	if [ $$overall -eq 0 ]; then \
+		printf '  RESULT: PASS — all %s tests passed\n\n' "$$(echo $(SIM_TESTS) | wc -w)"; \
+	else \
+		printf '  RESULT: FAIL — %s\n\n' "$$(for t in $(SIM_TESTS); do [ "$${st[$$t]}" = FAIL ] && printf 'sim-%s ' "$$t"; done)"; \
+		exit 1; \
+	fi
 
 ## sim-basic: tests/instruction/01_basic — sim + NexRv decode + address match.
 ##              Exercises instruction-trace pause/resume; trace-off emits a
