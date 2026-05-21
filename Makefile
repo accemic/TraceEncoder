@@ -32,17 +32,32 @@ SIM_TESTS := basic interrupts stress sync-indirect data-basic overflow hsi-csr-c
 
 sim:
 	@overall=0; declare -A st; \
+	declare -A dir=( \
+		[basic]=instruction/01_basic \
+		[interrupts]=instruction/02_interrupts \
+		[stress]=instruction/03_stress_sync_resourcefull \
+		[sync-indirect]=instruction/04_sync_indirect_collapse \
+		[data-basic]=data/01_basic \
+		[overflow]=overflow/01_run_overflow_reset \
+		[hsi-csr-cap]=hsi/01_csr_cap \
+		[hsi-csr-sync]=hsi/02_csr_sync \
+		[combined]=combined/01_all ); \
 	for t in $(SIM_TESTS); do \
-		printf '\n========================= sim-%s =========================\n' "$$t"; \
+		printf '\n===================== tests/%s =====================\n' "$${dir[$$t]}"; \
 		if $(MAKE) --no-print-directory sim-$$t; then st[$$t]=PASS; else st[$$t]=FAIL; overall=1; fi; \
 	done; \
 	printf '\n======================= make sim summary =======================\n'; \
-	for t in $(SIM_TESTS); do printf '  %-4s  sim-%s\n' "$${st[$$t]}" "$$t"; done; \
+	cat=""; \
+	for t in $(SIM_TESTS); do \
+		d="$${dir[$$t]}"; c="$${d%%/*}"; sub="$${d#*/}"; \
+		if [ "$$c" != "$$cat" ]; then printf '  tests/%s/\n' "$$c"; cat="$$c"; fi; \
+		printf '    %-4s  %s\n' "$${st[$$t]}" "$$sub"; \
+	done; \
 	printf '================================================================\n'; \
 	if [ $$overall -eq 0 ]; then \
 		printf '  RESULT: PASS — all %s tests passed\n\n' "$$(echo $(SIM_TESTS) | wc -w)"; \
 	else \
-		printf '  RESULT: FAIL — %s\n\n' "$$(for t in $(SIM_TESTS); do [ "$${st[$$t]}" = FAIL ] && printf 'sim-%s ' "$$t"; done)"; \
+		printf '  RESULT: FAIL — %s\n\n' "$$(for t in $(SIM_TESTS); do [ "$${st[$$t]}" = FAIL ] && printf 'tests/%s ' "$${dir[$$t]}"; done)"; \
 		exit 1; \
 	fi
 
