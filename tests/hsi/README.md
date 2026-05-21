@@ -6,20 +6,33 @@ SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
 # `tests/hsi/` — hardware-supported instrumentation tests
 
 System-level tests for the encoder's HSI (hardware-supported
-instrumentation) path. HSI events are driven via CSR writes from
-software — the `cpu_model` issues `.csr_write()` calls to trigger
-them.
-
-Every test in this directory enables timestamps via CSR and the
-scoreboard verifies that timestamp messages interleave correctly with
-the HSI messages.
+instrumentation) path. HSI events are driven via the ACT-CAP CSR
+protocol: the `cpu_model` issues `.act_cap_cmd()` calls, which model the
+CPU executing `csrw 0x0B10, x` — a functional NOP the encoder observes
+on the TIP data channel and turns into an instrumentation message (DAQ
+on the Nexus and/or AXIS sink). See `rdl/ct_cs_cpuif.rdl`
+`trActCapStCmd_e` for the command set.
 
 ## Test matrix
 
-| # | Directory | Scenario | `cpu_model` tasks exercised |
-|---|-----------|----------|------------------------------|
-| 01 | `01_csr_cap/` | HSI event triggered via a write to the CSR-CAP register. Scoreboard verifies the encoder emits the corresponding HSI message. | `csr_write` (to the CAP command register) |
-| 02 | `02_csr_st/` | HSI event triggered via a write to the CSR-ST register. Scoreboard verifies the corresponding HSI message. | `csr_write` (to the ST command register) |
+| # | Directory | Scenario | Verification |
+|---|-----------|----------|--------------|
+| 01 | `01_csr_cap/` | ACT-CAP CSR-based instrumentation: `DAQ_DIRECT_DATA` issued via CSR 0x0B10, routed to the AXIS sink. | In-sim `ct_axis_decoder` (env `ENABLE_DECODERS`): asserts decoded command (TID) + payload (element 0). `make sim-hsi-csr-cap`. |
+| 02 | `02_csr_sync/` | ACT-CAP `CF_SYNC` issued via CSR 0x0B10: requests an instruction synchronization message (Nexus only). | Offline NexRv sync-message count (`scripts/decode_and_check_sync.sh`): requires ≥ 2 syncs (startup + the one CF_SYNC produces). `make sim-hsi-csr-sync`, part of `make sim`. |
+
+### Notes / deferred coverage
+
+- **Nexus-sink DAQ** (a `DATA_ACQUISITION` vendor message in the trace)
+  is not yet verified in-sim: the in-sim `ct_nexus_decoder` depends on
+  `mseo2_decoder`, which has not been ported into this repo, and the
+  external NexRv reference decoder does not understand the vendor DAQ
+  TCODE. Test 01 therefore checks the AXIS sink; Nexus-sink DAQ
+  verification lands once that decoder dependency is available.
+- **Timestamps**: these tests keep timestamps OFF for a deterministic,
+  minimal decode. Timestamp-interleaving coverage belongs to the
+  combined tests.
+- **ACT-ST** (watchpoint-driven Smart Trigger) instrumentation is a
+  future addition to this group.
 
 ## What this group does NOT cover
 
@@ -34,5 +47,7 @@ Each test directory contains `<name>_tb.sv` + `<name>_tb.abc`,
 following the standard skeleton documented in
 [`../lib/README.md`](../lib/README.md).
 
-These tests enable **only** HSI (no instruction or data trace) so the
-HSI path is observed in isolation.
+These tests run instruction trace ON (so the encoder is in normal trace
+mode while the instrumentation fires) with data trace and timestamps
+OFF. HSI-alongside-everything coverage belongs to
+[`../combined/`](../combined/).

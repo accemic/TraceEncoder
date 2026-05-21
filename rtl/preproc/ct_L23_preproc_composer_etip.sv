@@ -193,6 +193,23 @@ module ct_L23_preproc_composer_etip #(
 			automatic logic count_halfwords =
 				tip.iretire || (tip.itype == EXCEPTION_TRAP);
 
+			// ACT-CAP CF_SYNC: a CSR-driven request for an instruction
+			// synchronization message (Nexus only). It rides on the
+			// retiring `csrw 0x0B10` (itype=OTHER) and is turned into a
+			// sync exactly like a periodic sync landing on a non-CF
+			// instruction (NEXUS_SYNC_REQ_CSR). When a real sync reason is
+			// already present on this beat, it takes precedence (a sync is
+			// emitted either way). The DAQ block below suppresses the DAQ
+			// message for this command.
+			automatic logic act_cf_sync =
+				act_cap_st.valid
+				&& (  (act_cap_st.cmd.Sink.value == ct_cs_cpuif__trActCapStSink_e__ACT_CAP_ST_SINK_NEXUS)
+				    ||(act_cap_st.cmd.Sink.value == ct_cs_cpuif__trActCapStSink_e__ACT_CAP_ST_SINK_AXIS_NEXUS))
+				&& (act_cap_st.cmd.Cmd.value == ct_cs_cpuif__trActCapStCmd_e__ACT_CAP_ST_CF_SYNC);
+			automatic nexus_sync_reason_e eff_sync_reason =
+				(sync.reason != NEXUS_SYNC_NONE) ? sync.reason
+				: (act_cf_sync ? NEXUS_SYNC_REQ_CSR : NEXUS_SYNC_NONE);
+
 			if (process_now) begin
 				if (pending_cf_next_iaddr_next) begin
 					next_iaddr_val      = tip.iaddr;
@@ -245,15 +262,15 @@ module ct_L23_preproc_composer_etip #(
 
 				// Emit CF eTIP messages for sync events and for real control-flow
 				// instructions so the downstream formatter can generate branch messages again.
-				if ((sync.reason != NEXUS_SYNC_NONE) || IsControlFlowInstruction(tip.itype)) begin
+				if ((eff_sync_reason != NEXUS_SYNC_NONE) || IsControlFlowInstruction(tip.itype)) begin
 					etip_msg_next[msg_id_next].sub_type           = SUB_MSG_CF;
-					etip_msg_next[msg_id_next].sub.cf.sync_reason = sync.reason;
+					etip_msg_next[msg_id_next].sub.cf.sync_reason = eff_sync_reason;
 					etip_msg_next[msg_id_next].sub.cf.itype       = tip.itype;
 					etip_msg_next[msg_id_next].sub.cf.iaddr       = tip.iaddr;
 					etip_msg_next[msg_id_next].sub.cf.rcode       = NEXUS_RCODE_NONE;
 					etip_msg_next[msg_id_next].sub.cf.rdata0      = '0;
 					etip_msg_next[msg_id_next].sub.cf.rdata1      = '0;
-					if (sync.reason != NEXUS_SYNC_NONE) begin
+					if (eff_sync_reason != NEXUS_SYNC_NONE) begin
 						// Nexus ICNT = instruction units executed since the last
 						// transmitted ICNT. Sync messages carry that count via
 						// (CurrICnt in msg_gen) + (this etip.cf.icnt), but the
@@ -287,7 +304,7 @@ module ct_L23_preproc_composer_etip #(
 						// resolved exactly once in the next segment. EXIT_FROM_SYS_RST
 						// is always exclusive (it never changes control flow).
 						if (HasChangedControlFlow(tip.itype)
-						 && sync.reason != NEXUS_SYNC_EXIT_FROM_SYS_RST) begin
+						 && eff_sync_reason != NEXUS_SYNC_EXIT_FROM_SYS_RST) begin
 							etip_msg_next[msg_id_next].sub.cf.icnt = icnt_cum_next;
 							icnt_cum_next = 0;
 						end else begin
@@ -338,6 +355,7 @@ module ct_L23_preproc_composer_etip #(
 			end
 
 			if (   (act_cap_st.valid)
+				&& (act_cap_st.cmd.Cmd.value != ct_cs_cpuif__trActCapStCmd_e__ACT_CAP_ST_CF_SYNC)
 				&& (  (act_cap_st.cmd.Sink.value == ct_cs_cpuif__trActCapStSink_e__ACT_CAP_ST_SINK_NEXUS)
 					||(act_cap_st.cmd.Sink.value == ct_cs_cpuif__trActCapStSink_e__ACT_CAP_ST_SINK_AXIS_NEXUS))) begin
 				etip_msg_next[msg_id_next].sub_type         = SUB_MSG_DAQ;

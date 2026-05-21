@@ -12,7 +12,7 @@ SHELL := /bin/bash
 
 NOT_IMPL = @echo "[$@] not implemented yet — skeleton release. See CLAUDE.md."
 
-.PHONY: help rdl sim sim-basic sim-interrupts sim-stress sim-sync-indirect sim-data-basic sim-overflow lint format doc clean
+.PHONY: help rdl sim sim-basic sim-interrupts sim-stress sim-sync-indirect sim-data-basic sim-overflow sim-hsi-csr-cap sim-hsi-csr-sync sim-combined lint format doc clean
 
 ## help: List available targets.
 help:
@@ -26,7 +26,7 @@ rdl:
 	$(NOT_IMPL)
 
 ## sim:    Run all top-level testbenches; sim phase + NexRv decode check per test.
-sim: sim-basic sim-interrupts sim-stress sim-sync-indirect sim-data-basic sim-overflow
+sim: sim-basic sim-interrupts sim-stress sim-sync-indirect sim-data-basic sim-overflow sim-hsi-csr-cap sim-hsi-csr-sync sim-combined
 
 ## sim-basic: tests/instruction/01_basic — sim + NexRv decode + address match.
 sim-basic: | bld
@@ -71,6 +71,36 @@ sim-data-basic: | bld
 sim-overflow: | bld
 	@cd bld && abc -sim ../tests/overflow/01_run_overflow_reset/run_overflow_reset_tb.abc
 	@scripts/decode_and_check.sh --soft run_overflow_reset_tb
+
+## sim-hsi-csr-cap: tests/hsi/01_csr_cap — ACT-CAP CSR-based instrumentation.
+##              Drives a DAQ_DIRECT_DATA command via the ACT-CAP CSR (0x0B10)
+##              and verifies the decoded command + payload on the AXIS sink
+##              in-sim (self-checking; $fatal on mismatch).
+sim-hsi-csr-cap: | bld
+	@cd bld && abc -sim ../tests/hsi/01_csr_cap/csr_cap_tb.abc
+
+## sim-hsi-csr-sync: tests/hsi/02_csr_sync — ACT-CAP CF_SYNC instruction sync.
+##              Issues ACT_CAP_ST_CF_SYNC via the ACT-CAP CSR (0x0B10) and
+##              checks (offline NexRv) that an extra instruction-sync message
+##              is emitted (>= 2 syncs: startup + CF_SYNC).
+sim-hsi-csr-sync: | bld
+	@cd bld && abc -sim ../tests/hsi/02_csr_sync/csr_sync_tb.abc
+	@scripts/decode_and_check_sync.sh csr_sync_tb
+
+## sim-combined: tests/combined/01_all — instruction + data + ACT-CAP sync.
+##              Mixed workload (linear, branch, call/return, varied
+##              loads/stores, ACT-CAP CF_SYNC). Verified three ways on the same
+##              trace via the NexRv reference decoder:
+##                - decode_and_check.sh      : NexRv -deco reconstructs the PC
+##                                             stream and it matches the model.
+##                - decode_and_check_data.sh : DataRead/DataWrite sequence matches.
+##                - decode_and_check_sync.sh : >= 3 sync messages (startup +
+##                                             mid-stream CF_SYNC + final flush).
+sim-combined: | bld
+	@cd bld && abc -sim ../tests/combined/01_all/combined_tb.abc
+	@scripts/decode_and_check.sh combined_tb
+	@scripts/decode_and_check_data.sh combined_tb
+	@scripts/decode_and_check_sync.sh combined_tb 3
 
 bld:
 	@mkdir -p bld
