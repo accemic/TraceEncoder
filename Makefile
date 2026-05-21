@@ -29,9 +29,14 @@ rdl:
 sim: sim-basic sim-interrupts sim-stress sim-sync-indirect sim-data-basic sim-overflow sim-hsi-csr-cap sim-hsi-csr-sync sim-combined
 
 ## sim-basic: tests/instruction/01_basic — sim + NexRv decode + address match.
+##              Trace-off is via Enable=0, which emits a Program Trace
+##              Correlation Message (TCODE 33, EVCODE=Program Trace Disabled);
+##              the decode is a full PC match and decode_and_check_disabled.sh
+##              confirms the trace-off message.
 sim-basic: | bld
 	@cd bld && abc -sim ../tests/instruction/01_basic/basic_tb.abc
 	@scripts/decode_and_check.sh basic_tb
+	@scripts/decode_and_check_disabled.sh basic_tb
 
 ## sim-interrupts: tests/instruction/02_interrupts — sim + NexRv decode + address match.
 sim-interrupts: | bld

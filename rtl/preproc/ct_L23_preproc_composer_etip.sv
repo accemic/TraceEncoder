@@ -414,9 +414,34 @@ module ct_L23_preproc_composer_etip #(
 			// process flush request
 			do_flush_ack_next = (!do_flush && DoFlushAck) ? 0 : DoFlushAck;
 			if (do_flush && !do_flush_ack_next) begin
-				msg_id_next = (msg_id_next == 0) ? 2'd1 : msg_id_next;
-				etip_msg_next[msg_id_next-1].do_flush = 1;
-				do_flush_ack_next = 1;
+				if (do_flush_enable_fall) begin
+					// trTeControl.Enable 1->0: emit a Program Trace Correlation
+					// Message (TCODE 33, EVCODE=Program Trace Disabled) per
+					// IEEE-ISTO 5001 §4.3.16, carrying the residual instruction
+					// count so the decoder can walk out the final instructions
+					// up to the trace-off point. The rcode marks it for msg_gen,
+					// which adds its accumulated ICNT, attaches the pending HIST,
+					// and clears the accumulators (mirrors the ICNT_OVERFLOW
+					// pre-drain marker above). do_flush=1 drains the pipeline
+					// after it.
+					etip_msg_next[msg_id_next].sub_type           = SUB_MSG_CF;
+					etip_msg_next[msg_id_next].sub.cf.sync_reason = NEXUS_SYNC_NONE;
+					etip_msg_next[msg_id_next].sub.cf.btype       = NEXUS_BTYPE_IBRANCH;
+					etip_msg_next[msg_id_next].sub.cf.itype       = OTHER;
+					etip_msg_next[msg_id_next].sub.cf.iaddr       = tip.iaddr;
+					etip_msg_next[msg_id_next].sub.cf.icnt        = icnt_cum_next;
+					etip_msg_next[msg_id_next].sub.cf.rcode       = NEXUS_RCODE_TRACE_DISABLED;
+					etip_msg_next[msg_id_next].sub.cf.rdata0      = '0;
+					etip_msg_next[msg_id_next].sub.cf.rdata1      = '0;
+					etip_msg_next[msg_id_next].do_flush           = 1;
+					msg_id_next       = msg_id_next + 1;
+					icnt_cum_next     = 0;
+					do_flush_ack_next = 1;
+				end else begin
+					msg_id_next = (msg_id_next == 0) ? 2'd1 : msg_id_next;
+					etip_msg_next[msg_id_next-1].do_flush = 1;
+					do_flush_ack_next = 1;
+				end
 			end
 
 			etip_ovf_drop_now = (msg_id_next != 0) && etip_cvs_d.full;

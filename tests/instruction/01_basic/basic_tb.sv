@@ -96,20 +96,19 @@ module basic_tb;
 
 		env.cpu.exit_trace();
 
-		// Drain: force the encoder to flush its pipeline so the
-		// offline NexRv decode sees a complete trace.
-		//   - InstSyncReq (CSR) requests a sync message
-		//   - atb_force_sync (ATB syncreq) asks the encoder to emit a
-		//     sync, which trailing-flushes pending history bits
-		//   - atb_force_flush (ATB afvalid) signals the sink wants to
-		//     flush; encoder drains its message-gen FIFO
-		// Then deactivate tracing and wait for the pipeline to empty.
-		env.csr.Set_te_trTeControl_InstSyncReq(1'b1);
+		// Trace-off via the standard Enable=0 path. Per the RDL
+		// (trTeControl.Enable) and IEEE-ISTO 5001 §4.3.16, setting Enable=0
+		// flushes queued trace data and makes the encoder emit a Program
+		// Trace Correlation Message (TCODE 33, EVCODE=Program Trace Disabled)
+		// carrying the residual instruction count + pending branch history,
+		// so the offline NexRv decode can walk out the final instructions up
+		// to the trace-off point (no undrained tail). atb_force_flush then
+		// pushes the last ATB bytes to the sink.
+		env.wait_cycles(50);
+		env.csr.Set_te_trTeControl_Enable(1'b0);
 		env.wait_cycles(200);
-		env.atb_force_sync  = 1'b1;
 		env.atb_force_flush = 1'b1;
 		env.wait_cycles(2000);
-		env.atb_force_sync  = 1'b0;
 		env.atb_force_flush = 1'b0;
 		env.csr.Set_te_trTeControl_Active(1'b0);
 		env.wait_cycles(10000);
