@@ -96,17 +96,17 @@ module basic_tb;
 
 		env.cpu.exit_trace();
 
-		// Trace-off via the standard Enable=0 path. Per the RDL
-		// (trTeControl.Enable) and IEEE-ISTO 5001 §4.3.16, setting Enable=0
-		// flushes queued trace data and makes the encoder emit a Program
-		// Trace Correlation Message (TCODE 33, EVCODE=Program Trace Disabled)
-		// carrying the residual instruction count + pending branch history,
-		// so the offline NexRv decode can walk out the final instructions up
-		// to the trace-off point (no undrained tail). atb_force_flush then
-		// pushes the last ATB bytes to the sink.
+		// Trace-off. Turning instruction tracing off makes the encoder emit
+		// a Program Trace Correlation Message (TCODE 33, EVCODE=Program Trace
+		// Disabled, IEEE-ISTO 5001 §4.3.16) carrying the residual instruction
+		// count + pending branch history, so the offline NexRv decode can
+		// walk out the final instructions up to the trace-off point (no
+		// undrained tail). Enable=0 then only flushes the queued trace data,
+		// and atb_force_flush pushes the last ATB bytes to the sink.
 		env.wait_cycles(50);
-		env.csr.Set_te_trTeControl_Enable(1'b0);
+		env.csr.Set_te_trTeControl_InstTracing(1'b0);   // -> Program Trace Correlation Message
 		env.wait_cycles(200);
+		env.csr.Set_te_trTeControl_Enable(1'b0);        // -> flush queued trace data
 		env.atb_force_flush = 1'b1;
 		env.wait_cycles(2000);
 		env.atb_force_flush = 1'b0;
