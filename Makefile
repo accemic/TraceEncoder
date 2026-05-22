@@ -100,11 +100,12 @@ sim-stress: | bld
 
 ## sim-data-basic: tests/data/01_basic — sim + NexRv data-trace check.
 ##                  Instruction trace is OFF in this scenario; verification
-##                  compares the cpu_model's load/store sequence against
-##                  the NexRv-decoded DataRead/DataWrite messages.
+##                  compares the cpu_model's load/store sequence (address,
+##                  size AND data value) against the NexRv CTXP export
+##                  (MEMREAD_n / MEMWRITE_n records).
 sim-data-basic: | bld
 	@cd bld && abc -sim ../tests/data/01_basic/data_basic_tb.abc
-	@scripts/decode_and_check.sh --data data_basic_tb
+	@scripts/decode_and_check.sh --ctxp data_basic_tb
 
 ## sim-overflow: tests/overflow/01_run_overflow_reset — sim + NexRv decode (soft).
 ##                Soft mode: overflow tests intentionally lose trace bytes
@@ -118,22 +119,14 @@ sim-overflow: | bld
 ##              Fires the full ACT-CAP command set via the ACT-CAP CSR (0x0B10):
 ##              every DAQ_* command routed to BOTH sinks (AXIS_NEXUS), plus one
 ##              CF_SYNC (Nexus only). The AXIS beat (command + payload) is
-##              verified in-sim (self-checking; $fatal on mismatch); each DAQ
-##              command also lands on the ATB as a Nexus DataAcquisition (vendor
-##              TCODE 7). Two offline gates here: the captured csr_cap_tb.atb.bin
-##              is checked non-empty, and NexRv counts >= 2 sync messages
-##              (startup + CF_SYNC). Full DAQ-to-CTXP decode is deferred to NexRv.
+##              verified in-sim (self-checking; $fatal on mismatch). Offline:
+##                --ctxp     : the NexRv CTXP export of the DAQ records
+##                             (DAQ_DATA / DAQ_COUNTER / DAQ_LAST_PC / SYNC /
+##                             MEMx_n) matches the cpu_model's expected.ctxp.
+##                --sync 2   : >= 2 sync messages (startup + CF_SYNC).
 sim-hsi-csr-cap: | bld
 	@cd bld && abc -sim ../tests/hsi/01_csr_cap/csr_cap_tb.abc
-	@atb=$$(find bld -name csr_cap_tb.atb.bin -printf '%T@ %p\n' 2>/dev/null \
-		| sort -rn | head -1 | cut -d' ' -f2-); \
-	if [ -s "$$atb" ]; then \
-		echo "[hsi-csr-cap] ATB capture non-empty: $$atb ($$(wc -c < "$$atb") bytes)"; \
-	else \
-		echo "[hsi-csr-cap] FAIL — ATB capture missing or empty (csr_cap_tb.atb.bin)"; \
-		exit 1; \
-	fi
-	@scripts/decode_and_check.sh --sync 2 csr_cap_tb
+	@scripts/decode_and_check.sh --ctxp --sync 2 csr_cap_tb
 
 ## sim-combined: tests/combined/01_all — instruction + data + ACT-CAP sync.
 ##              Mixed workload (linear, branch, call/return, varied
@@ -142,6 +135,11 @@ sim-hsi-csr-cap: | bld
 ##                --data     : DataRead/DataWrite sequence matches.
 ##                --sync 3   : >= 3 sync messages (startup + mid CF_SYNC + final).
 ##                --disabled : trace-off correlation message present.
+##              (Not --ctxp: with instruction AND data tracing both on, the
+##              data-trace messages flush ahead of the buffered instruction
+##              messages, so the CTXP record order is not program order — a
+##              strict line diff does not apply. The pure-memory data/01_basic
+##              and the DAQ hsi/01_csr_cap tests use --ctxp.)
 sim-combined: | bld
 	@cd bld && abc -sim ../tests/combined/01_all/combined_tb.abc
 	@scripts/decode_and_check.sh --pc --data --sync 3 --disabled combined_tb

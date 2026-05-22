@@ -38,7 +38,8 @@ module data_basic_tb;
 		.TIP_DUMP_TXT_PATH   ("data_basic_tb.tip.txt"),
 		.NEXRV_INFO_PATH     ("data_basic_tb.nexrv.info"),
 		.EXPECTED_PCS_PATH   ("data_basic_tb.expected.pcs"),
-		.EXPECTED_DATA_PATH  ("data_basic_tb.expected.data")
+		.EXPECTED_DATA_PATH  ("data_basic_tb.expected.data"),
+		.EXPECTED_CTXP_PATH  ("data_basic_tb.expected.ctxp")
 	) env ();
 
 	// Data buffer addresses (kept well clear of the PC range)
@@ -69,6 +70,11 @@ module data_basic_tb;
 		env.csr.Set_te_trTeControl_Active          (1'b1);
 		env.wait_cycles(20);
 		$display("[data_basic_tb] %0t: starting scenario", $time);
+
+		// Instruction tracing is OFF here, so the CTXP reference must contain
+		// no SYNC / control-flow records — only the MEM accesses. Mirror that
+		// in the cpu_model so write_expected_ctxp omits instruction records.
+		env.cpu.set_inst_traced(1'b0);
 
 		// ============================================================
 		// Scenario

@@ -12,36 +12,42 @@
 #                 (strict full match by default; a divergent prefix or a short
 #                 decode — stopped early — fails; use --soft to allow it)
 #   --data        decoded DataRead/DataWrite sequence matches <test>.expected.data
+#   --ctxp        NexRv's CTXP export (C-Trace eXPort: SYNC / BRANCH_* / CALL /
+#                 RETURN / MEMREAD_n / MEMWRITE_n / DAQ_* records) matches
+#                 <test>.expected.ctxp, normalized for the trailing "@ <cycle>"
+#                 and hex leading zeros. This is the value-aware data/DAQ check
+#                 (it compares the captured data values, not just addr+size).
 #   --sync N      at least N synchronization messages present
 #   --disabled    a trace-off Program Trace Correlation Message
 #                 (TCODE 33, EVCODE=Program Trace Disabled) is present
-#   --soft        PC / data divergence is reported as WARN, not a failure
+#   --soft        PC / data / ctxp divergence is reported as WARN, not a failure
 #                 (for tests that intentionally lose trace bytes, e.g. overflow)
 #
 # If no check flag is given, --pc is assumed. Exit status is non-zero iff a
 # requested (non-soft) check fails.
 #
-# Usage:  decode_and_check.sh [--soft] [--pc] [--data] [--sync N] [--disabled] <test_name>
+# Usage:  decode_and_check.sh [--soft] [--pc] [--data] [--ctxp] [--sync N] [--disabled] <test_name>
 
 set -euo pipefail
 
-soft=0; do_pc=0; do_data=0; do_disabled=0; sync_min=""
+soft=0; do_pc=0; do_data=0; do_ctxp=0; do_disabled=0; sync_min=""
 test_name=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --soft)     soft=1;        shift;;
         --pc)       do_pc=1;       shift;;
         --data)     do_data=1;     shift;;
+        --ctxp)     do_ctxp=1;     shift;;
         --disabled) do_disabled=1; shift;;
         --sync)     sync_min="${2:?--sync needs a count}"; shift 2;;
         --*)        echo "[decode] ERROR: unknown option $1"; exit 2;;
         *)          test_name="$1"; shift;;
     esac
 done
-: "${test_name:?usage: $0 [--soft] [--pc] [--data] [--sync N] [--disabled] <test_name>}"
+: "${test_name:?usage: $0 [--soft] [--pc] [--data] [--ctxp] [--sync N] [--disabled] <test_name>}"
 
 # Default to the PC check when none was requested.
-if [ "$do_pc" -eq 0 ] && [ "$do_data" -eq 0 ] && [ "$do_disabled" -eq 0 ] && [ -z "$sync_min" ]; then
+if [ "$do_pc" -eq 0 ] && [ "$do_data" -eq 0 ] && [ "$do_ctxp" -eq 0 ] && [ "$do_disabled" -eq 0 ] && [ -z "$sync_min" ]; then
     do_pc=1
 fi
 
@@ -171,6 +177,52 @@ if [ "$do_data" -eq 1 ]; then
             diff -u --label expected --label decoded "$exp_data" "$got_data" | head -30 || true
         else
             echo "[decode-data] $test_name: PASS — all $n_exp data events match"
+        fi
+    fi
+fi
+
+# ------------------------------------------------------------------
+# --ctxp : NexRv CTXP export vs expected.ctxp (normalized)
+# NexRv writes the CTXP text export when CTXP_TEXT_TRACEFILE is set (with
+# -none). We normalize both files — drop the HDR/META header, strip the
+# trailing "@ <cycle>", lowercase, and strip hex leading zeros — then diff.
+# ------------------------------------------------------------------
+if [ "$do_ctxp" -eq 1 ]; then
+    exp_ctxp="$sim_dir/${test_name}.expected.ctxp"
+    got_ctxp="$sim_dir/${test_name}.decoded.ctxp.txt"
+    ctxp_log="$sim_dir/${test_name}.ctxp.log"
+    if [ ! -s "$exp_ctxp" ]; then
+        echo "[decode-ctxp] $test_name: ERROR — missing or empty: $exp_ctxp"; fail=1
+    else
+        CTXP_TEXT_TRACEFILE="$got_ctxp" "$nexrv" -deco "$atb_bin" -pcinfo "$pcinfo" \
+            -pcout "$pcout" -none > "$ctxp_log" 2>&1 || true
+        if [ ! -s "$got_ctxp" ]; then
+            echo "[decode-ctxp] $test_name: FAIL — NexRv produced no CTXP export (see $ctxp_log)"
+            tail -5 "$ctxp_log" || true; fail=1
+        else
+            # Canonicalize: drop header, strip "@ <cycle>", lowercase, strip 0x leading zeros.
+            ctxp_norm() {
+                grep -vE '^(HDR|META):' "$1" \
+                    | sed -E 's/[[:space:]]*@[[:space:]]*[0-9]+[[:space:]]*$//' \
+                    | tr 'A-F' 'a-f' \
+                    | sed -E 's/0x0*([0-9a-f])/0x\1/g'
+            }
+            exp_n="$sim_dir/${test_name}.expected.ctxp.norm"
+            got_n="$sim_dir/${test_name}.decoded.ctxp.norm"
+            ctxp_norm "$exp_ctxp" > "$exp_n"
+            ctxp_norm "$got_ctxp" > "$got_n"
+            n_exp=$(wc -l < "$exp_n"); n_got=$(wc -l < "$got_n")
+            echo "[decode-ctxp] $test_name: expected $n_exp CTXP records, decoded $n_got"
+            if diff -q "$exp_n" "$got_n" > /dev/null; then
+                echo "[decode-ctxp] $test_name: PASS — all $n_exp CTXP records match"
+            else
+                if [ "$soft" -eq 1 ]; then
+                    echo "[decode-ctxp] $test_name: WARN — CTXP records diverge (soft mode)"
+                else
+                    echo "[decode-ctxp] $test_name: FAIL — CTXP records do not match"; fail=1
+                fi
+                diff -u --label expected --label decoded "$exp_n" "$got_n" | head -40 || true
+            fi
         fi
     fi
 fi

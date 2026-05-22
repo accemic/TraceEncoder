@@ -81,7 +81,13 @@ module cpu_model #(
 	// Used by scripts/decode_and_check_data.sh to verify the encoder
 	// emitted exactly the load/store sequence the cpu_model issued.
 	// Empty = no file.
-	parameter string EXPECTED_DATA_PATH = ""
+	parameter string EXPECTED_DATA_PATH = "",
+	// Optional path for an execution-ordered "expected CTXP" file — the
+	// C-Trace eXPort records (SYNC / BRANCH_* / CALL / RETURN / MEMREAD_n /
+	// MEMWRITE_n / DAQ_*) the NexRv reference decoder should produce from the
+	// trace, in program order. Compared (normalized) against NexRv's CTXP text
+	// export by scripts/decode_and_check.sh --ctxp. Empty = no file.
+	parameter string EXPECTED_CTXP_PATH = ""
 ) (
 	input  uwire logic clk,    // tip_clk
 	input  uwire logic rst,    // tip_rst (active high)
@@ -165,6 +171,11 @@ module cpu_model #(
 	// Enable, so events retired during an instruction-tracing pause are tagged
 	// untraced and excluded from the expected-PC reference. Default: traced.
 	bit         inst_traced   = 1'b1;
+	// TB-side mirror of "data tracing active" (trTeDataControl.DataTracing).
+	// Tests with data trace off (e.g. the ACT-CAP test, which still issues
+	// loads/stores to feed the DAQ data-context commands) set this 0 so those
+	// accesses are NOT emitted as standalone CTXP MEM records. Default: traced.
+	bit         data_traced   = 1'b1;
 
 	cpu_event_t event_q[$];
 
@@ -195,7 +206,8 @@ module cpu_model #(
 		e.target  = target;
 		e.payload = payload;
 		e.size    = size;
-		e.traced  = inst_traced;
+		e.traced      = inst_traced;
+		e.data_traced = data_traced;
 		event_q.push_back(e);
 	endfunction
 
@@ -206,6 +218,14 @@ module cpu_model #(
 	// event log (for liveness/debug) but omitted from the expected-PC list.
 	task automatic set_inst_traced(input bit on);
 		inst_traced = on;
+	endtask
+
+	// Mirror the encoder's data-tracing enable state (trTeDataControl.DataTracing)
+	// for the expected-CTXP reference. Call with 0 when data tracing is off so
+	// loads/stores are not emitted as CTXP MEM records (they may still run to
+	// feed ACT-CAP DAQ data-context commands). Default: data-traced.
+	task automatic set_data_traced(input bit on);
+		data_traced = on;
 	endtask
 
 	// ------------------------------------------------------------------
@@ -679,11 +699,187 @@ module cpu_model #(
 		return n_written;
 	endfunction
 
+	// ------------------------------------------------------------------
+	// Execution-ordered "expected CTXP" reference. Replays the event log
+	// the way the encoder + NexRv reference decoder produce CTXP records,
+	// so NexRv's CTXP text export can be diffed against it (normalized for
+	// the trailing "@ <cycle>" and hex leading zeros; see
+	// scripts/decode_and_check.sh --ctxp).
+	//
+	// Record set (matches NexRv's NexRvCTXP / NexRvDeco mapping):
+	//   - instruction control flow (gated on .traced): SYNC at trace entry,
+	//     BRANCH_TAKEN / BRANCH_NOTTAKEN / CALL / RETURN / INTERRUPT / RFI;
+	//   - data accesses (gated on .data_traced): MEMREAD_n / MEMWRITE_n;
+	//   - ACT-CAP DAQ commands (CPU_CSR_WRITE @ ACT_CAP_CMD, sink -> Nexus):
+	//     DAQ_DATA / SYNC / DAQ_LAST_PC / MEMx_n / DAQ_COUNTER per command.
+	// ------------------------------------------------------------------
+	// ACT-CAP command codes (rdl/ct_cs_cpuif.rdl trActCapStCmd_e).
+	localparam int unsigned CMD_PC_CURR      = 1;
+	localparam int unsigned CMD_PC_CURR_LAST = 2;
+	localparam int unsigned CMD_DIRECT_DATA  = 3;
+	localparam int unsigned CMD_DATA         = 4;
+	localparam int unsigned CMD_DADDR        = 5;
+	localparam int unsigned CMD_DATA_DADDR   = 6;
+	localparam int unsigned CMD_IFETCH_TH    = 8;
+	localparam int unsigned CMD_DATA_RD_TH   = 9;
+	localparam int unsigned CMD_DATA_WR      = 10;
+	localparam int unsigned CMD_DATA_RD      = 11;
+	localparam int unsigned CMD_CF_SYNC      = 12;
+
+	function automatic int write_expected_ctxp(input string path);
+		int fd;
+		int n_written = 0;
+		int unsigned ilen_bytes = 1 << (DEFAULT_ILASTSIZE + 1);   // 32-bit -> 4
+		// Captured data-access context, mirroring the composer's Prev* tracking.
+		tip_daddr_t      prev_daddr   = '0;
+		longint unsigned prev_data    = '0;
+		int unsigned     prev_sz_log2 = 0;
+		bit              prev_write   = 0;
+		tip_iaddr_t      prev_iaddr   = '0;   // last retired instruction PC
+		tip_iaddr_t      last_pc_exc  = '0;   // PC before the last exception/interrupt
+
+		if (path == "") return 0;
+		fd = $fopen(path, "w");
+		if (fd == 0) begin
+			$error("[cpu_model] failed to open '%s' for expected-CTXP write", path);
+			return 0;
+		end
+
+		foreach (event_q[i]) begin
+			automatic cpu_event_t e = event_q[i];
+			automatic int unsigned bytes;
+			automatic string rw;
+			case (e.kind)
+				CPU_ENTER: begin
+					if (e.traced) begin
+						$fwrite(fd, "#0:SYNC::0x%0h\n", e.pc); n_written++;
+					end
+				end
+				CPU_BRANCH_TAKEN: begin
+					if (e.traced) begin
+						$fwrite(fd, "#0:BRANCH_TAKEN:0x%0h:0x%0h\n", e.pc, e.target); n_written++;
+					end
+					prev_iaddr = e.pc;
+				end
+				CPU_BRANCH_NOT_TAKEN: begin
+					if (e.traced) begin
+						$fwrite(fd, "#0:BRANCH_NOTTAKEN:0x%0h:0x%0h\n", e.pc, e.pc + ilen_bytes); n_written++;
+					end
+					prev_iaddr = e.pc;
+				end
+				CPU_JUMP, CPU_UNINFERABLE_JUMP: begin
+					if (e.traced) begin
+						$fwrite(fd, "#0:BRANCH_TAKEN:0x%0h:0x%0h\n", e.pc, e.target); n_written++;
+					end
+					prev_iaddr = e.pc;
+				end
+				CPU_CALL: begin
+					if (e.traced) begin
+						$fwrite(fd, "#0:CALL:0x%0h:0x%0h\n", e.pc, e.target); n_written++;
+					end
+					prev_iaddr = e.pc;
+				end
+				CPU_RET: begin
+					if (e.traced) begin
+						$fwrite(fd, "#0:RETURN:0x%0h:0x%0h\n", e.pc, e.target); n_written++;
+					end
+					prev_iaddr = e.pc;
+				end
+				CPU_INTERRUPT, CPU_EXCEPTION: begin
+					last_pc_exc = prev_iaddr;
+					if (e.traced) begin
+						$fwrite(fd, "#0:INTERRUPT:0x%0h:0x%0h\n", prev_iaddr, e.target); n_written++;
+					end
+					prev_iaddr = e.target;
+				end
+				CPU_MRET: begin
+					if (e.traced) begin
+						$fwrite(fd, "#0:RFI:0x%0h:0x%0h\n", e.pc, e.target); n_written++;
+					end
+					prev_iaddr = e.pc;
+				end
+				CPU_LOAD: begin
+					if (e.data_traced) begin
+						$fwrite(fd, "#0:MEMREAD_%0d:0x%0h:0x%0h\n", 1 << e.size, e.target, e.payload);
+						n_written++;
+					end
+					prev_daddr = e.target; prev_data = e.payload;
+					prev_sz_log2 = e.size; prev_write = 0; prev_iaddr = e.pc;
+				end
+				CPU_STORE: begin
+					if (e.data_traced) begin
+						$fwrite(fd, "#0:MEMWRITE_%0d:0x%0h:0x%0h\n", 1 << e.size, e.target, e.payload);
+						n_written++;
+					end
+					prev_daddr = e.target; prev_data = e.payload;
+					prev_sz_log2 = e.size; prev_write = 1; prev_iaddr = e.pc;
+				end
+				CPU_CSR_WRITE: begin
+					if (e.target == tip_iaddr_t'(ACT_CAP_CMD)) begin
+						automatic int unsigned cmd  = e.payload[5:0];
+						automatic int unsigned sink = e.payload[7:6];
+						automatic longint unsigned dd = e.payload[31:8];
+						// sink: 0=NEXUS, 1=AXIS, 2=AXIS_NEXUS, 3=TE. Nexus DAQ
+						// records appear only for NEXUS / AXIS_NEXUS.
+						if (sink == 0 || sink == 2) begin
+							bytes = 1 << prev_sz_log2;
+							rw    = prev_write ? "WRITE" : "READ";
+							case (cmd)
+								CMD_PC_CURR: begin
+									if (dd != 0) begin $fwrite(fd, "#0:DAQ_DATA::0x%0h\n", dd); n_written++; end
+									$fwrite(fd, "#0:SYNC::0x%0h\n", e.pc); n_written++;
+								end
+								CMD_PC_CURR_LAST: begin
+									if (dd != 0) begin $fwrite(fd, "#0:DAQ_DATA::0x%0h\n", dd); n_written++; end
+									$fwrite(fd, "#0:DAQ_LAST_PC::0x%0h\n", last_pc_exc); n_written++;
+									$fwrite(fd, "#0:SYNC::0x%0h\n", e.pc); n_written++;
+								end
+								CMD_DIRECT_DATA: begin
+									$fwrite(fd, "#0:DAQ_DATA::0x%0h\n", dd); n_written++;
+								end
+								CMD_DATA: begin
+									if (dd != 0) begin $fwrite(fd, "#0:DAQ_DATA::0x%0h\n", dd); n_written++; end
+									$fwrite(fd, "#0:MEM%s_%0d::0x%0h\n", rw, bytes, prev_data); n_written++;
+								end
+								CMD_DADDR: begin
+									if (dd != 0) begin $fwrite(fd, "#0:DAQ_DATA::0x%0h\n", dd); n_written++; end
+									$fwrite(fd, "#0:MEM%s_0:0x%0h:\n", rw, prev_daddr); n_written++;
+								end
+								CMD_DATA_DADDR: begin
+									if (dd != 0) begin $fwrite(fd, "#0:DAQ_DATA::0x%0h\n", dd); n_written++; end
+									$fwrite(fd, "#0:MEM%s_%0d:0x%0h:0x%0h\n", rw, bytes, prev_daddr, prev_data); n_written++;
+								end
+								CMD_IFETCH_TH:  begin $fwrite(fd, "#0:DAQ_COUNTER:0x0:0x%0h\n", 0 << 19); n_written++; end
+								CMD_DATA_RD_TH: begin $fwrite(fd, "#0:DAQ_COUNTER:0x0:0x%0h\n", 1 << 19); n_written++; end
+								CMD_DATA_WR:    begin $fwrite(fd, "#0:DAQ_COUNTER:0x0:0x%0h\n", 2 << 19); n_written++; end
+								CMD_DATA_RD:    begin $fwrite(fd, "#0:DAQ_COUNTER:0x0:0x%0h\n", 3 << 19); n_written++; end
+								CMD_CF_SYNC:    begin $fwrite(fd, "#0:SYNC::0x%0h\n", e.pc); n_written++; end
+								default: ;
+							endcase
+						end
+						// The csrw itself is a CSR_READ_WRITE data access: it
+						// updates the captured context for the next DAQ command.
+						prev_daddr = tip_daddr_t'(ACT_CAP_CMD); prev_data = e.payload;
+						prev_sz_log2 = 2 /* word */; prev_write = 1;
+					end
+					prev_iaddr = e.pc;
+				end
+				CPU_RUN: prev_iaddr = e.pc;
+				default: ;
+			endcase
+		end
+		$fclose(fd);
+		$display("*** INFO (%m, line %0d) expected_ctxp saved to %s (%0d records)",
+			`__LINE__, path, n_written);
+		return n_written;
+	endfunction
+
 	// Auto-write on simulation end if a path was supplied.
 	final begin
 		if (NEXRV_INFO_PATH    != "") void'(write_nexrv_info(NEXRV_INFO_PATH));
 		if (EXPECTED_PCS_PATH  != "") void'(write_expected_pcs(EXPECTED_PCS_PATH));
 		if (EXPECTED_DATA_PATH != "") void'(write_expected_data(EXPECTED_DATA_PATH));
+		if (EXPECTED_CTXP_PATH != "") void'(write_expected_ctxp(EXPECTED_CTXP_PATH));
 	end
 
 	// ------------------------------------------------------------------

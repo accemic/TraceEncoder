@@ -55,6 +55,11 @@ module ctrace_env #(
 	// addr, size). Used by decode_and_check_data.sh to verify the
 	// encoder emitted the expected DataRead/DataWrite messages.
 	string EXPECTED_DATA_PATH = "",
+	// Optional: execution-ordered "expected CTXP" reference (SYNC /
+	// BRANCH_* / CALL / RETURN / MEMREAD_n / MEMWRITE_n / DAQ_* records).
+	// Compared (normalized) against NexRv's CTXP export by
+	// decode_and_check.sh --ctxp.
+	string EXPECTED_CTXP_PATH = "",
 	// Optional: instantiate the in-sim AXIS verification decoder
 	// (ct_axis_decoder) which taps the AXIS sink and exposes the decoded
 	// ACT-CAP/DAQ command + payload on dec_axis_msg/dec_axis_valid.
@@ -134,7 +139,8 @@ module ctrace_env #(
 		.CYCLES_PER_INSTR    (CYCLES_PER_INSTR),
 		.NEXRV_INFO_PATH     (NEXRV_INFO_PATH),
 		.EXPECTED_PCS_PATH   (EXPECTED_PCS_PATH),
-		.EXPECTED_DATA_PATH  (EXPECTED_DATA_PATH)
+		.EXPECTED_DATA_PATH  (EXPECTED_DATA_PATH),
+		.EXPECTED_CTXP_PATH  (EXPECTED_CTXP_PATH)
 	) cpu (
 		.clk (tip_clk),
 		.rst (tip_rst),

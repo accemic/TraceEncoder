@@ -62,7 +62,8 @@ module csr_cap_tb;
 		.ATB_DUMP_PATH       ("csr_cap_tb.atb.bin"),
 		.TIP_DUMP_TXT_PATH   ("csr_cap_tb.tip.txt"),
 		.NEXRV_INFO_PATH     ("csr_cap_tb.nexrv.info"),
-		.EXPECTED_PCS_PATH   ("csr_cap_tb.expected.pcs")
+		.EXPECTED_PCS_PATH   ("csr_cap_tb.expected.pcs"),
+		.EXPECTED_CTXP_PATH  ("csr_cap_tb.expected.ctxp")
 	) env ();
 
 	localparam logic [31:0]  MAIN_PC          = 32'h0000_1000;
@@ -126,6 +127,11 @@ module csr_cap_tb;
 		env.csr.Set_te_trTeControl_Active      (1'b1);
 		env.wait_cycles(20);
 		$display("[csr_cap_tb] %0t: starting scenario", $time);
+
+		// Data tracing is OFF: the load/store below only feed the DAQ
+		// data-context commands, they are not standalone DataRead/Write
+		// messages. Mirror that so the CTXP reference omits their MEM records.
+		env.cpu.set_data_traced(1'b0);
 
 		env.cpu.enter(.start_pc(MAIN_PC));
 		env.cpu.run(8);                                          // linear

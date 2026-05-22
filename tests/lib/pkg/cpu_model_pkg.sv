@@ -53,6 +53,8 @@ package cpu_model_pkg;
 		int unsigned     size;      // for loads/stores (2^size bytes)
 		bit              traced;    // 1 if instruction tracing was active when this retired;
 		                            // untraced instructions are excluded from the expected-PC reference
+		bit              data_traced; // 1 if data tracing was active when this retired;
+		                            // gates whether loads/stores appear as CTXP MEM records
 	} cpu_event_t;
 
 	function automatic string event_kind_str(cpu_event_kind_e k);
