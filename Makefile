@@ -117,10 +117,21 @@ sim-overflow: | bld
 
 ## sim-hsi-csr-cap: tests/hsi/01_csr_cap — ACT-CAP CSR-based instrumentation.
 ##              Drives a DAQ_DIRECT_DATA command via the ACT-CAP CSR (0x0B10)
-##              and verifies the decoded command + payload on the AXIS sink
-##              in-sim (self-checking; $fatal on mismatch).
+##              routed to BOTH sinks (AXIS_NEXUS). The AXIS beat (command +
+##              payload) is verified in-sim (self-checking; $fatal on mismatch);
+##              the DAQ message also lands on the ATB as a Nexus DataAcquisition
+##              (vendor TCODE 7), and the captured csr_cap_tb.atb.bin is checked
+##              non-empty here. Full DAQ-to-CTXP decode is deferred to NexRv.
 sim-hsi-csr-cap: | bld
 	@cd bld && abc -sim ../tests/hsi/01_csr_cap/csr_cap_tb.abc
+	@atb=$$(find bld -name csr_cap_tb.atb.bin -printf '%T@ %p\n' 2>/dev/null \
+		| sort -rn | head -1 | cut -d' ' -f2-); \
+	if [ -s "$$atb" ]; then \
+		echo "[hsi-csr-cap] ATB capture non-empty: $$atb ($$(wc -c < "$$atb") bytes)"; \
+	else \
+		echo "[hsi-csr-cap] FAIL — ATB capture missing or empty (csr_cap_tb.atb.bin)"; \
+		exit 1; \
+	fi
 
 ## sim-hsi-csr-sync: tests/hsi/02_csr_sync — ACT-CAP CF_SYNC instruction sync.
 ##              Issues ACT_CAP_ST_CF_SYNC via the ACT-CAP CSR (0x0B10) and

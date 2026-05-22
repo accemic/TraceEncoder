@@ -5,7 +5,7 @@
 * Copyright (c) 2026 Accemic Technologies GmbH
 * SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
 *
-* @brief    ACT-CAP (CSR-based instrumentation) test — AXIS sink.
+* @brief    ACT-CAP (CSR-based instrumentation) test — AXIS + ATB sinks.
 *
 * @details
 *   Exercises the ACT-CAP path: the CPU issues a write to the ACT-CAP
@@ -15,22 +15,24 @@
 *   side effect. See rdl/ct_cs_cpuif.rdl `trActCapStCmd_e`.
 *
 *   Command under test: ACT_CAP_ST_DAQ_DIRECT_DATA with a known 24-bit
-*   DirectData payload, routed to the AXIS sink (ACT_CAP_ST_SINK_AXIS).
-*   The encoder emits one AXIS beat: TID = command, element[0] =
-*   DirectData (strobe valid).
+*   DirectData payload, routed to BOTH sinks (ACT_CAP_ST_SINK_AXIS_NEXUS):
+*     - AXIS:  one beat, TID = command, element[0] = DirectData (strobe valid).
+*     - ATB:   a Nexus DataAcquisition message (vendor TCODE 7, IDTAG +
+*              DQDATA), emitted into the normal trace byte stream and
+*              captured in csr_cap_tb.atb.bin.
 *
-*   Verification is IN-SIM via the env's ENABLE_DECODERS hook, which taps
-*   the AXIS sink with ct_axis_decoder; this testbench reads
-*   env.dec_axis_msg and asserts the decoded command + payload.
+*   AXIS verification is IN-SIM via the env's ENABLE_DECODERS hook, which
+*   taps the AXIS sink with ct_axis_decoder; this testbench reads
+*   env.dec_axis_msg and asserts the decoded command + payload. The AXIS
+*   beat is identical whether the sink is AXIS or AXIS_NEXUS.
 *
-*   NOTE — Nexus sink (deferred): the same command can also be routed to
-*   the Nexus trace (a DATA_ACQUISITION message, vendor TCODE 7). The
-*   external NexRv reference decoder does not understand that vendor
-*   message, and the in-sim Nexus decoder (tests/lib/ct_nexus_decoder)
-*   cannot be built in this repo because it depends on mseo2_decoder,
-*   which has not been ported here. Nexus-side DAQ verification is
-*   therefore deferred until that decoder dependency lands; this test
-*   covers the AXIS sink.
+*   ATB-side DAQ verification is currently minimal — the ATB capture is
+*   only checked non-empty by the `make sim-hsi-csr-cap` target (the
+*   formatter also prints a `DAQ idtag=.. dqdata=..` INFO line in the sim
+*   log). A full DAQ comparison waits on the external NexRv reference
+*   decoder gaining DAQ-to-CTXP export; once it does, the .atb.bin can be
+*   decoded to CTXP and compared. (The in-sim Nexus decoder is not built
+*   here — it depends on mseo2_decoder, which has not been ported.)
 *
 *   Configuration: instruction trace ON (so the encoder runs in normal
 *   trace mode alongside the instrumentation), data trace OFF, periodic
@@ -51,10 +53,10 @@ module csr_cap_tb;
 		.TIP_DUMP_TXT_PATH   ("csr_cap_tb.tip.txt")
 	) env ();
 
-	localparam logic [31:0]  MAIN_PC         = 32'h0000_1000;
-	localparam logic [5:0]   CMD_DIRECT_DATA = ct_cs_cpuif__trActCapStCmd_e__ACT_CAP_ST_DAQ_DIRECT_DATA;
-	localparam logic [1:0]   SINK_AXIS       = ct_cs_cpuif__trActCapStSink_e__ACT_CAP_ST_SINK_AXIS;
-	localparam logic [23:0]  DIRECT_DATA     = 24'hA_BCDE;
+	localparam logic [31:0]  MAIN_PC          = 32'h0000_1000;
+	localparam logic [5:0]   CMD_DIRECT_DATA  = ct_cs_cpuif__trActCapStCmd_e__ACT_CAP_ST_DAQ_DIRECT_DATA;
+	localparam logic [1:0]   SINK_AXIS_NEXUS  = ct_cs_cpuif__trActCapStSink_e__ACT_CAP_ST_SINK_AXIS_NEXUS;
+	localparam logic [23:0]  DIRECT_DATA      = 24'hA_BCDE;
 
 	// ------------------------------------------------------------------
 	// Watch the env's in-sim AXIS decoder. Each accepted beat advances
@@ -95,13 +97,13 @@ module csr_cap_tb;
 
 		// ============================================================
 		// Scenario: a few linear instructions, then the ACT-CAP CSR
-		// write (DAQ_DIRECT_DATA -> AXIS sink), then a few more.
+		// write (DAQ_DIRECT_DATA -> AXIS + ATB sinks), then a few more.
 		// ============================================================
 		env.cpu.enter(.start_pc(MAIN_PC));
 		env.cpu.run(8);                                          // 0x1000, 0x1004
 
 		env.cpu.act_cap_cmd(.cmd(CMD_DIRECT_DATA),
-		                    .sink(SINK_AXIS),
+		                    .sink(SINK_AXIS_NEXUS),
 		                    .direct_data(DIRECT_DATA));          // csrw 0xB10 @ 0x1008
 
 		env.cpu.run(8);                                          // 0x100c, 0x1010
