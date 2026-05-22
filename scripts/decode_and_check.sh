@@ -8,8 +8,9 @@
 # with the NexRv reference decoder, then runs whichever checks are requested
 # against that single decode:
 #
-#   --pc          decoded PC stream matches <test>.expected.pcs (prefix /
-#                 undrained-tail tolerant: a matching prefix is PARTIAL PASS)
+#   --pc          decoded PC stream EXACTLY matches <test>.expected.pcs
+#                 (strict full match by default; a divergent prefix or a short
+#                 decode — stopped early — fails; use --soft to allow it)
 #   --data        decoded DataRead/DataWrite sequence matches <test>.expected.data
 #   --sync N      at least N synchronization messages present
 #   --disabled    a trace-off Program Trace Correlation Message
@@ -101,21 +102,32 @@ if [ "$do_pc" -eq 1 ]; then
         n_got=$(wc -l < "$got_pcs")
         n_cmp=$(( n_got < n_exp ? n_got : n_exp ))
         echo "[decode-pc] $test_name: expected $n_exp PCs, decoded $n_got PCs"
+        # Strict by default: the decoded stream must EXACTLY equal the expected
+        # one. A divergent prefix, or a short decode (the stream stopped early —
+        # e.g. an undrained tail or a mid-stream decoder error), is a failure.
+        # --soft downgrades any mismatch to a WARN (for tests that intentionally
+        # lose trace bytes, e.g. overflow).
+        pc_msg=""
         if [ "$n_cmp" -eq 0 ]; then
-            echo "[decode-pc] $test_name: FAIL — nothing to compare"; fail=1
+            pc_msg="nothing decoded"
         elif ! diff -q <(head -n "$n_cmp" "$exp_pcs") <(head -n "$n_cmp" "$got_pcs") > /dev/null; then
+            pc_msg="first $n_cmp PCs diverge"
+        elif [ "$n_got" -ne "$n_exp" ]; then
+            pc_msg="prefix matches but stream is incomplete ($n_got of $n_exp PCs)"
+        fi
+        if [ -z "$pc_msg" ]; then
+            echo "[decode-pc] $test_name: PASS — all $n_exp PCs match"
+        else
             if [ "$soft" -eq 1 ]; then
-                echo "[decode-pc] $test_name: WARN — first $n_cmp PCs diverge (soft mode, not a failure)"
+                echo "[decode-pc] $test_name: WARN — $pc_msg (soft mode, not a failure)"
             else
-                echo "[decode-pc] $test_name: FAIL — first $n_cmp PCs do not match"
+                echo "[decode-pc] $test_name: FAIL — $pc_msg"
                 fail=1
             fi
-            diff -u --label expected --label decoded \
-                <(head -n "$n_cmp" "$exp_pcs") <(head -n "$n_cmp" "$got_pcs") | head -20 || true
-        elif [ "$n_got" -lt "$n_exp" ]; then
-            echo "[decode-pc] $test_name: PARTIAL PASS — first $n_cmp/$n_exp PCs match; decoded tail truncated."
-        else
-            echo "[decode-pc] $test_name: PASS — all $n_exp PCs match"
+            if [ "$n_cmp" -gt 0 ]; then
+                diff -u --label expected --label decoded \
+                    <(head -n "$n_cmp" "$exp_pcs") <(head -n "$n_cmp" "$got_pcs") | head -20 || true
+            fi
         fi
     fi
 fi
