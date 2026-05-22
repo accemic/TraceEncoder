@@ -397,16 +397,18 @@ module ct_L2_msg_gen (
 
 							// Overflow handling, per Nexus spec:
 							//   RCODE=1 (HIST_OVERFLOW)  — the HIST payload is full.
-							//       Flush HIST and reset CurrICnt. The HIST_OVERFLOW
-							//       message carries no ICNT field; the decoder
-							//       resolves the flushed branch bits by walking the
-							//       program (PCInfo) from the current PC, which fully
-							//       advances both its PC *and* its instruction count
-							//       across this span. The next ICNT-bearing packet
-							//       (e.g. a periodic sync) must therefore count only
-							//       instructions retired AFTER this flush — otherwise
-							//       the decoder walks the flushed span twice (once via
-							//       HIST resolution, once via the inflated ICNT).
+							//       Flush HIST only; the HIST_OVERFLOW message carries
+							//       no ICNT field. CurrICnt is NOT reset here: ICNT
+							//       keeps accumulating across the flush and is reported
+							//       in full by the next history-bearing message (IBH /
+							//       sync / correlation), which is where it is reset. The
+							//       decoder subtracts the half-words it walks while
+							//       resolving the flushed HIST from that next ICNT, so
+							//       the span is counted exactly once. (This mirrors the
+							//       reference software encoder NexRvEnco, whose
+							//       ResourceFull path leaves encoICNT untouched; zeroing
+							//       it here dropped the non-HIST-covered half-words and
+							//       desynced the decoder — see tests/instruction/03_stress.)
 							//   RCODE=0 (ICNT_OVERFLOW) — CurrICnt no longer fits the
 							//       ICNT field of the next packet. Emit the accumulated
 							//       halfwords now and reset CurrICnt; HIST is preserved.
@@ -417,7 +419,6 @@ module ct_L2_msg_gen (
 								TraceMsg.sub.cf.rdata0  <= hist;
 								Hist                    <= 1;
 								HistCount               <= 1;
-								CurrICnt                <= 0;
 							end
 							else if ((CurrICnt + etip_cf.icnt) > MAX_NEXUS_ICNT) begin
 								TraceMsg.sub_type       <= SUB_MSG_CF;
@@ -490,14 +491,18 @@ module ct_L2_msg_gen (
 
 		// RCODE=1 (HIST_OVERFLOW) carries no ICNT field. The decoder
 		// resolves the flushed branch bits by walking the program
-		// (PCInfo) from its current PC, which fully advances both its
-		// PC *and* its instruction count across the flushed span. The
-		// next ICNT-bearing packet must therefore count only the
-		// instructions retired AFTER this flush — so reset CurrICnt
-		// here. (NexRv does not "subtract walked halfwords" from a
-		// later ICNT; leaving CurrICnt running double-counts the
-		// flushed span, e.g. a periodic sync immediately after this
-		// flush re-walks every branch it covered.)
+		// (PCInfo) from its current PC, and subtracts the half-words it
+		// walks from the next ICNT-bearing packet. So CurrICnt is NOT
+		// reset here: it keeps accumulating across the flush and the next
+		// history-bearing message (IBH / sync / correlation) reports the
+		// full span; the decoder's subtraction makes it count exactly
+		// once. This matches the reference software encoder NexRvEnco
+		// (its ResourceFull path leaves encoICNT untouched) and the
+		// inline HistCount-overflow path in send_cf_msg. Only HIST is
+		// flushed and reset here. (Zeroing CurrICnt dropped the
+		// non-HIST-covered half-words and desynced the decoder at the
+		// next periodic sync — see tests/instruction/03_stress and
+		// tests/combined/01_all.)
 		TraceMsg.sub_type         <= SUB_MSG_CF;
 		TraceMsg.tcode            <= NEXUS_MSG_PROGRAM_TRACE_RESOURCE_FULL;
 		TraceMsg.ts               <= ts;
@@ -505,7 +510,6 @@ module ct_L2_msg_gen (
 		TraceMsg.sub.cf.rdata0    <= hist;
 		Hist                      <= 1;
 		HistCount                 <= 1;
-		CurrICnt                  <= 0;
 
 		// pragma translate_off
 		// Spec Table 4-3: HIST is `stop_bit | data_bits`. A value of 0x1 is

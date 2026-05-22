@@ -41,9 +41,12 @@
 *   ICNT-adjust heuristic recovers those; only the direct-loop-back +
 *   indirect-dispatch + dropped-linear-span combination defeats it.
 *
-*   EXPECTED TO FAIL (decode/PC-compare) until the encoder's HIST_OVERFLOW
-*   handling is fixed to subtract only the HIST-covered half-words instead
-*   of zeroing CurrICnt. This is the regression gate for that fix.
+*   FIXED: the encoder no longer zeroes CurrICnt on a HIST_OVERFLOW — ICNT
+*   keeps accumulating across the flush and the next history-bearing message
+*   reports the full span, while the decoder subtracts the half-words it walks
+*   while resolving the flushed HIST (matching the reference encoder
+*   NexRvEnco). See the HIST_OVERFLOW paths in rtl/ct_L2_msg_gen.sv. This test
+*   is the passing regression gate for that fix.
 *
 *   Verification: scripts/decode_and_check.sh --pc (HARD).
 *   Deterministic (behavioural cpu_model; no netlist X-init). Instruction
@@ -113,13 +116,19 @@ module stress_tb;
 			//     are dropped on the CurrICnt reset -> severe under-count.
 			env.cpu.run(600);
 
-			// (d) DIRECT loop-back (taken conditional). Followed inline by the
-			//     decoder (no IBH / no re-anchor), so a forward recovery walk
-			//     crosses into the next iteration's indirect dispatch.
+			// (d) DIRECT loop-back (conditional). Followed inline by the decoder
+			//     (no IBH / no re-anchor), so a forward recovery walk crosses
+			//     into the next iteration's indirect dispatch. It is the SAME
+			//     branch site every iteration, so it has ONE static target
+			//     (MAIN_PC): iterations loop back by TAKING it; the final
+			//     iteration drains by NOT taking it (falling through to the
+			//     CF-quiet tail below). A taken branch to a *different* target
+			//     here would be unrepresentable for a direct branch — the
+			//     decoder resolves the static target from the program image.
 			if (k < K - 1)
 				env.cpu.branch_taken(.target(MAIN_PC));
 			else
-				env.cpu.branch_taken(.target(32'h0000_2000));   // drain
+				env.cpu.branch_not_taken(.target(MAIN_PC));   // drain: fall through
 		end
 
 		// CF-quiet linear tail so trace-off lands after a non-control-flow instr.
