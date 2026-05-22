@@ -253,6 +253,25 @@ module ct_L2_nexus_formatter (
 							end
 							SimulationOutput(`__LINE__, MsgNum, trace_msg.tcode);
 						end
+						NEXUS_MSG_PROGRAM_TRACE_CORRELATION: begin
+							// TCODE 33, emitted only as the "Program Trace Disabled"
+							// event on trace-off. Layout per IEEE-ISTO 5001 §4.3.16:
+							// EVCODE, CDF, ICNT, [CDATA=HIST when CDF>=1]. HIST is
+							// included only when branch history is pending
+							// (rdata0 > stop-bit); otherwise CDF=0 and it is omitted.
+							NexusMsg.fields[idx_data+0]	<= '{ETYPE, VENDOR_FIXED, NEXUS_EVCODE_PROGRAM_TRACE_DISABLED, NEXUS_MSG_EVCODE_WIDTH};
+							if (cf.rdata0 > 'b1) begin
+								NexusMsg.fields[idx_data+1]	<= '{ECODE,  VENDOR_FIXED,    2'b01,     2};
+								NexusMsg.fields[idx_data+2]	<= '{ICNT,   VARIABLE,        cf.icnt,   LengthWoLeadingZeros(cf.icnt)};
+								NexusMsg.fields[idx_data+3]	<= '{RDATA0, VENDOR_VARIABLE, cf.rdata0, LengthWoLeadingZeros(cf.rdata0)};
+								idx_next                    = idx_data + 4;
+							end else begin
+								NexusMsg.fields[idx_data+1]	<= '{ECODE,  VENDOR_FIXED,    2'b00,     2};
+								NexusMsg.fields[idx_data+2]	<= '{ICNT,   VARIABLE,        cf.icnt,   LengthWoLeadingZeros(cf.icnt)};
+								idx_next                    = idx_data + 3;
+							end
+							SimulationOutput(`__LINE__, MsgNum, trace_msg.tcode);
+						end
 						NEXUS_MSG_PROGRAM_TRACE_INDIRECT_BRANCH_HISTORY: begin
 							NexusMsg.fields[idx_data+0]	<= '{BTYPE, VENDOR_FIXED, cf.btype, $size(nexus_btype_e)};
 							NexusMsg.fields[idx_data+1]	<= '{ICNT, VARIABLE, cf.icnt, LengthWoLeadingZeros(cf.icnt)};

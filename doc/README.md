@@ -17,5 +17,8 @@ Start here:
 - [Integration guide](integration.md) — how to wire C-Trace into a
   SoC: clocks, resets, the TIP interface, the ATB / AXIS output, the
   CSR / Wishbone bus.
+- [Verification](verification.md) — the test system & checking
+  principle: the `cpu_model` stimulus, the `ctrace_env` harness, and the
+  NexRv reference-decode-and-compare loop, with a block diagram.
 
 Diagrams and images live in [`images/`](images/).

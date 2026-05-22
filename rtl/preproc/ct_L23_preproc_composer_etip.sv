@@ -96,8 +96,15 @@ module ct_L23_preproc_composer_etip #(
 	uwire                       do_flush;
 	uwire                       do_flush_atb;
 	logic                       do_flush_enable_fall = 1'b0;
-	logic                       PrevTrTeEnable        = 1'b0;
+	logic                       do_corr_disable       = 1'b0;
+	logic                       PrevTrTeEnable         = 1'b0;
+	logic                       PrevInstTraceActive    = 1'b0;
 	uwire                       etip_ovf_dropping;
+
+	// Instruction tracing is effectively active only while the encoder is
+	// enabled AND instruction tracing is selected. Setting trTeEnable=0
+	// therefore implicitly disables instruction tracing (and data tracing).
+	uwire inst_trace_active = cs_tip.trTeEnable && cs_tip.trTeInstTracing;
 
 	signal_ack_lock_fsm #(.DO_CDC(1))
 	atb_afvalid_ack_lock_fsm (
@@ -109,30 +116,48 @@ module ct_L23_preproc_composer_etip #(
 	);
 
 	// ----------------------------------------------------------------
-	// Auto-flush on trTeControl.Enable falling edge
+	// Trace-off detection
 	// ----------------------------------------------------------------
-	// Per spec: "Setting trTeEnable to 0 flushes any queued trace data
-	// to the sink or funnel attached to this encoder." We detect the
-	// 1->0 transition of cs_tip.trTeEnable in tip_clk and latch a sticky
-	// flush request that mirrors the atb_afvalid path. The DoFlushAck
-	// (asserted by the composer once an etip msg has been tagged with
-	// do_flush=1) clears this latch as well, so a single falling edge
-	// produces exactly one flush event.
+	// Two distinct events, both latched as sticky one-shots cleared by
+	// DoFlushAck (so a single edge produces exactly one event):
+	//
+	//   do_flush_enable_fall : trTeControl.Enable 1->0. Per the RDL,
+	//       Enable=0 "flushes any queued trace data to the sink"; it does
+	//       nothing more than flush (instruction/data tracing are gated off
+	//       implicitly via inst_trace_active / DataTracing).
+	//
+	//   do_corr_disable      : instruction tracing turned OFF, i.e. the
+	//       falling edge of inst_trace_active (= Enable && InstTracing).
+	//       This is what should produce the Program Trace Correlation
+	//       Message (TCODE 33, EVCODE=Program Trace Disabled) carrying the
+	//       residual ICNT/HIST. It fires both when InstTracing is cleared
+	//       directly (Enable still 1) and when Enable=0 implicitly disables
+	//       instruction tracing.
 	always_ff @(posedge clk) begin
 		if (rst) begin
 			PrevTrTeEnable        <= 1'b0;
+			PrevInstTraceActive   <= 1'b0;
 			do_flush_enable_fall  <= 1'b0;
+			do_corr_disable       <= 1'b0;
 		end else begin
-			PrevTrTeEnable <= cs_tip.trTeEnable;
+			PrevTrTeEnable      <= cs_tip.trTeEnable;
+			PrevInstTraceActive <= inst_trace_active;
 			if (PrevTrTeEnable && !cs_tip.trTeEnable) begin
 				do_flush_enable_fall <= 1'b1;
 			end else if (DoFlushAck) begin
 				do_flush_enable_fall <= 1'b0;
 			end
+			if (PrevInstTraceActive && !inst_trace_active) begin
+				do_corr_disable <= 1'b1;
+			end else if (DoFlushAck) begin
+				do_corr_disable <= 1'b0;
+			end
 		end
 	end
 
-	assign do_flush = do_flush_atb || do_flush_enable_fall;
+	// A trace-off correlation message must itself be pushed out, so the
+	// instruction-disable event also requests a flush.
+	assign do_flush = do_flush_atb || do_flush_enable_fall || do_corr_disable;
 
 	// ----------------------------------------------------------------
 	// Combinational next-state logic
@@ -186,12 +211,22 @@ module ct_L23_preproc_composer_etip #(
 			// of the user's CF filter selection.
 			automatic logic is_trap_event =
 				(tip.itype == EXCEPTION_TRAP) || (tip.itype == INTERRUPT);
+			// Instruction tracing must be effectively active (Enable &&
+			// InstTracing) to generate any instruction-trace message or
+			// accumulate ICNT. While paused (InstTracing=0 with Enable still
+			// high, or Enable=0) the encoder emits nothing and counts nothing;
+			// the trace-off correlation message (do_corr_disable path below)
+			// has already carried the residual, and on resume a TRACE_ENABLE
+			// sync re-anchors the decoder. Traps during a pause are not traced
+			// either.
 			automatic logic process_now =
-				(tip.iretire && cf_qualifier.hit_valid && cf_qualifier.hit)
-				|| is_trap_event;
+				inst_trace_active
+				&& ( (tip.iretire && cf_qualifier.hit_valid && cf_qualifier.hit)
+				     || is_trap_event );
 			// See the comment block below at the icnt accumulation.
 			automatic logic count_halfwords =
-				tip.iretire || (tip.itype == EXCEPTION_TRAP);
+				inst_trace_active
+				&& (tip.iretire || (tip.itype == EXCEPTION_TRAP));
 
 			// ACT-CAP CF_SYNC: a CSR-driven request for an instruction
 			// synchronization message (Nexus only). It rides on the
@@ -414,9 +449,34 @@ module ct_L23_preproc_composer_etip #(
 			// process flush request
 			do_flush_ack_next = (!do_flush && DoFlushAck) ? 0 : DoFlushAck;
 			if (do_flush && !do_flush_ack_next) begin
-				msg_id_next = (msg_id_next == 0) ? 2'd1 : msg_id_next;
-				etip_msg_next[msg_id_next-1].do_flush = 1;
-				do_flush_ack_next = 1;
+				if (do_corr_disable) begin
+					// Instruction tracing turned off: emit a Program Trace
+					// Correlation Message (TCODE 33, EVCODE=Program Trace
+					// Disabled) per IEEE-ISTO 5001 §4.3.16, carrying the residual
+					// instruction count so the decoder can walk out the final
+					// instructions up to the trace-off point. The rcode marks it
+					// for msg_gen, which adds its accumulated ICNT, attaches the pending HIST,
+					// and clears the accumulators (mirrors the ICNT_OVERFLOW
+					// pre-drain marker above). do_flush=1 drains the pipeline
+					// after it.
+					etip_msg_next[msg_id_next].sub_type           = SUB_MSG_CF;
+					etip_msg_next[msg_id_next].sub.cf.sync_reason = NEXUS_SYNC_NONE;
+					etip_msg_next[msg_id_next].sub.cf.btype       = NEXUS_BTYPE_IBRANCH;
+					etip_msg_next[msg_id_next].sub.cf.itype       = OTHER;
+					etip_msg_next[msg_id_next].sub.cf.iaddr       = tip.iaddr;
+					etip_msg_next[msg_id_next].sub.cf.icnt        = icnt_cum_next;
+					etip_msg_next[msg_id_next].sub.cf.rcode       = NEXUS_RCODE_TRACE_DISABLED;
+					etip_msg_next[msg_id_next].sub.cf.rdata0      = '0;
+					etip_msg_next[msg_id_next].sub.cf.rdata1      = '0;
+					etip_msg_next[msg_id_next].do_flush           = 1;
+					msg_id_next       = msg_id_next + 1;
+					icnt_cum_next     = 0;
+					do_flush_ack_next = 1;
+				end else begin
+					msg_id_next = (msg_id_next == 0) ? 2'd1 : msg_id_next;
+					etip_msg_next[msg_id_next-1].do_flush = 1;
+					do_flush_ack_next = 1;
+				end
 			end
 
 			etip_ovf_drop_now = (msg_id_next != 0) && etip_cvs_d.full;

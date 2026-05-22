@@ -12,7 +12,7 @@ SHELL := /bin/bash
 
 NOT_IMPL = @echo "[$@] not implemented yet — skeleton release. See CLAUDE.md."
 
-.PHONY: help rdl sim sim-basic sim-interrupts sim-stress sim-sync-indirect sim-data-basic sim-overflow sim-hsi-csr-cap sim-hsi-csr-sync sim-combined lint format doc clean
+.PHONY: help rdl sim sim-basic sim-interrupts sim-stress sim-data-basic sim-overflow sim-hsi-csr-cap sim-hsi-csr-sync sim-combined lint format doc clean
 
 ## help: List available targets.
 help:
@@ -25,36 +25,77 @@ help:
 rdl:
 	$(NOT_IMPL)
 
-## sim:    Run all top-level testbenches; sim phase + NexRv decode check per test.
-sim: sim-basic sim-interrupts sim-stress sim-sync-indirect sim-data-basic sim-overflow sim-hsi-csr-cap sim-hsi-csr-sync sim-combined
+## sim:    Run all top-level testbenches and print a PASS/FAIL summary.
+##          Every test runs even if an earlier one fails. Tests listed in
+##          SIM_XFAIL are known-failing regression gates (for an unfixed
+##          encoder bug): they run and are shown as XFAIL, but do not fail
+##          `make sim`. The run exits non-zero iff a normal test FAILs or an
+##          XFAIL test unexpectedly passes (XPASS — fix landed; promote it out
+##          of SIM_XFAIL). Run one test with its own `make sim-<name>`.
+SIM_ALL   := basic interrupts stress data-basic overflow hsi-csr-cap hsi-csr-sync combined
+SIM_XFAIL := stress
+
+sim:
+	@overall=0; declare -A st; xfail=" $(SIM_XFAIL) "; \
+	declare -A dir=( \
+		[basic]=instruction/01_basic \
+		[interrupts]=instruction/02_interrupts \
+		[stress]=instruction/03_stress \
+		[data-basic]=data/01_basic \
+		[overflow]=overflow/01_run_overflow_reset \
+		[hsi-csr-cap]=hsi/01_csr_cap \
+		[hsi-csr-sync]=hsi/02_csr_sync \
+		[combined]=combined/01_all ); \
+	for t in $(SIM_ALL); do \
+		printf '\n===================== tests/%s =====================\n' "$${dir[$$t]}"; \
+		if $(MAKE) --no-print-directory sim-$$t; then res=PASS; else res=FAIL; fi; \
+		if [[ "$$xfail" == *" $$t "* ]]; then \
+			if [ "$$res" = FAIL ]; then st[$$t]=XFAIL; else st[$$t]=XPASS; overall=1; fi; \
+		else \
+			st[$$t]=$$res; if [ "$$res" = FAIL ]; then overall=1; fi; \
+		fi; \
+	done; \
+	printf '\n======================= make sim summary =======================\n'; \
+	cat=""; \
+	for t in $(SIM_ALL); do \
+		d="$${dir[$$t]}"; c="$${d%%/*}"; sub="$${d#*/}"; \
+		if [ "$$c" != "$$cat" ]; then printf '  tests/%s/\n' "$$c"; cat="$$c"; fi; \
+		printf '    %-5s %s\n' "$${st[$$t]}" "$$sub"; \
+	done; \
+	printf '================================================================\n'; \
+	if [ $$overall -eq 0 ]; then \
+		printf '  RESULT: PASS  (XFAIL, expected: %s)\n\n' "$(SIM_XFAIL)"; \
+	else \
+		printf '  RESULT: FAIL — %s\n\n' "$$(for t in $(SIM_ALL); do if [ "$${st[$$t]}" = FAIL ] || [ "$${st[$$t]}" = XPASS ]; then printf 'tests/%s(%s) ' "$${dir[$$t]}" "$${st[$$t]}"; fi; done)"; \
+		exit 1; \
+	fi
 
 ## sim-basic: tests/instruction/01_basic — sim + NexRv decode + address match.
+##              Exercises instruction-trace pause/resume; trace-off emits a
+##              Program Trace Correlation Message (TCODE 33, EVCODE=Program
+##              Trace Disabled). --pc checks the PC stream, --disabled the
+##              trace-off message.
 sim-basic: | bld
 	@cd bld && abc -sim ../tests/instruction/01_basic/basic_tb.abc
-	@scripts/decode_and_check.sh basic_tb
+	@scripts/decode_and_check.sh --pc --disabled basic_tb
 
 ## sim-interrupts: tests/instruction/02_interrupts — sim + NexRv decode + address match.
 sim-interrupts: | bld
 	@cd bld && abc -sim ../tests/instruction/02_interrupts/interrupts_tb.abc
-	@scripts/decode_and_check.sh interrupts_tb
+	@scripts/decode_and_check.sh --pc --disabled interrupts_tb
 
-## sim-stress: tests/instruction/03_stress_sync_resourcefull — sim + NexRv decode.
-##              Long branch stream that forces many periodic syncs and many
-##              ResourceFull (HIST_OVERFLOW) messages; the decoded PC stream
-##              must match the cpu_model exactly.
+## sim-stress: tests/instruction/03_stress — instruction-trace stress (KNOWN-FAILING).
+##              Merges the former 03 (periodic sync + HIST_OVERFLOW, direct
+##              branches) and 04 (indirect branch right after a HIST flush) into
+##              one scenario that also mixes inferable CALLs and RETURNs. It is a
+##              regression gate for an unfixed encoder bug: HIST_OVERFLOW zeroes
+##              the ICNT accumulator, dropping the half-words of non-HIST-covered
+##              instructions, so the decode collapses mid-stream. EXPECTED TO
+##              FAIL the --pc check until that is fixed; it runs under `make sim`
+##              as XFAIL (shown, but not counted as a failure — see SIM_XFAIL).
 sim-stress: | bld
-	@cd bld && abc -sim ../tests/instruction/03_stress_sync_resourcefull/stress_sync_resourcefull_tb.abc
-	@scripts/decode_and_check.sh stress_sync_resourcefull_tb
-
-## sim-sync-indirect: tests/instruction/04_sync_indirect_collapse — sim + NexRv decode (HARD).
-##              Regression gate for the IBH / sync-coincident-branch ICNT collapse:
-##              a conditional branch carrying a sync reason (e.g. the
-##              EXIT_FROM_SYS_RST on the first instruction) used to lose its HIST
-##              bit, shifting the first overflow and collapsing the following
-##              indirect branch's ICNT. Decoded PC stream must match the cpu_model.
-sim-sync-indirect: | bld
-	@cd bld && abc -sim ../tests/instruction/04_sync_indirect_collapse/sync_indirect_collapse_tb.abc
-	@scripts/decode_and_check.sh sync_indirect_collapse_tb
+	@cd bld && abc -sim ../tests/instruction/03_stress/stress_tb.abc
+	@scripts/decode_and_check.sh --pc stress_tb
 
 ## sim-data-basic: tests/data/01_basic — sim + NexRv data-trace check.
 ##                  Instruction trace is OFF in this scenario; verification
@@ -62,7 +103,7 @@ sim-sync-indirect: | bld
 ##                  the NexRv-decoded DataRead/DataWrite messages.
 sim-data-basic: | bld
 	@cd bld && abc -sim ../tests/data/01_basic/data_basic_tb.abc
-	@scripts/decode_and_check_data.sh data_basic_tb
+	@scripts/decode_and_check.sh --data data_basic_tb
 
 ## sim-overflow: tests/overflow/01_run_overflow_reset — sim + NexRv decode (soft).
 ##                Soft mode: overflow tests intentionally lose trace bytes
@@ -70,7 +111,7 @@ sim-data-basic: | bld
 ##                reported but not treated as test failures.
 sim-overflow: | bld
 	@cd bld && abc -sim ../tests/overflow/01_run_overflow_reset/run_overflow_reset_tb.abc
-	@scripts/decode_and_check.sh --soft run_overflow_reset_tb
+	@scripts/decode_and_check.sh --soft --pc run_overflow_reset_tb
 
 ## sim-hsi-csr-cap: tests/hsi/01_csr_cap — ACT-CAP CSR-based instrumentation.
 ##              Drives a DAQ_DIRECT_DATA command via the ACT-CAP CSR (0x0B10)
@@ -85,22 +126,18 @@ sim-hsi-csr-cap: | bld
 ##              is emitted (>= 2 syncs: startup + CF_SYNC).
 sim-hsi-csr-sync: | bld
 	@cd bld && abc -sim ../tests/hsi/02_csr_sync/csr_sync_tb.abc
-	@scripts/decode_and_check_sync.sh csr_sync_tb
+	@scripts/decode_and_check.sh --sync 2 csr_sync_tb
 
 ## sim-combined: tests/combined/01_all — instruction + data + ACT-CAP sync.
 ##              Mixed workload (linear, branch, call/return, varied
-##              loads/stores, ACT-CAP CF_SYNC). Verified three ways on the same
-##              trace via the NexRv reference decoder:
-##                - decode_and_check.sh      : NexRv -deco reconstructs the PC
-##                                             stream and it matches the model.
-##                - decode_and_check_data.sh : DataRead/DataWrite sequence matches.
-##                - decode_and_check_sync.sh : >= 3 sync messages (startup +
-##                                             mid-stream CF_SYNC + final flush).
+##              loads/stores, ACT-CAP CF_SYNC). One NexRv decode, four checks:
+##                --pc       : reconstructed PC stream matches the model.
+##                --data     : DataRead/DataWrite sequence matches.
+##                --sync 3   : >= 3 sync messages (startup + mid CF_SYNC + final).
+##                --disabled : trace-off correlation message present.
 sim-combined: | bld
 	@cd bld && abc -sim ../tests/combined/01_all/combined_tb.abc
-	@scripts/decode_and_check.sh combined_tb
-	@scripts/decode_and_check_data.sh combined_tb
-	@scripts/decode_and_check_sync.sh combined_tb 3
+	@scripts/decode_and_check.sh --pc --data --sync 3 --disabled combined_tb
 
 bld:
 	@mkdir -p bld

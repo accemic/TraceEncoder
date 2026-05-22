@@ -170,8 +170,15 @@ package nexus;
 		NEXUS_RCODE_ICNT_OVERFLOW			=  0, //4'b0000,
 		NEXUS_RCODE_HIST_OVERFLOW			=  1, //4'b0001,
 		NEXUS_RCODE_HIST_OVERFLOW_REPEATED	=  2, //4'b0010,	// link:../../references/147_RISC-V-N-Trace-Specification.pdr#page=27
+		NEXUS_RCODE_TRACE_DISABLED			=  3, //4'b0011,	// [C-Trace] internal marker: composer -> msg_gen, request a
+															//           Program Trace Correlation Message (TCODE 33,
+															//           EVCODE=Program Trace Disabled) flushing the residual ICNT/HIST
 		NEXUS_RCODE_NONE					= 15  //4'b1111		// for debug
 	} nexus_rcode_e;
+
+	// EVCODE values for the Program Trace Correlation Message (TCODE 33).
+	// Per IEEE-ISTO 5001-2012 Table 4-25 (Recommended Event Codes).
+	localparam logic [NEXUS_MSG_EVCODE_WIDTH-1:0] NEXUS_EVCODE_PROGRAM_TRACE_DISABLED = 4'h4;
 
 	typedef enum logic [NEXUS_MSG_BTYPE_WIDTH-1:0]{				// link:../../references/84_IEEE-ISTO-5001-2012-v3.0.1-Nexus-Standard.pdf#page=51
 		NEXUS_BTYPE_IBRANCH					=  0, //2'b00,
@@ -491,6 +498,20 @@ package nexus;
 				fmt.fmt[4] = '{ name: ADDR,      field_type: VARIABLE, 			max_bits: NEXUS_MSG_ADDRESS_WIDTH };
 				fmt.fmt[5] = '{ name: DATA,      field_type: VARIABLE, 			max_bits: NEXUS_MSG_DATA_WIDTH };
 				fmt.fmt[6] = '{ name: TSTAMP,    field_type: VENDOR_VARIABLE, 	max_bits: NEXUS_MSG_TSTAMP_WIDTH };
+			end
+
+			// 4.3.16 Program Trace - Correlation Message (TCODE = 33)
+			// C-Trace emits this only as the "Program Trace Disabled" event
+			// (EVCODE=4) on trace-off, carrying the residual ICNT and (when
+			// branch history is pending, CDF=1) the HIST in the CDATA slot.
+			NEXUS_MSG_PROGRAM_TRACE_CORRELATION: begin
+				fmt.num_fields = 6;
+				fmt.fmt[0] = '{ name: TCODE,     field_type: FIXED,    			max_bits: 6 };
+				fmt.fmt[1] = '{ name: SRC,       field_type: FIXED,    			max_bits: NEXUS_MSG_SOURCE_WIDTH };
+				fmt.fmt[2] = '{ name: ETYPE,     field_type: VENDOR_FIXED,  	max_bits: NEXUS_MSG_EVCODE_WIDTH };  // EVCODE
+				fmt.fmt[3] = '{ name: ECODE,     field_type: VENDOR_FIXED,  	max_bits: 2 };                       // CDF
+				fmt.fmt[4] = '{ name: ICNT,      field_type: VARIABLE, 			max_bits: NEXUS_MSG_I_CNT_WIDTH };
+				fmt.fmt[5] = '{ name: RDATA0,    field_type: VENDOR_VARIABLE, 	max_bits: NEXUS_MSG_HIST_WIDTH };    // CDATA = HIST (present iff CDF>=1)
 			end
 
 			// 4.3.21 Data Acquisition Message (TCODE = 7)

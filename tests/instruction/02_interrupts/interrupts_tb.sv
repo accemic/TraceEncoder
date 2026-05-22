@@ -113,13 +113,22 @@ module interrupts_tb;
 		env.cpu.run(8);                                               // 0x1034, 0x1038 (2 L)
 		env.cpu.exit_trace();
 
-		// ---- Drain ----
-		env.csr.Set_te_trTeControl_InstSyncReq (1'b1);
+		// ---- Trace-off ----
+		// Quiesce first so the trace tail drains through the (pipeline-delayed)
+		// composer while instruction tracing is still effectively on -- the
+		// InstTracing gate acts on the undelayed control signal, so an
+		// in-flight instruction at the disable edge would otherwise be
+		// mis-gated. Disabling instruction tracing then emits a Program Trace
+		// Correlation Message (EVCODE=Program Trace Disabled) that flushes the
+		// residual ICNT/HIST, so the offline decode resolves the final
+		// instructions. Enable=0 then only flushes queued trace data;
+		// atb_force_flush pushes the last ATB bytes to the sink.
+		env.wait_cycles(50);
+		env.csr.Set_te_trTeControl_InstTracing (1'b0);
 		env.wait_cycles(200);
-		env.atb_force_sync  = 1'b1;
+		env.csr.Set_te_trTeControl_Enable      (1'b0);
 		env.atb_force_flush = 1'b1;
 		env.wait_cycles(2000);
-		env.atb_force_sync  = 1'b0;
 		env.atb_force_flush = 1'b0;
 		env.csr.Set_te_trTeControl_Active(1'b0);
 		env.wait_cycles(10000);

@@ -228,6 +228,28 @@ module ct_L2_msg_gen (
 			return;
 		end
 
+		// Composer-side trace-off marker. On trTeControl.Enable 1->0 the
+		// composer emits a SUB_MSG_CF with rcode=TRACE_DISABLED carrying the
+		// residual half-words. Turn it into a Program Trace Correlation Message
+		// (TCODE 33, EVCODE=Program Trace Disabled) per IEEE-ISTO 5001 §4.3.16:
+		// ICNT = all instruction units since the last transmitted ICNT
+		// (CurrICnt + composer residual), CDATA = the pending branch HIST. The
+		// formatter sets CDF=1 and emits HIST when it is non-empty
+		// (rdata0 != stop-bit), CDF=0 otherwise. Clear the accumulators (this
+		// is the final message).
+		if (etip_cf.rcode == NEXUS_RCODE_TRACE_DISABLED) begin
+			TraceMsg.sub_type      <= SUB_MSG_CF;
+			TraceMsg.tcode         <= NEXUS_MSG_PROGRAM_TRACE_CORRELATION;
+			TraceMsg.ts            <= ts;
+			TraceMsg.sub.cf.icnt   <= CurrICnt + etip_cf.icnt;
+			TraceMsg.sub.cf.rcode  <= NEXUS_RCODE_NONE;
+			TraceMsg.sub.cf.rdata0 <= Hist;
+			CurrICnt  <= 0;
+			Hist      <= 1;
+			HistCount <= 1;
+			return;
+		end
+
 		TraceMsg.sub_type			<= SUB_MSG_CF;
 		TraceMsg.ts					<= ts;
 		TraceMsg.sub.cf.sync_reason	<= etip_cf.sync_reason;

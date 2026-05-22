@@ -65,6 +65,7 @@ module basic_tb;
 
 		// ---- Scenario ----------------------------------------------
 		//
+		// Phase 1 (traced):
 		//   1000: linear x4         (4 instructions)
 		//   1010: branch taken to 1100
 		//   1100: linear x2         (2 instructions)
@@ -74,7 +75,16 @@ module basic_tb;
 		//   2018: ret               (pops 1110)
 		//   1110: linear x2
 		//   1118: indirect jump to 1200
-		//   1200: linear x2         (then exit)
+		//   1200: linear x2
+		// Pause (instruction tracing OFF — the CPU keeps running, untraced):
+		//   1208: linear x4
+		//   1218: indirect jump to 3000
+		//   3000: linear x2
+		// Phase 2 (traced again — re-anchored by a TRACE_ENABLE sync):
+		//   3008: linear x2
+		//   3010: branch taken to 3100
+		//   3100: linear x2
+		// End: Enable=0 (implicitly disables instruction tracing).
 		// ------------------------------------------------------------
 		env.cpu.enter(.start_pc(32'h0000_1000));
 
@@ -92,24 +102,55 @@ module basic_tb;
 		env.cpu.run(8);                               // 2 linear instr
 
 		env.cpu.uninferable_jump(.target(32'h0000_1200));
-		env.cpu.run(8);                               // 2 linear instr
+		env.cpu.run(8);                               // 2 linear instr  (cur_pc -> 0x1208)
+
+		// ---- Pause instruction tracing -----------------------------
+		// Quiesce the CPU first so the Phase-1 tail fully drains through the
+		// (pipeline-delayed) composer while instruction tracing is still
+		// effectively on — otherwise an in-flight instruction would be
+		// mis-gated by the InstTracing edge (the gate is on the undelayed
+		// control signal). Then turn InstTracing off: the encoder emits a
+		// Program Trace Correlation Message (TCODE 33, EVCODE=Program Trace
+		// Disabled, IEEE-ISTO 5001 §4.3.16) carrying the residual instruction
+		// count + branch history, so Phase 1 decodes cleanly up to here. The
+		// CPU keeps executing during the pause but is NOT traced; the model
+		// flag mirrors this so those PCs are excluded from the reference.
+		env.wait_cycles(50);                             // drain Phase-1 (inst_trace_active still 1)
+		env.csr.Set_te_trTeControl_InstTracing(1'b0);   // -> correlation message
+		env.wait_cycles(200);                            // let inst_trace_active fall (CDC + margin)
+		env.cpu.set_inst_traced(1'b0);
+		env.cpu.run(16);                                 // 4 untraced linear instr
+		env.cpu.uninferable_jump(.target(32'h0000_3000));// untraced jump elsewhere
+		env.cpu.run(8);                                  // 2 untraced linear  (cur_pc -> 0x3008)
+
+		// ---- Resume instruction tracing ----------------------------
+		// Quiesce again so the untraced downtime fully drains while tracing is
+		// still off (no leaked instructions), then turn InstTracing on:
+		// InstTracing 0->1 (Enable still high) re-anchors the decoder with a
+		// TRACE_ENABLE sync at the first resumed instruction, so the decode
+		// picks up at 0x3008 even though the PC moved during the untraced gap.
+		env.wait_cycles(50);                             // drain downtime (inst_trace_active still 0)
+		env.csr.Set_te_trTeControl_InstTracing(1'b1);   // -> TRACE_ENABLE sync at resume
+		env.wait_cycles(200);                            // let inst_trace_active rise (CDC + margin)
+		env.cpu.set_inst_traced(1'b1);
+		env.cpu.run(8);                                  // 2 traced linear instr
+		env.cpu.branch_taken(.target(32'h0000_3100));
+		env.cpu.run(8);                                  // 2 traced linear instr
+		env.wait_cycles(50);                             // drain Phase-2 (inst_trace_active still 1)
 
 		env.cpu.exit_trace();
 
-		// Drain: force the encoder to flush its pipeline so the
-		// offline NexRv decode sees a complete trace.
-		//   - InstSyncReq (CSR) requests a sync message
-		//   - atb_force_sync (ATB syncreq) asks the encoder to emit a
-		//     sync, which trailing-flushes pending history bits
-		//   - atb_force_flush (ATB afvalid) signals the sink wants to
-		//     flush; encoder drains its message-gen FIFO
-		// Then deactivate tracing and wait for the pipeline to empty.
-		env.csr.Set_te_trTeControl_InstSyncReq(1'b1);
-		env.wait_cycles(200);
-		env.atb_force_sync  = 1'b1;
+		// ---- End: Enable=0 only ------------------------------------
+		// Per the gating model, Enable=0 implicitly disables instruction
+		// tracing (effective tracing = Enable && InstTracing), which triggers
+		// the final trace-off correlation message AND flushes queued data in
+		// one atomic event (the correlation eTIP carries do_flush=1, so there
+		// is no race where it could be left unflushed). atb_force_flush then
+		// pushes the last ATB bytes to the sink.
+		env.wait_cycles(50);
+		env.csr.Set_te_trTeControl_Enable(1'b0);        // -> correlation + flush (implicit InstTracing off)
 		env.atb_force_flush = 1'b1;
 		env.wait_cycles(2000);
-		env.atb_force_sync  = 1'b0;
 		env.atb_force_flush = 1'b0;
 		env.csr.Set_te_trTeControl_Active(1'b0);
 		env.wait_cycles(10000);

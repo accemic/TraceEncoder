@@ -4,5 +4,5 @@
 import @tests/lib     : ctrace_env
 import @tests/lib/pkg : cpu_model_pkg
 
-read_sim stress_sync_resourcefull_tb.sv
-simulate stress_sync_resourcefull_tb
+read_sim stress_tb.sv
+simulate stress_tb
