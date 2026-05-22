@@ -12,7 +12,7 @@ SHELL := /bin/bash
 
 NOT_IMPL = @echo "[$@] not implemented yet — skeleton release. See CLAUDE.md."
 
-.PHONY: help rdl sim sim-basic sim-interrupts sim-stress sim-data-basic sim-overflow sim-hsi-csr-cap sim-hsi-csr-sync sim-combined lint format doc clean
+.PHONY: help rdl sim sim-basic sim-interrupts sim-stress sim-data-basic sim-overflow sim-hsi-csr-cap sim-combined lint format doc clean
 
 ## help: List available targets.
 help:
@@ -32,7 +32,7 @@ rdl:
 ##          `make sim`. The run exits non-zero iff a normal test FAILs or an
 ##          XFAIL test unexpectedly passes (XPASS — fix landed; promote it out
 ##          of SIM_XFAIL). Run one test with its own `make sim-<name>`.
-SIM_ALL   := basic interrupts stress data-basic overflow hsi-csr-cap hsi-csr-sync combined
+SIM_ALL   := basic interrupts stress data-basic overflow hsi-csr-cap combined
 SIM_XFAIL :=
 
 sim:
@@ -44,7 +44,6 @@ sim:
 		[data-basic]=data/01_basic \
 		[overflow]=overflow/01_run_overflow_reset \
 		[hsi-csr-cap]=hsi/01_csr_cap \
-		[hsi-csr-sync]=hsi/02_csr_sync \
 		[combined]=combined/01_all ); \
 	for t in $(SIM_ALL); do \
 		printf '\n===================== tests/%s =====================\n' "$${dir[$$t]}"; \
@@ -116,19 +115,25 @@ sim-overflow: | bld
 	@scripts/decode_and_check.sh --soft --pc run_overflow_reset_tb
 
 ## sim-hsi-csr-cap: tests/hsi/01_csr_cap — ACT-CAP CSR-based instrumentation.
-##              Drives a DAQ_DIRECT_DATA command via the ACT-CAP CSR (0x0B10)
-##              and verifies the decoded command + payload on the AXIS sink
-##              in-sim (self-checking; $fatal on mismatch).
+##              Fires the full ACT-CAP command set via the ACT-CAP CSR (0x0B10):
+##              every DAQ_* command routed to BOTH sinks (AXIS_NEXUS), plus one
+##              CF_SYNC (Nexus only). The AXIS beat (command + payload) is
+##              verified in-sim (self-checking; $fatal on mismatch); each DAQ
+##              command also lands on the ATB as a Nexus DataAcquisition (vendor
+##              TCODE 7). Two offline gates here: the captured csr_cap_tb.atb.bin
+##              is checked non-empty, and NexRv counts >= 2 sync messages
+##              (startup + CF_SYNC). Full DAQ-to-CTXP decode is deferred to NexRv.
 sim-hsi-csr-cap: | bld
 	@cd bld && abc -sim ../tests/hsi/01_csr_cap/csr_cap_tb.abc
-
-## sim-hsi-csr-sync: tests/hsi/02_csr_sync — ACT-CAP CF_SYNC instruction sync.
-##              Issues ACT_CAP_ST_CF_SYNC via the ACT-CAP CSR (0x0B10) and
-##              checks (offline NexRv) that an extra instruction-sync message
-##              is emitted (>= 2 syncs: startup + CF_SYNC).
-sim-hsi-csr-sync: | bld
-	@cd bld && abc -sim ../tests/hsi/02_csr_sync/csr_sync_tb.abc
-	@scripts/decode_and_check.sh --sync 2 csr_sync_tb
+	@atb=$$(find bld -name csr_cap_tb.atb.bin -printf '%T@ %p\n' 2>/dev/null \
+		| sort -rn | head -1 | cut -d' ' -f2-); \
+	if [ -s "$$atb" ]; then \
+		echo "[hsi-csr-cap] ATB capture non-empty: $$atb ($$(wc -c < "$$atb") bytes)"; \
+	else \
+		echo "[hsi-csr-cap] FAIL — ATB capture missing or empty (csr_cap_tb.atb.bin)"; \
+		exit 1; \
+	fi
+	@scripts/decode_and_check.sh --sync 2 csr_cap_tb
 
 ## sim-combined: tests/combined/01_all — instruction + data + ACT-CAP sync.
 ##              Mixed workload (linear, branch, call/return, varied
