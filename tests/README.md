@@ -44,8 +44,7 @@ program) lives separately at
 nightly CI job — it doubles as the integration tutorial. There is no
 binary-trace player in the suite.
 
-See [`lib/README.md`](lib/README.md) for the standard testbench
-skeleton.
+See the **Testbench skeleton** section below.
 
 ## Conventions
 
@@ -55,3 +54,12 @@ skeleton.
   simulation under `abc -sim`.
 - SPDX header on every file.
 - `make lint` + `make sim` must pass before submitting.
+
+## Testbench skeleton
+
+A test instantiates the shared `ctrace_env`
+([`lib/ctrace_env.sv`](lib/ctrace_env.sv)) — which wires `cpu_model`,
+the DUT, and the trace sinks together — drives the scenario through the
+`cpu_model` task API, then writes the `expected.*` reference files the
+[`scripts/decode_and_check.sh`](../scripts/decode_and_check.sh) check
+diffs against the NexRv decode.
