@@ -288,7 +288,19 @@ module ct_L2_msg_gen (
 				// segment by the composer's EXCLUSIVE sync path (it keys off
 				// HasChangedControlFlow, which is 0 for a not-taken branch), so
 				// counting and history stay in agreement — no double count.
-				if (etip_cf.itype == TAKEN_BRANCH || etip_cf.itype == NOT_TAKEN_BRANCH) begin
+				//
+				// Seed ONLY when the sync we are about to emit is a ProgTraceSync
+				// (address-only): there the decoder positions AT the branch's
+				// FADDR and re-walks it, so it needs the bit. A periodic sync on a
+				// TAKEN_BRANCH instead emits a DirectBranchSync, which resolves the
+				// branch itself and leaves the decoder PAST it — seeding there
+				// strands a HIST bit and the next IndirectBranchHist fails with
+				// "hist bits pending". The ProgTraceSync cases are: any
+				// EXIT_FROM_SYS_RST, or a NOT_TAKEN_BRANCH (its periodic sync falls
+				// through to the ProgTraceSync default, see the case below).
+				if (etip_cf.itype == NOT_TAKEN_BRANCH
+						|| (etip_cf.itype == TAKEN_BRANCH
+							&& etip_cf.sync_reason == NEXUS_SYNC_EXIT_FROM_SYS_RST)) begin
 					Hist      <= (1 << 1) | (etip_cf.itype == TAKEN_BRANCH ? 1'b1 : 1'b0);
 					HistCount <= 2;
 				end

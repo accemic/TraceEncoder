@@ -20,9 +20,8 @@
 *     (a) a march of NOT-taken conditional branches  -> builds + overflows
 *         HIST (ResourceFull RCODE=1); with periodic sync this is the old
 *         test-03 stress and the test-04 "sync lands in the flush window".
-*     (b) an inferable CALL into a per-iteration callee -> contributes
-*         ICNT but no HIST bit and no IBH (the ingredient the old tests
-*         lacked).
+*     (b) an inferable CALL into a fixed callee -> contributes ICNT but no
+*         HIST bit and no IBH (the ingredient the old tests lacked).
 *     (c) a callee body of TAKEN conditional branches  -> another HIST
 *         overflow, this time of all-ones history.
 *     (d) a RETURN (indirect, IndirectBranchHistory) immediately after the
@@ -30,23 +29,17 @@
 *     (e) an uninferable JUMP back to the loop top (the old test-04
 *         indirect-branch-after-flush event).
 *
-*   Why this triggers the bug: on a HIST_OVERFLOW (RCODE=1) flush the
-*   encoder resets the ICNT accumulator (CurrICnt) on the assumption that
-*   the decoder re-walks the flushed span while resolving the history.
-*   That holds only when every retired instruction in the span carries a
-*   HIST bit (the old direct-only tests). Here the inferable call and the
-*   straight-line callee instructions are NOT HIST-covered, so zeroing
-*   CurrICnt drops their half-words and the following RETURN / JUMP
-*   IndirectBranchHistory under-counts -> NexRv stops with
-*   "ICNT adjustment ERROR" (or, with a different sync phase,
-*   "hist bits pending"). This is the same failure observed on hardware
-*   and in the EMSA5-netlist integration sim for the absint / roberts
-*   workloads.
-*
-*   Until the encoder's HIST_OVERFLOW handling is fixed (subtract only the
-*   HIST-covered half-words instead of zeroing CurrICnt), this test is
-*   EXPECTED TO FAIL the decode/PC-compare gate — it is the regression
-*   gate for that fix.
+*   The bug this caught (now fixed): when a periodic instruction-sync lands
+*   on a TAKEN conditional branch the encoder emitted a DirectBranchSync
+*   (TCODE 11), which resolves that branch itself, yet the branch-HIST
+*   seeding still pre-loaded a HIST bit for it. The decoder continues PAST
+*   the synced branch, so the seeded bit had no instruction to consume: the
+*   next IndirectBranchHistory carried one HIST bit too many and NexRv
+*   stopped with "hist bits pending". The fix restricts the HIST seed to the
+*   ProgTraceSync cases (EXIT_FROM_SYS_RST, or a NOT_TAKEN_BRANCH) where the
+*   decoder really does re-walk the synced branch -- see the seed guard in
+*   rtl/ct_L2_msg_gen.sv. This was the failure observed on hardware and in
+*   the EMSA5-netlist integration sim for the absint / roberts workloads.
 *
 *   Verification: scripts/decode_and_check.sh --pc (HARD) — the NexRv
 *   decoded PC stream must match the cpu_model's executed PCs exactly.
@@ -111,10 +104,16 @@ module stress_tb;
 				pc = pc + 32'd4;
 			end
 
-			// (b) inferable CALL into a per-iteration callee: contributes
-			//     ICNT, no HIST bit, no IBH.
-			env.cpu.call_to(.target(32'h0000_8000 + (k * 32'h400)));
-			pc = 32'h0000_8000 + (k * 32'h400);
+			// (b) inferable CALL into the callee: contributes ICNT, no HIST
+			//     bit, no IBH. The target is FIXED across iterations: an
+			//     inferable (direct) call has a static target encoded in the
+			//     instruction, so the same call-site PC (0x10a0, the loop top
+			//     is re-entered every iteration) must always resolve to the
+			//     same callee — the decoder infers it from the program image,
+			//     not the trace. A per-iteration target would be unrepresentable
+			//     and the decode would (correctly) keep inferring 0x8000.
+			env.cpu.call_to(.target(32'h0000_8000));
+			pc = 32'h0000_8000;
 
 			// (c) callee body: TAKEN branches -> a second HIST overflow.
 			for (int j = 0; j < M_TAKEN; j++) begin

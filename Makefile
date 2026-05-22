@@ -33,7 +33,7 @@ rdl:
 ##          XFAIL test unexpectedly passes (XPASS — fix landed; promote it out
 ##          of SIM_XFAIL). Run one test with its own `make sim-<name>`.
 SIM_ALL   := basic interrupts stress data-basic overflow hsi-csr-cap hsi-csr-sync combined
-SIM_XFAIL := stress
+SIM_XFAIL :=
 
 sim:
 	@overall=0; declare -A st; xfail=" $(SIM_XFAIL) "; \
@@ -64,7 +64,11 @@ sim:
 	done; \
 	printf '================================================================\n'; \
 	if [ $$overall -eq 0 ]; then \
-		printf '  RESULT: PASS  (XFAIL, expected: %s)\n\n' "$(SIM_XFAIL)"; \
+		if [ -n "$(SIM_XFAIL)" ]; then \
+			printf '  RESULT: PASS  (XFAIL, expected: %s)\n\n' "$(SIM_XFAIL)"; \
+		else \
+			printf '  RESULT: PASS\n\n'; \
+		fi; \
 	else \
 		printf '  RESULT: FAIL — %s\n\n' "$$(for t in $(SIM_ALL); do if [ "$${st[$$t]}" = FAIL ] || [ "$${st[$$t]}" = XPASS ]; then printf 'tests/%s(%s) ' "$${dir[$$t]}" "$${st[$$t]}"; fi; done)"; \
 		exit 1; \
@@ -84,15 +88,13 @@ sim-interrupts: | bld
 	@cd bld && abc -sim ../tests/instruction/02_interrupts/interrupts_tb.abc
 	@scripts/decode_and_check.sh --pc --disabled interrupts_tb
 
-## sim-stress: tests/instruction/03_stress — instruction-trace stress (KNOWN-FAILING).
+## sim-stress: tests/instruction/03_stress — instruction-trace stress.
 ##              Merges the former 03 (periodic sync + HIST_OVERFLOW, direct
 ##              branches) and 04 (indirect branch right after a HIST flush) into
 ##              one scenario that also mixes inferable CALLs and RETURNs. It is a
-##              regression gate for an unfixed encoder bug: HIST_OVERFLOW zeroes
-##              the ICNT accumulator, dropping the half-words of non-HIST-covered
-##              instructions, so the decode collapses mid-stream. EXPECTED TO
-##              FAIL the --pc check until that is fixed; it runs under `make sim`
-##              as XFAIL (shown, but not counted as a failure — see SIM_XFAIL).
+##              regression gate for the branch-HIST sync-seed bug (periodic sync
+##              on a TAKEN branch seeded a stranded HIST bit -> "hist bits
+##              pending"); see the seed guard in rtl/ct_L2_msg_gen.sv.
 sim-stress: | bld
 	@cd bld && abc -sim ../tests/instruction/03_stress/stress_tb.abc
 	@scripts/decode_and_check.sh --pc stress_tb
