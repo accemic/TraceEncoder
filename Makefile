@@ -26,38 +26,47 @@ rdl:
 	$(NOT_IMPL)
 
 ## sim:    Run all top-level testbenches and print a PASS/FAIL summary.
-##          Every test runs even if an earlier one fails; exits non-zero iff
-##          any failed. (Run a single test with its own `make sim-<name>`.)
-##          sim-stress is intentionally excluded — it is a known-failing
-##          regression gate for an unfixed encoder bug; run `make sim-stress`.
-SIM_TESTS := basic interrupts data-basic overflow hsi-csr-cap hsi-csr-sync combined
+##          Every test runs even if an earlier one fails. Tests listed in
+##          SIM_XFAIL are known-failing regression gates (for an unfixed
+##          encoder bug): they run and are shown as XFAIL, but do not fail
+##          `make sim`. The run exits non-zero iff a normal test FAILs or an
+##          XFAIL test unexpectedly passes (XPASS — fix landed; promote it out
+##          of SIM_XFAIL). Run one test with its own `make sim-<name>`.
+SIM_ALL   := basic interrupts stress data-basic overflow hsi-csr-cap hsi-csr-sync combined
+SIM_XFAIL := stress
 
 sim:
-	@overall=0; declare -A st; \
+	@overall=0; declare -A st; xfail=" $(SIM_XFAIL) "; \
 	declare -A dir=( \
 		[basic]=instruction/01_basic \
 		[interrupts]=instruction/02_interrupts \
+		[stress]=instruction/03_stress \
 		[data-basic]=data/01_basic \
 		[overflow]=overflow/01_run_overflow_reset \
 		[hsi-csr-cap]=hsi/01_csr_cap \
 		[hsi-csr-sync]=hsi/02_csr_sync \
 		[combined]=combined/01_all ); \
-	for t in $(SIM_TESTS); do \
+	for t in $(SIM_ALL); do \
 		printf '\n===================== tests/%s =====================\n' "$${dir[$$t]}"; \
-		if $(MAKE) --no-print-directory sim-$$t; then st[$$t]=PASS; else st[$$t]=FAIL; overall=1; fi; \
+		if $(MAKE) --no-print-directory sim-$$t; then res=PASS; else res=FAIL; fi; \
+		if [[ "$$xfail" == *" $$t "* ]]; then \
+			if [ "$$res" = FAIL ]; then st[$$t]=XFAIL; else st[$$t]=XPASS; overall=1; fi; \
+		else \
+			st[$$t]=$$res; if [ "$$res" = FAIL ]; then overall=1; fi; \
+		fi; \
 	done; \
 	printf '\n======================= make sim summary =======================\n'; \
 	cat=""; \
-	for t in $(SIM_TESTS); do \
+	for t in $(SIM_ALL); do \
 		d="$${dir[$$t]}"; c="$${d%%/*}"; sub="$${d#*/}"; \
 		if [ "$$c" != "$$cat" ]; then printf '  tests/%s/\n' "$$c"; cat="$$c"; fi; \
-		printf '    %-4s  %s\n' "$${st[$$t]}" "$$sub"; \
+		printf '    %-5s %s\n' "$${st[$$t]}" "$$sub"; \
 	done; \
 	printf '================================================================\n'; \
 	if [ $$overall -eq 0 ]; then \
-		printf '  RESULT: PASS — all %s tests passed\n\n' "$$(echo $(SIM_TESTS) | wc -w)"; \
+		printf '  RESULT: PASS  (XFAIL, expected: %s)\n\n' "$(SIM_XFAIL)"; \
 	else \
-		printf '  RESULT: FAIL — %s\n\n' "$$(for t in $(SIM_TESTS); do [ "$${st[$$t]}" = FAIL ] && printf 'tests/%s ' "$${dir[$$t]}"; done)"; \
+		printf '  RESULT: FAIL — %s\n\n' "$$(for t in $(SIM_ALL); do if [ "$${st[$$t]}" = FAIL ] || [ "$${st[$$t]}" = XPASS ]; then printf 'tests/%s(%s) ' "$${dir[$$t]}" "$${st[$$t]}"; fi; done)"; \
 		exit 1; \
 	fi
 
@@ -82,7 +91,8 @@ sim-interrupts: | bld
 ##              regression gate for an unfixed encoder bug: HIST_OVERFLOW zeroes
 ##              the ICNT accumulator, dropping the half-words of non-HIST-covered
 ##              instructions, so the decode collapses mid-stream. EXPECTED TO
-##              FAIL the --pc check until that is fixed; excluded from `make sim`.
+##              FAIL the --pc check until that is fixed; it runs under `make sim`
+##              as XFAIL (shown, but not counted as a failure — see SIM_XFAIL).
 sim-stress: | bld
 	@cd bld && abc -sim ../tests/instruction/03_stress/stress_tb.abc
 	@scripts/decode_and_check.sh --pc stress_tb
