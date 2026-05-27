@@ -304,8 +304,14 @@ module cpu_model #(
 	// ------------------------------------------------------------------
 	// Control flow
 	// ------------------------------------------------------------------
+	// Direct, inferable unconditional jump (`j label` = jal x0). Drives
+	// OTHER_INFERABLE_JUMP so the encoder emits NO message and NO history bit
+	// for it — the decoder follows it purely from the program image (PCInfo
+	// type JD). This is the inferable loop-back `j` that absint's scheduler_run
+	// uses at 0xa10410c8, and it is materially different from a taken
+	// conditional branch (BD), which DOES carry a recoverable history bit.
 	task automatic jump_to(input tip_iaddr_t target);
-		drive_instr_pulse(.itype_(UNINFERABLE_JUMP), .iaddr_(cur_pc));
+		drive_instr_pulse(.itype_(OTHER_INFERABLE_JUMP), .iaddr_(cur_pc));
 		log_event(CPU_JUMP, cur_pc, target);
 		cur_pc = target;
 	endtask
@@ -331,6 +337,17 @@ module cpu_model #(
 		drive_instr_pulse(.itype_(INFERRABLE_CALL), .iaddr_(cur_pc));
 		call_stack.push_back(cur_pc + 4);
 		log_event(CPU_CALL, cur_pc, target);
+		cur_pc = target;
+	endtask
+
+	// Indirect (function-pointer) call: jalr-like. Like call_to but the target
+	// is computed (UNINFERABLE_CALL itype -> "CI" PCInfo), so the decoder must
+	// resolve it from an IndirectBranchHistory message rather than the program
+	// image. Models e.g. a scheduler dispatching through a function pointer.
+	task automatic indirect_call_to(input tip_iaddr_t target);
+		drive_instr_pulse(.itype_(UNINFERABLE_CALL), .iaddr_(cur_pc));
+		call_stack.push_back(cur_pc + 4);
+		log_event(CPU_INDIRECT_CALL, cur_pc, target);
 		cur_pc = target;
 	endtask
 
@@ -558,6 +575,7 @@ module cpu_model #(
 			CPU_JUMP:                return "JD";
 			CPU_UNINFERABLE_JUMP:    return "JI";
 			CPU_CALL:                return "CD";
+			CPU_INDIRECT_CALL:       return "CI";
 			CPU_RET, CPU_MRET:       return "R";
 			default:                 return "";   // skipped
 		endcase
@@ -773,7 +791,7 @@ module cpu_model #(
 					end
 					prev_iaddr = e.pc;
 				end
-				CPU_CALL: begin
+				CPU_CALL, CPU_INDIRECT_CALL: begin
 					if (e.traced) begin
 						$fwrite(fd, "#0:CALL:0x%0h:0x%0h\n", e.pc, e.target); n_written++;
 					end

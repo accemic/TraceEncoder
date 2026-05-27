@@ -34,6 +34,7 @@ package cpu_model_pkg;
 		CPU_BRANCH_TAKEN,
 		CPU_BRANCH_NOT_TAKEN,
 		CPU_CALL,                   // inferable call (push return addr)
+		CPU_INDIRECT_CALL,          // indirect (function-pointer) call, jalr-like (push return addr)
 		CPU_RET,                    // return (pop)
 		CPU_UNINFERABLE_JUMP,       // indirect / computed jump
 		CPU_INTERRUPT,              // asynchronous interrupt taken
@@ -66,6 +67,7 @@ package cpu_model_pkg;
 			CPU_BRANCH_TAKEN:        return "BRANCH_TAKEN";
 			CPU_BRANCH_NOT_TAKEN:    return "BRANCH_NOT_TAKEN";
 			CPU_CALL:                return "CALL";
+			CPU_INDIRECT_CALL:       return "INDIRECT_CALL";
 			CPU_RET:                 return "RET";
 			CPU_UNINFERABLE_JUMP:    return "UNINFERABLE_JUMP";
 			CPU_INTERRUPT:           return "INTERRUPT";
