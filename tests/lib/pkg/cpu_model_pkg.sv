@@ -37,7 +37,17 @@ package cpu_model_pkg;
 		CPU_INDIRECT_CALL,          // indirect (function-pointer) call, jalr-like (push return addr)
 		CPU_RET,                    // return (pop)
 		CPU_UNINFERABLE_JUMP,       // indirect / computed jump
-		CPU_INTERRUPT,              // asynchronous interrupt taken
+		CPU_INTERRUPT,              // interrupt co-reported with the trap-source
+		                            // instruction retiring (iretire=1 + itype=INTERRUPT
+		                            // in the same cycle). trap pc DID retire, occupies
+		                            // an L PCInfo slot.
+		CPU_INTERRUPT_ASYNC,        // pure asynchronous-marker interrupt
+		                            // (iretire=0 + itype=INTERRUPT — spec "the number
+		                            // of instructions retired may be zero" case). The
+		                            // trap fired BEFORE cur_pc retired, so cur_pc is
+		                            // re-executed after mret. No PCInfo slot is
+		                            // emitted by this event; the slot is filled in
+		                            // when cur_pc retires after mret.
 		CPU_EXCEPTION,              // synchronous exception trap
 		CPU_MRET,                   // exception/interrupt return
 		CPU_LOAD,                   // data load retired
@@ -71,6 +81,7 @@ package cpu_model_pkg;
 			CPU_RET:                 return "RET";
 			CPU_UNINFERABLE_JUMP:    return "UNINFERABLE_JUMP";
 			CPU_INTERRUPT:           return "INTERRUPT";
+			CPU_INTERRUPT_ASYNC:     return "INTERRUPT_ASYNC";
 			CPU_EXCEPTION:           return "EXCEPTION";
 			CPU_MRET:                return "MRET";
 			CPU_LOAD:                return "LOAD";

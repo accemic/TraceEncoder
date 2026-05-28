@@ -47,6 +47,8 @@ module interrupts_tb;
 	//   0x1070 ..        : ISR_D   (2 L + R)
 	//   0x1080 ..        : ISR_E   (1 L + R)
 	//   0x1090 ..        : ISR_F   (1 L + R)
+	//   0x10a0 ..        : ISR_G   (1 L + R) — async (iretire=0) entry
+	//   0x10b0 ..        : ISR_H   (1 L + R) — async (iretire=0) entry
 	localparam logic [31:0] MAIN_PC = 32'h0000_1000;
 	localparam logic [31:0] ISR_A   = 32'h0000_1040;
 	localparam logic [31:0] ISR_B   = 32'h0000_1050;
@@ -54,6 +56,8 @@ module interrupts_tb;
 	localparam logic [31:0] ISR_D   = 32'h0000_1070;
 	localparam logic [31:0] ISR_E   = 32'h0000_1080;
 	localparam logic [31:0] ISR_F   = 32'h0000_1090;
+	localparam logic [31:0] ISR_G   = 32'h0000_10a0;
+	localparam logic [31:0] ISR_H   = 32'h0000_10b0;
 
 	initial begin
 		$display("[interrupts_tb] %0t: waiting for reset release", $time);
@@ -109,8 +113,37 @@ module interrupts_tb;
 		env.cpu.run(4);                                               // ISR_F: 0xe000 (1 L)
 		env.cpu.mret();                                               // R @0xe004 -> back to 0x1034
 
-		// Final linear to give the encoder a CF-quiet tail
+		// --- 5) async-marker trap (iretire=0 + itype=INTERRUPT) ---
+		//   Spec-conformant shape: the trap fires BETWEEN instructions,
+		//   so the cur_pc instruction does NOT retire this beat. The
+		//   encoder must still emit an IndirectBranchHistory with
+		//   BTYPE=INTERRUPT, ICNT exclusive of the trap pc, and
+		//   UADDR=handler. After mret, execution resumes AT cur_pc
+		//   (re-runs the not-yet-executed instruction). This is the
+		//   shape the EMSA5 actually drives on real hardware; the
+		//   default `interrupt()` (iretire=1) shape models the
+		//   co-reported alternative.
 		env.cpu.run(8);                                               // 0x1034, 0x1038 (2 L)
+		env.cpu.interrupt(.cause(7),  .handler(ISR_G), .async(1));    // async @0x103c — pc does not retire here
+		env.cpu.run(4);                                               // ISR_G: 0x10a0 (1 L)
+		env.cpu.mret();                                               // R @0x10a4 -> resume AT 0x103c (re-run)
+		env.cpu.run(4);                                               // 0x103c retires (was deferred by the async trap)
+
+		// --- 6) async trap immediately after another CF (no main-path retire between) ---
+		//   Tests the pending_cf_next_iaddr carry-over case in the
+		//   composer: the previous CF (mret here) sets
+		//   pending_cf_next_iaddr; the async trap arrives next with
+		//   iretire=0 and tip.iaddr undefined. The composer must
+		//   capture next_iaddr from a *later* iretire=1 beat, not from
+		//   the async-marker beat. (If it captures from the marker,
+		//   the previous CF's next_iaddr ends up undefined.)
+		env.cpu.interrupt(.cause(11), .handler(ISR_H), .async(1));    // async @0x1040 — back-to-back with prior mret
+		env.cpu.run(4);                                               // ISR_H: 0x10b0 (1 L)
+		env.cpu.mret();                                               // R @0x10b4 -> resume AT 0x1040 (re-run)
+		env.cpu.run(4);                                               // 0x1040 retires
+
+		// Final linear to give the encoder a CF-quiet tail
+		env.cpu.run(8);                                               // 0x1044, 0x1048 (2 L)
 		env.cpu.exit_trace();
 
 		// ---- Trace-off ----

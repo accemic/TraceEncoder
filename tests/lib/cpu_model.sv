@@ -29,11 +29,18 @@
 *         1 => 2 halfwords (32-bit, the default in this model)
 *     - `iaddr` is always the SOURCE PC of the retired instruction
 *       (the branch / call / return / jump itself, not the target).
-*     - For `INTERRUPT` and `EXCEPTION_TRAP` itypes the Accemic
-*       encoder treats the trap notification itself as a retirement
-*       (iretire=1, iaddr = PC of the trapping instruction). `cause`
-*       is the 4-bit lower portion of mcause/scause (the high "is
-*       interrupt" bit is conveyed by itype, not ecause).
+*     - `INTERRUPT` / `EXCEPTION_TRAP` itypes are legal with EITHER
+*       iretire=1 (the trap fires in the same cycle the trap-source
+*       instruction retires — "co-reported"; tip.iaddr is the
+*       trapping pc) OR iretire=0 (asynchronous marker — the trap
+*       fires between instructions; per riscv-trace-spec
+*       ingressPort.adoc "the number of instructions retired may be
+*       zero", and tip.iaddr / tip.ilastsize are undefined for that
+*       beat). The `interrupt(.async(...))` task drives both; the
+*       co-reported shape advances mepc=cur_pc+4 (trap pc executed),
+*       the async-marker shape uses mepc=cur_pc (trap pc re-runs after
+*       mret). `cause` is the 4-bit lower portion of mcause/scause —
+*       the high "is interrupt" bit is conveyed by itype, not ecause.
 *     - `tval` is only meaningful for `EXCEPTION_TRAP`; carries
 *       mtval/stval (faulting address etc.). Zero everywhere else.
 *     - When `iretire == 0` all other TIP signals are "don't care" per
@@ -258,8 +265,15 @@ module cpu_model #(
 		@(negedge clk);
 		r_iretire   = 0;
 		r_dretire   = 0;
-		// Clear ecause/tval after the trap pulse so they don't leak
-		// into the next retirement.
+		// Reset itype/ecause/tval to "no event" defaults so they don't
+		// leak across idle cycles. The encoder's composer treats
+		// `tip.itype == INTERRUPT | EXCEPTION_TRAP` as a trap-arrival
+		// marker combinationally (no edge detection — see
+		// ct_L23_preproc_composer_etip.sv `is_trap_event`); leaving
+		// r_itype sticky at INTERRUPT would re-fire the marker on every
+		// subsequent idle cycle until the next pulse overrides it,
+		// producing CYCLES_PER_INSTR phantom IBHs per real interrupt.
+		r_itype     = OTHER;
 		r_ecause    = tip_ecause_e'(0);
 		r_tval      = '0;
 	endtask
@@ -380,17 +394,65 @@ module cpu_model #(
 	// `tval` is meaningful only for EXCEPTION_TRAP (mtval/stval — the
 	// faulting address for page faults, etc.). Interrupts ignore it.
 	// ------------------------------------------------------------------
-	task automatic interrupt(input int cause, input tip_iaddr_t handler);
-		// Asynchronous interrupt: the iaddr instruction retired, then
-		// the trap fired. Resume at the NEXT pc on mret so we don't
-		// re-classify the trap PC as both E (here) and L (after mret).
-		drive_instr_pulse(
-			.itype_  (INTERRUPT),
-			.iaddr_  (cur_pc),
-			.ecause_ (tip_ecause_e'(cause))
-		);
-		trap_stack.push_back(cur_pc + 4);
-		log_event(CPU_INTERRUPT, cur_pc, handler, cause);
+	// Spec-conformant trap-marker shape selector:
+	//
+	//   async = 0 (default): "co-reported" — the cur_pc instruction
+	//       retires AND the trap fires in the same cycle. Driven as
+	//       iretire=1 + itype=INTERRUPT for one cycle (the trap is
+	//       carried as the itype of the retiring beat). mret resumes
+	//       at cur_pc + 4 (the trap pc DID execute). The trap pc
+	//       occupies an L PCInfo slot and appears once in expected.pcs.
+	//
+	//   async = 1: "pure asynchronous marker" — no instruction retires
+	//       this beat. Driven as iretire=0 + itype=INTERRUPT for one
+	//       cycle; per riscv-trace-spec ingressPort.adoc the trap can
+	//       arrive on a tip beat with iretire=0 and "the number of
+	//       instructions retired may be zero". tip.iaddr is undefined
+	//       in this beat (spec). mret resumes at cur_pc (the not-yet-
+	//       executed instruction re-runs). The trap pc gets no PCInfo
+	//       slot from this event — it will be filled in by the
+	//       CPU_RUN that re-retires it after mret.
+	//
+	// Both shapes are legal per spec and a conforming encoder must
+	// produce an IndirectBranchHistory message with BTYPE=INTERRUPT
+	// for either; the zero-vs-nonzero iretire affects ICNT
+	// (inclusive/exclusive of the trap pc) but not the message
+	// emission. This task exercises both shapes via the `async` flag;
+	// see tests/instruction/02_interrupts for sample scenarios.
+	task automatic interrupt(
+		input int          cause,
+		input tip_iaddr_t  handler,
+		input bit          async = 0
+	);
+		if (async) begin
+			// iretire=0 marker: drive itype=INTERRUPT for one cycle
+			// with iretire held low. r_iaddr is left at whatever it
+			// last held (the spec marks it undefined for this beat —
+			// the encoder must not depend on it).
+			repeat (CYCLES_PER_INSTR - 1) @(posedge clk);
+			@(negedge clk);
+			r_iretire = 0;
+			r_itype   = INTERRUPT;
+			r_ecause  = tip_ecause_e'(cause);
+			@(posedge clk);
+			@(negedge clk);
+			r_itype   = OTHER;
+			r_ecause  = tip_ecause_e'(0);
+			trap_stack.push_back(cur_pc);
+			log_event(CPU_INTERRUPT_ASYNC, cur_pc, handler, cause);
+		end else begin
+			// iretire=1 co-report: cur_pc retired and the trap fired
+			// in the same cycle. Resume at cur_pc + 4 on mret so we
+			// don't re-classify the trap PC as both E (here) and L
+			// (after mret).
+			drive_instr_pulse(
+				.itype_  (INTERRUPT),
+				.iaddr_  (cur_pc),
+				.ecause_ (tip_ecause_e'(cause))
+			);
+			trap_stack.push_back(cur_pc + 4);
+			log_event(CPU_INTERRUPT, cur_pc, handler, cause);
+		end
 		cur_pc = handler;
 	endtask
 
@@ -565,6 +627,12 @@ module cpu_model #(
 			// the executed stream.
 			CPU_RUN, CPU_LOAD, CPU_STORE, CPU_CSR_WRITE,
 			CPU_INTERRUPT, CPU_EXCEPTION: return "L";
+			// CPU_INTERRUPT_ASYNC: the trap fired BEFORE cur_pc retired
+			// (iretire=0 + itype=INTERRUPT — riscv-trace-spec ingressPort.adoc
+			// "the number of instructions retired may be zero"). The PCInfo
+			// slot for cur_pc is filled in when cur_pc retires after mret, so
+			// this event itself has no PCInfo type and no expected.pcs entry.
+			CPU_INTERRUPT_ASYNC:     return "";
 			// A conditional branch is a "BD" (Branch Direct) in PCInfo
 			// whether or not it was taken at runtime — the HIST bit in
 			// the trace resolves the direction. A not-taken branch
