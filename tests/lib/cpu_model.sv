@@ -354,6 +354,23 @@ module cpu_model #(
 		cur_pc = target;
 	endtask
 
+	// Direct, inferable tail call (`jal x0, target` = `j target` at the
+	// end of a function body — the return address register is left
+	// untouched, so the eventual `ret` returns to the caller's caller).
+	// Drives INFERRABLE_TAIL_CALL itype. In BRANCH_HIST mode the encoder
+	// emits NO message for it (inferable from the program image, no
+	// HIST bit); the decoder follows it from the CD PCInfo entry. Use
+	// this to exercise the encoder's handling of an indirect-CF event
+	// (e.g. an INTERRUPT) directly followed by an inferable tail call —
+	// the trap's queued CF eTIP and the tail-call's CF eTIP coexist in
+	// the composer's slot buffer and the tail-call's iaddr supplies the
+	// next_iaddr for the trap.
+	task automatic tail_call_to(input tip_iaddr_t target);
+		drive_instr_pulse(.itype_(INFERRABLE_TAIL_CALL), .iaddr_(cur_pc));
+		log_event(CPU_TAIL_CALL, cur_pc, target);
+		cur_pc = target;
+	endtask
+
 	// Indirect (function-pointer) call: jalr-like. Like call_to but the target
 	// is computed (UNINFERABLE_CALL itype -> "CI" PCInfo), so the decoder must
 	// resolve it from an IndirectBranchHistory message rather than the program
@@ -643,6 +660,12 @@ module cpu_model #(
 			CPU_JUMP:                return "JD";
 			CPU_UNINFERABLE_JUMP:    return "JI";
 			CPU_CALL:                return "CD";
+			// Inferable tail-call (jal x0, target): no return address
+			// is pushed, but RISC-V N-Trace classifies it as CD per
+			// tip_pkg.GetPCInfoType (INFERRABLE_TAIL_CALL -> CD) — the
+			// decoder walks it via the program image just like a
+			// regular direct call.
+			CPU_TAIL_CALL:           return "CD";
 			CPU_INDIRECT_CALL:       return "CI";
 			CPU_RET, CPU_MRET:       return "R";
 			default:                 return "";   // skipped

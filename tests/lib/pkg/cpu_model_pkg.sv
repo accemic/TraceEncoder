@@ -34,6 +34,10 @@ package cpu_model_pkg;
 		CPU_BRANCH_TAKEN,
 		CPU_BRANCH_NOT_TAKEN,
 		CPU_CALL,                   // inferable call (push return addr)
+		CPU_TAIL_CALL,              // inferable tail-call (`jal x0, target` / `j target` ending
+		                            // a function — no return address pushed; from the decoder's
+		                            // perspective a CD PCInfo entry like a regular call, since
+		                            // the target is recoverable from the program image).
 		CPU_INDIRECT_CALL,          // indirect (function-pointer) call, jalr-like (push return addr)
 		CPU_RET,                    // return (pop)
 		CPU_UNINFERABLE_JUMP,       // indirect / computed jump
@@ -77,6 +81,7 @@ package cpu_model_pkg;
 			CPU_BRANCH_TAKEN:        return "BRANCH_TAKEN";
 			CPU_BRANCH_NOT_TAKEN:    return "BRANCH_NOT_TAKEN";
 			CPU_CALL:                return "CALL";
+			CPU_TAIL_CALL:           return "TAIL_CALL";
 			CPU_INDIRECT_CALL:       return "INDIRECT_CALL";
 			CPU_RET:                 return "RET";
 			CPU_UNINFERABLE_JUMP:    return "UNINFERABLE_JUMP";

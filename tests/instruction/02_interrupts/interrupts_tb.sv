@@ -49,6 +49,9 @@ module interrupts_tb;
 	//   0x1090 ..        : ISR_F   (1 L + R)
 	//   0x10a0 ..        : ISR_G   (1 L + R) — async (iretire=0) entry
 	//   0x10b0 ..        : ISR_H   (1 L + R) — async (iretire=0) entry
+	//   0x10c0 ..        : ISR_I   (2 L + R) — synchronous EXCEPTION_TRAP handler
+	//   0x10d0 ..        : ISR_J   (CD)     — interrupt entry that tail-calls into ISR_K
+	//   0x10e0 ..        : ISR_K   (2 L + R) — tail-call target
 	localparam logic [31:0] MAIN_PC = 32'h0000_1000;
 	localparam logic [31:0] ISR_A   = 32'h0000_1040;
 	localparam logic [31:0] ISR_B   = 32'h0000_1050;
@@ -58,6 +61,9 @@ module interrupts_tb;
 	localparam logic [31:0] ISR_F   = 32'h0000_1090;
 	localparam logic [31:0] ISR_G   = 32'h0000_10a0;
 	localparam logic [31:0] ISR_H   = 32'h0000_10b0;
+	localparam logic [31:0] ISR_I   = 32'h0000_10c0;
+	localparam logic [31:0] ISR_J   = 32'h0000_10d0;
+	localparam logic [31:0] ISR_K   = 32'h0000_10e0;
 
 	initial begin
 		$display("[interrupts_tb] %0t: waiting for reset release", $time);
@@ -142,8 +148,54 @@ module interrupts_tb;
 		env.cpu.mret();                                               // R @0x10b4 -> resume AT 0x1040 (re-run)
 		env.cpu.run(4);                                               // 0x1040 retires
 
-		// Final linear to give the encoder a CF-quiet tail
-		env.cpu.run(8);                                               // 0x1044, 0x1048 (2 L)
+		// --- 7) synchronous exception (EXCEPTION_TRAP, not INTERRUPT) ---
+		//   Distinct from scenarios 1-6 (all async interrupts): a synchronous
+		//   trap (e.g. illegal-instruction / page-fault / ECALL) caused by
+		//   the instruction at cur_pc itself. The encoder emits an
+		//   IndirectBranchHistory with BTYPE=EXCEPTION (=2), not =INTERRUPT
+		//   (=3) — the BTYPE discriminator on the same IBH TCODE is the
+		//   only signal the decoder has to distinguish the two trap classes.
+		//   This scenario gates the BTYPE=2 emission path
+		//   (ct_L2_msg_gen.sv:466-468 in BRANCH_HIST mode).
+		env.cpu.exception_trap(.cause(2), .handler(ISR_I));           // sync E @0x1044 -> ISR_I
+		env.cpu.run(8);                                               // ISR_I body: 0x10c0, 0x10c4 (2 L)
+		env.cpu.mret();                                               // R @0x10c8 -> resume at 0x1048
+
+		// --- 8) interrupt directly followed by an INFERRABLE_TAIL_CALL ---
+		//   The interrupt handler's first (and only) retired instruction is
+		//   a tail call (`jal x0, ISR_K`) — the body work runs at ISR_K and
+		//   ISR_K's mret unwinds back to main. This exercises the encoder
+		//   path where an indirect CF (the trap, INTERRUPT itype) is
+		//   immediately followed by an inferable CF (the tail call,
+		//   INFERRABLE_TAIL_CALL itype):
+		//     - Trap eTIP: queues CF item; needs next_iaddr (HasChangedControlFlow).
+		//     - Tail-call eTIP: its tip.iaddr (=ISR_J) supplies that next_iaddr,
+		//       then itself queues a CF item (also CF, also needs next_iaddr).
+		//     - First ISR_K beat: tip.iaddr (=ISR_K) supplies the tail-call's
+		//       next_iaddr.
+		//   In BRANCH_HIST mode the encoder emits ONE IBH (BTYPE=INTERRUPT,
+		//   UADDR=ISR_J) for the trap and NO message for the tail call
+		//   (inferable; the decoder walks ISR_J's CD PCInfo to find ISR_K).
+		//
+		//   This scenario uses async=1 so the trap-source pc (0x1048) is NOT
+		//   re-classified as an L event by the trap itself (CPU_INTERRUPT_ASYNC
+		//   has empty PCInfo) — that leaves room for the final-linear run(4)
+		//   below to retire 0x1048 as a regular L without colliding with the
+		//   trap. It also adds coverage of the iretire=0 INTERRUPT path
+		//   immediately followed by an iretire=1 INFERRABLE_TAIL_CALL — the
+		//   composer must capture next_iaddr for the queued trap CF eTIP from
+		//   the tail-call's iretire=1 beat, not from the prior async-marker
+		//   beat whose tip.iaddr is spec-undefined.
+		env.cpu.interrupt(.cause(7), .handler(ISR_J), .async(1));     // async E @0x1048 -> ISR_J
+		env.cpu.tail_call_to(.target(ISR_K));                         // CD @0x10d0 -> ISR_K
+		env.cpu.run(8);                                               // ISR_K body: 0x10e0, 0x10e4 (2 L)
+		env.cpu.mret();                                               // R @0x10e8 -> resume AT 0x1048 (re-run)
+
+		// Final linear to drain the encoder before trace-off. Only 4 bytes:
+		// retiring just 0x1048 here. Going further (run(8)) would retire
+		// 0x104c, which already has type R (scenario 1's mret-target) and
+		// would conflict with a fresh L assignment.
+		env.cpu.run(4);                                               // 0x1048 retires (L, shared with ISR_A body / scen 7)
 		env.cpu.exit_trace();
 
 		// ---- Trace-off ----
