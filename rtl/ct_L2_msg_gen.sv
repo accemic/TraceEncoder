@@ -305,37 +305,37 @@ module ct_L2_msg_gen (
 					HistCount <= 2;
 				end
 
-					case (etip_cf.sync_reason)
-						NEXUS_SYNC_EXIT_FROM_SYS_RST: begin
-							TraceMsg.tcode <= NEXUS_MSG_PROGRAM_TRACE_SYNC;
-						end
-						default: begin
-							case (etip_cf.itype)
+				case (etip_cf.sync_reason)
+					NEXUS_SYNC_EXIT_FROM_SYS_RST: begin
+						TraceMsg.tcode <= NEXUS_MSG_PROGRAM_TRACE_SYNC;
+					end
+					default: begin
+						case (etip_cf.itype)
 						TAKEN_BRANCH, INFERRABLE_CALL, INFERRABLE_TAIL_CALL, OTHER_INFERABLE_JUMP: begin
 							TraceMsg.tcode <= NEXUS_MSG_PROGRAM_TRACE_DIRECT_BRANCH_SYNC;
 						end
-							UNINFERABLE_JUMP, INTERRUPT, EXCEPTION_IR, EXCEPTION_TRAP, UNINFERABLE_CALL, UNINFERABLE_TAIL_CALL, OTHER_UNINFERABLE_JUMP, CO_ROUTINE_SWAP, RETURN: begin
-								TraceMsg.tcode <= NEXUS_MSG_PROGRAM_TRACE_INDIRECT_BRANCH_SYNC;
-								case (etip_cf.itype)
-									UNINFERABLE_JUMP, UNINFERABLE_CALL, UNINFERABLE_TAIL_CALL, OTHER_UNINFERABLE_JUMP, CO_ROUTINE_SWAP, RETURN: begin
-										TraceMsg.sub.cf.btype <= NEXUS_BTYPE_IBRANCH;
-									end
-									INTERRUPT: begin
-										TraceMsg.sub.cf.btype <= NEXUS_BTYPE_INTERRUPT;
-									end
-									EXCEPTION_TRAP: begin
-										TraceMsg.sub.cf.btype <= NEXUS_BTYPE_EXCEPTION;
-									end
-									EXCEPTION_IR: begin
-										TraceMsg.sub.cf.btype <= NEXUS_BTYPE_INTERRUPT;
-									end
-									default: begin
-									end
-								endcase
-							end
-							default: begin
-								TraceMsg.tcode <= NEXUS_MSG_PROGRAM_TRACE_SYNC;
-							end
+						UNINFERABLE_JUMP, INTERRUPT, EXCEPTION_IR, EXCEPTION_TRAP, UNINFERABLE_CALL, UNINFERABLE_TAIL_CALL, OTHER_UNINFERABLE_JUMP, CO_ROUTINE_SWAP, RETURN: begin
+							TraceMsg.tcode <= NEXUS_MSG_PROGRAM_TRACE_INDIRECT_BRANCH_SYNC;
+							case (etip_cf.itype)
+								UNINFERABLE_JUMP, UNINFERABLE_CALL, UNINFERABLE_TAIL_CALL, OTHER_UNINFERABLE_JUMP, CO_ROUTINE_SWAP, RETURN: begin
+									TraceMsg.sub.cf.btype <= NEXUS_BTYPE_IBRANCH;
+								end
+								INTERRUPT: begin
+									TraceMsg.sub.cf.btype <= NEXUS_BTYPE_INTERRUPT;
+								end
+								EXCEPTION_TRAP: begin
+									TraceMsg.sub.cf.btype <= NEXUS_BTYPE_EXCEPTION;
+								end
+								EXCEPTION_IR: begin
+									TraceMsg.sub.cf.btype <= NEXUS_BTYPE_INTERRUPT;
+								end
+								default: begin
+								end
+							endcase
+						end
+						default: begin
+							TraceMsg.tcode <= NEXUS_MSG_PROGRAM_TRACE_SYNC;
+						end
 						endcase
 					end
 				endcase
