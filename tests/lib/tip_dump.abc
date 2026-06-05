@@ -1,0 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+import   @rtl/external/testtools     : file_pkg
+import   @rtl/external/amba          : axis_if
+
+read_sv  tip_dump.sv

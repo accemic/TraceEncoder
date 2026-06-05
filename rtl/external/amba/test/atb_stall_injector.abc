@@ -1,0 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+import  @rtl/external/amba  : atb_pkg  atb_if
+
+read_sim  atb_stall_injector.sv

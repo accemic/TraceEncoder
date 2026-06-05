@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+import  @rtl/external/amba           : axis_if atb_if
+import  @rtl/external/wishbone       : wb_package
+
+constraints impl ct_encoder_top.xdc
+
+import ../imp/ct_encoder
+
+read_sv ct_encoder_top.sv
+build   ct_encoder_top

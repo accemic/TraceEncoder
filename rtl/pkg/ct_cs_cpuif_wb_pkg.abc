@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+# Wishbone-flavoured CSR access package. Generated alongside
+# ct_cs_cpuif_pkg from the SystemRDL source under rdl/. Regeneration
+# logic was stripped here (the committed SV is the build-time source
+# of truth) — run `make rdl` to refresh.
+
+read_sv ct_cs_cpuif_wb_pkg.sv

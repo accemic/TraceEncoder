@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+import @tests/lib     : ctrace_env
+import @tests/lib/pkg : cpu_model_pkg
+
+read_sim stress_tb.sv
+simulate stress_tb

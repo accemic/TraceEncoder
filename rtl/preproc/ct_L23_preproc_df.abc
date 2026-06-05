@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+import  @rtl/pkg : tip_if tip_pkg ct_cs_if ct_preproc_if ct_pkg
+import  @rtl/preproc : ct_L23_preproc_comp_filters
+import	@rtl/external/common           : vector_binary_search_2clk
+import  @rtl/external/memory/ocmem     : ocram_write_if
+
+read_sv	ct_L23_preproc_df.sv

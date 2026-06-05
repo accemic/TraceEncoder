@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: ISC
+#
+# Pinned Python toolchain for `make rdl` (scripts/gen_rdl.sh).
+# These exact versions reproduce the committed generated SystemVerilog:
+#   rtl/pkg/ct_cs_cpuif.sv            (PeakRDL-regblock)
+#   rtl/pkg/ct_cs_cpuif_pkg.sv        (PeakRDL-regblock)
+#   rtl/pkg/ct_cs_cpuif_wb_pkg.sv     (scripts/generate_wb_pkg.py)
+#   rtl/pkg/ct_cs_cpuif_types_pkg.sv  (scripts/generate_wb_pkg.py)
+#   tests/lib/ct_cs_cpuif_wb_helper.sv(scripts/generate_wb_pkg.py)
+#
+# Bump deliberately and regenerate (`make rdl`) in the same commit.
+
+peakrdl==1.5.0
+peakrdl-regblock==1.3.1
+systemrdl-compiler==1.32.2

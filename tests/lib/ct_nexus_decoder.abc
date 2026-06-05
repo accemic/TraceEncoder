@@ -1,0 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+import  @rtl/external/stream : cvsink_if  cvsource_if2  cvs_fifo2
+
+read_sv	../../nexus/mseo2_decoder.sv
+read_sv	ct_nexus_decoder.sv

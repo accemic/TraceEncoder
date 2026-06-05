@@ -1,0 +1,97 @@
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CC-BY-4.0
+
+= Development & integration
+:toc: macro
+:toclevels: 3
+
+This page covers the build flow, the SystemRDL register flow, the
+contribution rules, and how to integrate C-Trace into an SoC.
+
+toc::[]
+
+== Build flow
+
+The build driver is **abc** (abc-flow): Vivado-based, text-defined
+projects. Tool versions are pinned in link:../.abc.config[`.abc.config`].
+Every umbrella command is routed through the link:../Makefile[`Makefile`]:
+
+[cols="1,2", options="header"]
+|===
+| Target | What it does
+
+| `make help`        | List available targets.
+| `make sim`         | Run all testbenches; print a PASS/FAIL summary.
+| `make sim-<name>`  | Run one testbench (e.g. `sim-basic`).
+| `make lint`        | `verible-verilog-lint` over `rtl/` and `tests/`.
+| `make clean`       | Remove the `bld/` directory.
+| `make rdl`         | Regenerate the PeakRDL-derived SV from `rdl/*.rdl`.
+|===
+
+=== Running simulations
+
+Simulations always run from the gitignored `bld/` directory. `make sim`
+handles that for you. To run a single testbench by hand:
+
+[source,sh]
+----
+mkdir -p bld && cd bld
+abc -sim ../tests/instruction/01_basic/basic_tb.abc
+../scripts/decode_and_check.sh --pc --disabled basic_tb
+----
+
+Each `.sv` testbench has a paired `.abc` manifest declaring its imports
+and the top module. Per-module testbenches live next to the module they
+exercise (`rtl/<module>/test/`); end-to-end / multi-module scenarios live
+under link:../tests/[`tests/`]. See link:verification.adoc[Verification]
+for the test harness and the check flags.
+
+== Register (RDL) flow
+
+SystemRDL is the source of truth for the register map
+(link:../rdl/[`rdl/`]). The committed PeakRDL-derived SystemVerilog in
+`rtl/pkg/` is generated from it.
+
+. Edit `rdl/*.rdl`.
+. Run `make rdl` to regenerate the SystemVerilog (see
+  link:../rdl/README.md[`rdl/README.md`] for the exact output files).
+. Commit the RDL change and the regenerated SV **in the same commit** —
+  CI is intended to fail if the generated SV is stale.
+
+Never hand-edit the generated files; they are overwritten on regen.
+
+== Coding rules
+
+* Every source / doc file carries an SPDX header:
++
+[source]
+----
+SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+----
++
+This is enforced by the REUSE CI job; files that cannot carry an in-file
+header are annotated in link:../REUSE.toml[`REUSE.toml`].
+* New RTL must pass `make lint` (Verible, rules in
+  `.rules.verible_lint`).
+* See link:../CONTRIBUTING.md[`CONTRIBUTING.md`] for branch naming, the
+  CLA, and the PR workflow.
+
+== SoC integration
+
+To drop C-Trace (`ct_encoder`) into a design:
+
+* **TIP** — connect the core's instruction-trace port to the
+  `tip_if.slave` (in the `tip_clk` domain). Choose `SPLIT_DATA_ACCESS` to
+  match the core's data interface: `0` for legacy `dretire`-combined
+  data, `1` for split load/store.
+* **CSR** — wire the `wb_if.slave` (Wishbone) to your register bus in the
+  `wb_clk` domain; `ct_cs_rst` gives a soft reset of the CSR shim
+  independent of the functional resets.
+* **Trace output** — route the 32-bit `atb_if.master` to a sink (debug
+  pod, on-chip RAM, off-chip transceiver) in the `atb_atclk` domain. Use
+  `ct_L1_funnel` if several encoders share one port.
+* **Instrumentation** — the 96-bit `axis_if.master` carries DAQ /
+  ACT-CAP export when used; tie it off otherwise.
+* **Clocking** — provide the five clocks. See
+  link:architecture.adoc[Architecture] for the domain map.

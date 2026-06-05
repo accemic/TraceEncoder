@@ -1,0 +1,1320 @@
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// ----------------------------------------------------
+// C-Trace Address map
+// ----------------------------------------------------
+
+addrmap ct_cs_cpuif #(
+    longint NUM_TRACE_FILTER              = 16,
+    longint NUM_TRACE_COMPARATORS         =  8,
+    longint NUM_PERFCNT_IFETCH_TH_RANGES  =  3,
+    longint NUM_PERFCNT_DATA_RD_TH_RANGES =  3,
+    longint NUM_PERFCNT_DATA_RD_RANGES    =  7,
+    longint NUM_PERFCNT_DATA_WR_RANGES    =  7,
+    longint NUM_ACT_ST                    = 15,
+    longint NUM_DF_RANGE                  = 15,
+    longint MAX_I_FILTER                  =  8,
+    longint MAX_J_FILTER                  =  8,
+    longint CSC_COUNTER_DATA_RANGE_COUNT  =  2
+) {
+    name = "C-Trace Encoder Control / Status Registers";
+    desc = "C-Trace Encoder Control / Status Registers.
+            The register map follows the RISC-V N-Trace Control Interface specification.
+            Registers, fields, and enum values marked [C-Trace] at the end of their description are Accemic C-Trace extensions; everything else is N-Trace compliant.
+
+            Sub-components:
+              0x0000-0x0FFF  te   - Trace Encoder               (N-Trace, CompType=0x1)
+              0x1000-0x1FFF  atb  - Trace ATB Bridge             (N-Trace, CompType=0xE)
+              0x3000-0x3FFF  pc   - Performance Counters         [C-Trace, CompType=0x3 vendor]
+              0x4000-0x4FFF  wp   - Watchpoints (ACT-ST)         [C-Trace, CompType=0x4 vendor]
+              0x5000-0x7FFF  df   - DF Range Filter              [C-Trace, CompType=0x5 vendor]
+
+            Each component has a trXxControl (Active bit) + trXxImpl (version/CompType) pair at
+            offsets 0x000 / 0x004 of its base, per N-Trace spec Section 4.3. [C-Trace container]";
+    default regwidth = 32;
+    default sw = r;
+    default hw = r;
+
+    // --------------------------------------------------
+    // ACT-CAP / ACT-ST command encoding
+    // --------------------------------------------------
+    // Note on DirectData encoding: DirectData is always transmitted as part of the DAQ message.
+    // A value of 0 incurs zero overhead because the Nexus MDO/MSEO variable-length field
+    // encoding strips leading zeros — an all-zero field occupies no additional MDO cycles.
+    // There is therefore no "non-negative" guard: callers that do not need extra data simply
+    // leave DirectData=0.
+    enum trActCapStCmd_e {
+        ACT_CAP_ST_NONE              =  0 { desc = "Do nothing."; };
+        ACT_CAP_ST_DAQ_PC_CURR       =  1 { desc = "Transmit DAQ message containing the current program counter (PC) plus direct data[23:0]."; };
+        ACT_CAP_ST_DAQ_PC_CURR_LAST  =  2 { desc = "Transmit DAQ message with current PC, previous PC before exception or interrupt, plus direct data[23:0]."; };
+        ACT_CAP_ST_DAQ_DIRECT_DATA   =  3 { desc = "Transmit DAQ message with direct data value."; };
+        ACT_CAP_ST_DAQ_DATA          =  4 { desc = "Transmit DAQ message with data value and context (data size, data type) of the next data access, plus direct data[23:0]."; };
+        ACT_CAP_ST_DAQ_DADDR         =  5 { desc = "Transmit DAQ message with data address and context (data size, data type) for the next data access, plus direct data[23:0]."; };
+        ACT_CAP_ST_DAQ_DATA_DADDR    =  6 { desc = "Transmit DAQ message with data value, data address, and context (data size, data type) for the next data access, plus direct data[23:0]."; };
+//      ACT_CAP_ST_DAQ_STALL_COUNTER =  7 { desc = "Transmit DAQ message with stall counter value plus direct data[23:0], then reset the stall counter."; };
+        ACT_CAP_ST_DAQ_IFETCH_TH     =  8 { desc = "Transmit DAQ message with count of instruction fetches exceeding cycle threshold per region (direct_data[7:0]), plus direct data[23:8], then reset the counter."; };
+        ACT_CAP_ST_DAQ_DATA_RD_TH    =  9 { desc = "Transmit DAQ message with count of read accesses exceeding cycle threshold per region (direct_data[7:0]), plus direct data[23:8], then reset the counter."; };
+        ACT_CAP_ST_DAQ_DATA_WR       = 10 { desc = "Transmit DAQ message with count of write accesses for region (direct_data[7:0]), plus direct data[23:8], then reset the counter."; };
+        ACT_CAP_ST_DAQ_DATA_RD       = 11 { desc = "Transmit DAQ message with count of read accesses for region (direct_data[7:0]), plus direct data[23:8], then reset the counter."; };
+        ACT_CAP_ST_CF_SYNC           = 12 { desc = "Transmit instruction synchronization message (Nexus message only)."; };
+        ACT_CAP_ST_TE                = 13 { desc = "Set TE field (direct_data[7:0]), value: direct_data[23:8].
+//                                                  TE field 0: trTeControl.InstTracing (set/clear instruction tracing)
+//                                                  TE field 1: trTeControl.DataTracing (set/clear data tracing)
+//                                                  (trTeInstSyncReq via TE: [NOT IMPLEMENTED])                       "; };
+    };
+
+    enum trActCapStSink_e {
+        ACT_CAP_ST_SINK_NEXUS      = 0 { desc = "Nexus message"; };
+        ACT_CAP_ST_SINK_AXIS       = 1 { desc = "AXIS to internal CPU"; };
+        ACT_CAP_ST_SINK_AXIS_NEXUS = 2 { desc = "AXIS to internal CPU, and Nexus message"; };
+        ACT_CAP_ST_SINK_TE         = 3 { desc = "set TE register only)"; };
+    };
+
+    // --------------------------------------------------------------------
+    // Canonical ACT-CAP command word type anchor.
+    //
+    // Declares the {Cmd, Sink, DirectData} bit layout shared by:
+    //   - the watchpoints memory Cmd word (ct_cs_cpuif.watchpoints[].Cmd),
+    //   - RISC-V CSR 0x0B10 (ACT-CAP protocol, CPU-side only — see
+    //     tip_pkg::cmd_to_tip_data), and
+    //   - the RTL act_cap/act_st data path.
+    //
+    // Marked `ispresent = false` so the register is hidden from every
+    // exporter (HTML, C, regblock): the hardware does NOT decode 0x0B10 on
+    // the MMIO bus and showing it would mislead developers.
+    //
+    // The declaration is still needed as a type anchor.
+    // `generate_wb_pkg` walks the compiled RDL (where the node IS
+    // reachable regardless of ispresent) and emits matching SystemVerilog
+    // enum + struct typedefs into ct_cs_cpuif_types_pkg.sv for use by the
+    // RTL.
+    // --------------------------------------------------------------------
+    reg {
+        name = "ACT-CAP Command (type anchor, hidden)";
+        desc = "Type anchor only. Hidden via ispresent=false. [C-Trace]";
+
+        field { desc = "HSI command";            encode = trActCapStCmd_e;  sw=rw; } Cmd[5:0]         = 0;
+        field { desc = "Sink";                   encode = trActCapStSink_e; sw=rw; } Sink[7:6]        = 0;
+        field { desc = "Direct data (24 bits)."; sw=rw;                            } DirectData[31:8] = 0;
+    } trActCapStCmd @ 0x0B10;
+    trActCapStCmd->ispresent = false;
+
+    // ====================================================================
+    // ct_te - Trace Encoder sub-component @ 0x0000 (N-Trace compliant, 4 KB)
+    // Matches the spec's trTe??/trTs?? register layout (RISC-V Trace Control
+    // Interface Spec, Table 4). Paths are hwif_*.te.trTeXxx.
+    // ====================================================================
+    regfile {
+        name = "Trace Encoder";
+        desc = "Trace Encoder sub-component (N-Trace compliant, CompType=0x1).
+                See RISC-V N-Trace Control Interface spec Table 4.";
+        default regwidth = 32;
+        default sw = r;
+        default hw = r;
+
+    // ====================================================================
+    // trTeControl - Trace Encoder Control Register @ 0x000
+    // ====================================================================
+    reg {
+        name = "C-Trace Encoder Control Register";
+        desc = "Primary control register for the C-Trace Encoder";
+
+        field {
+            desc = "Primary enable/reset for the Trace Encoder";
+            sw = rw;
+        } Active[0:0] = 0;
+
+        field {
+            desc = "1: Trace Encoder is enabled. Allows trTeInstTracing and
+                    trTeDataTracing to turn tracing on and off. Setting trTeEnable to 0
+                    flushes any queued trace data to the sink or funnel attached to this
+                    encoder. This bit can be set to 1 only by direct writing to it. This write
+                    of 1 should be done after all other settings are done.
+                    Enable gates instruction and data tracing: effective instruction
+                    tracing is (Enable AND trTeInstTracing). Clearing Enable therefore
+                    implicitly disables instruction (and data) tracing without rewriting
+                    those bits; the resulting instruction-tracing-disabled edge generates
+                    the trace-off Program Trace Correlation Message (see trTeInstTracing).
+                    [C-Trace: the implicit-disable gating is RTL, not an RDL auto-clear.]";
+            sw = rw;
+        } Enable[1:1] = 0;
+
+        field {
+            desc = "Instruction trace generation. Effective instruction tracing is
+                    (trTeControl.Enable AND this bit). The 1->0 edge of effective
+                    instruction tracing (this bit cleared, or Enable cleared) makes the
+                    encoder emit a Program Trace Correlation Message (TCODE 33,
+                    EVCODE=Program Trace Disabled) carrying the residual instruction
+                    count and branch history, so a decoder can resolve the final
+                    instructions up to the trace-off point; the 0->1 edge emits a
+                    TRACE_ENABLE synchronization message to re-anchor the decoder.
+                    [C-Trace]";
+            sw = rw; hwclr; hwset;
+        } InstTracing[2:2] = 0;
+
+        field {
+            desc = "Reads as 1 when all generated trace has been emitted";
+            hw = w;
+        } Empty[3:3] = 1;
+
+        enum trTeInstMode_e {
+         // ITR_FULL             = 0 { desc = "Full Instruction trace is disabled, but trace may still emit some records"; };
+         // ITR_BRANCH_RES0      = 1 { desc = "Reserved for subsets of Branch Trace (e.g. periodic PC sampling)"; };
+         // ITR_BRANCH_RES1      = 2 { desc = "Reserved for subsets of Branch Trace (e.g. periodic PC sampling)"; };
+         // ITR_BRANCH           = 3 { desc = "Traditional Branch Trace Messages (BTM: Nexus DirectBranch/IndirectBranch). Intentionally NOT implemented in C-Trace -- per-branch messaging is bandwidth-inefficient versus ITR_BRANCH_HIST (Branch History Trace), which conveys the same control flow at far lower bandwidth. Reserved; do not program."; };
+         // ITR_BRANCH_HIST_RES0 = 4 { desc = "Reserved for subset of Branch History Trace"; };
+         // ITR_BRANCH_HIST_RES1 = 5 { desc = "Reserved for subset of Branch History Trace"; };
+            ITR_BRANCH_HIST      = 6 { desc = "Generate instruction trace using Branch History Trace"; };
+         // ITR_VENDOR           = 7 { desc = "User External Interrupt"; };
+        };
+        field {
+            desc = "Instruction trace generation mode. Only accessible on trTeControl. Enable=0";
+            encode = trTeInstMode_e;
+            sw = rw;
+        } InstMode[6:4] = 6;
+
+        enum trTeSendConfigMode_e {
+            CFG_NONE    = 0 { desc = "Do send no config message"; };
+            CFG_ONCE    = 1 { desc = "Do send config message at trace start and at relevant TE configuration change"; };
+            CFG_ON_SYNC = 2 { desc = "Do send config message at periodic sync and at relevant TE configuration change"; };
+        };
+        field {
+            desc = "Send NEXUS_MSG_VENDOR_CONFIG message. Reserved: config-message
+                    emission is not yet implemented, so this field is read-only and
+                    always reads CFG_NONE. [C-Trace]";
+            encode = trTeSendConfigMode_e;
+            sw = r;
+        } SendConfig[8:7] = 0;
+
+        field {
+            desc = "Send Ownership messages to indicate processor context.
+                    Reserved: Ownership-message (TCODE 2) emission is not yet
+                    implemented, so this field is read-only and reads 0. [C-Trace]";
+            sw = r;
+        } Context[9:9] = 0;
+
+//      field { desc = "Enable instruction trace trigger"; }                                  InstTrigEnable[11:11]      = 0;
+//      field { desc = "Set when overflow message is generated or TE requests hart stall"; }  InstStallOrOverflow[12:12] = 0;
+//      field { desc = "Enable hart stall if TE cannot send a message"; }                     InstStallEna[13:13]        = 0;
+
+        field {
+            desc = "Add source field to trace message.
+                    Only accessible on trTeControl. Enable=0";
+            sw = rw;
+        } InhibitSrc[15:15] = 1;
+
+        enum trTeInstSyncMode_e {
+            ITR_SYNC_OFF          = 0 { desc = "No periodic instruction trace synchronization message/packet generation"; };
+            ITR_SYNC_TRACE_MSG    = 1 { desc = "Count trace messages/packets [NOT IMPLEMENTED]"; };
+            ITR_SYNC_CLK_CYCLES   = 2 { desc = "Count hart clock cycles"; };
+            ITR_SYNC_HALFWORDS    = 3 { desc = "Count instruction half-words (16-bit)"; };
+            ITR_SYNC_TRACE_BYTES  = 4 { desc = "Count trace bytes (extended) [NOT IMPLEMENTED]"; };
+            ITR_SYNC_WALL_CLK     = 5 { desc = "Count wallclock cycles"; };
+            ITR_SYNC_INSTRUCTIONS = 6 { desc = "Count instructions"; };
+            ITR_SYNC_ATB          = 7 { desc = "ATB synq requests [C-Trace]"; };
+        };
+        field {
+            desc = "Periodic instruction trace synchronization mode.
+                    This field combines bits 17 and 16 (standard trTeInstSyncMode) with the two reserved bits 19 and 18.
+                    Only accessible on trTeControl. Enable=0";
+            encode = trTeInstSyncMode_e;
+            sw = rw;
+        } InstSyncMode[19:16] = 0;
+
+        field {
+            desc = "Maximum interval between sync messages (2^(trTeInstSyncMax+4)).
+                    Only accessible on trTeControl. Enable=0";
+            sw = rw;
+        } InstSyncMax[23:20] = 0;
+
+        enum trTeFormat_e {
+         // TR_FORMAT_E      = 0 { desc = "Format defined by Efficient Trace for RISC-V (E-Trace) Specification"; };
+            TR_FORMAT_N      = 1 { desc = "N-Trace messages with 6 MDO + 2 MSEO bits"; };
+         // TR_FORMAT_RES0   = 2 { desc = "Reserved for future formats"; };
+         // TR_FORMAT_RES1   = 3 { desc = "Reserved for future formats"; };
+         // TR_FORMAT_RES2   = 4 { desc = "Reserved for future formats"; };
+         // TR_FORMAT_RES3   = 5 { desc = "Reserved for future formats"; };
+         // TR_FORMAT_RES4   = 6 { desc = "Reserved for future formats"; };
+         // TR_FORMAT_VENDOR = 7 { desc = "Vendor-specific format"; };
+        };
+        field {
+            desc = "Trace recording format.
+                    Only accessible on trTeControl. Enable=0";
+            encode = trTeFormat_e;
+        } Format[26:24] = 1;
+
+        field {
+            desc = "Sync request (single pulse), non-standard [C-Trace]";
+            hw = rw; sw = w1;
+        } InstSyncReq[27:27] = 0;
+    } trTeControl @ 0x000;
+
+    // ====================================================================
+    // trTeImpl - C-Trace Encoder Implementation Register @ 0x004
+    // ====================================================================
+    reg {
+        name = "C-Trace Encoder Implementation Register";
+        desc = "Contains version and protocol information for the C-Trace Encoder";
+
+        field { desc = "Trace Encoder Component Major Version"; } VerMajor[3:0]        = 1;
+        field { desc = "Trace Encoder Component Minor Version"; } VerMinor[7:4]        = 0;
+        field { desc = "Trace Encoder Component Type";          } CompType[11:8]       = 1;
+        field { desc = "Trace Protocol Major Version";          } ProtocolMajor[19:16] = 1;
+        field { desc = "Trace Protocol Minor Version";          } ProtocolMinor[23:20] = 0;
+    } trTeImpl @ 0x004;
+
+    // ====================================================================
+    // trTeInstFeatures - C-Trace Instruction Features Register @ 0x008
+    // ====================================================================
+    reg {
+        name = "C-Trace Instruction Features Register";
+        desc = "Defines the trace instruction features configuration for the C-Trace Encoder.
+                Only accessible on trTeControl. Enable=0";
+
+//      field { desc = "Do not send differential addresses when set"; }                                                  InstNoAddrDiff[0:0]         = 0;
+//      field { desc = "Do not send trap handler address in trap packets"; }                                             InstNoTrapAddr[1:1]         = 0;
+//      field { desc = "Treat sequentially inferrable jumps as inferable PC discontinuities"; }                          InstEnSequentialJump[2:2]   = 0;
+//      field { desc = "Treat returns as inferable PC discontinuities when returning from a recent call on a stack"; }   InstEnImplicitReturn[3:3]   = 0;
+//      field { desc = "Enable branch predictor"; }                                                                      InstEnBranchPrediction[4:4] = 0;
+//      field { desc = "Enable jump target cache"; }                                                                     InstEnJumpTargetCache[5:5]  = 0;
+//
+//      enum trTeInstImplicitReturnMode_e {
+//          ITR_IMPL_RETURN_OFF     = 0 { desc = "Implicit Return mode is not supported"; };
+//          ITR_IMPL_RETURN_SIMPLE  = 1 { desc = "Simple level counting without the return address compare"; };
+//          ITR_IMPL_RETURN_PARTIAL = 2 { desc = "Partial compare (LSB portion of return address)"; };
+//          ITR_IMPL_RETURN_FULL    = 3 { desc = "Full compare"; };
+//      };
+//      field {
+//          desc = "Implicit Return Mode";
+//          encode = trTeInstImplicitReturnMode_e;
+//      } InstImplicitReturnMode[7:6] = 0;
+//
+//      field { desc = "Enable repeated branch history"; }                                                               InstEnRepeatedHistory[8:8] = 0;
+//      field { desc = "Emit trace for direct unconditional/inferable control flow changes (jumps or calls)"; }           InstEnAllJumps[9:9]        = 0;
+//      field { desc = "Enable extension of virtual address MSB bits"; }                                                 InstExtendAddrMSB[10:10]   = 0;
+
+        field { desc = "TE source ID
+
+Writable only while trTeControl.Enable=0.";                             sw = rw; } SrcID[27:16]   = 10;
+        field { desc = "Number of bits in the trace source field
+
+Writable only while trTeControl.Enable=0."; sw = rw; } SrcBits[31:28] = 4;
+    } trTeInstFeatures @ 0x008;
+
+    // ====================================================================
+    // trTeInstFilters - C-Trace Instruction Filters Register @ 0x00C
+    // ====================================================================
+    reg {
+        name = "C-Trace Instruction Filters Register ";
+        desc = "Defines filters for qualifying control flow C-Trace generation.
+                Only accessible on trTeControl. Enable=0";
+
+        field {
+            desc = "Determine which filters qualify an instruction trace
+
+Writable only while trTeControl.Enable=0.";
+            sw = rw;
+        } Filters[NUM_TRACE_FILTER-1:0] = 0;
+    } trTeInstFilters @ 0x00C;
+
+    // ====================================================================
+    // trTeDataControl - C-Trace Data Trace Control Register @ 0x010
+    // ====================================================================
+    reg {
+        name = "C-Trace Data Trace Control Register";
+        desc = "Controls data trace behavior";
+
+        field { desc = "Read as 1 if data trace is implemented"; } DataImplemented[0:0] = 1;
+
+        field {
+            desc = "Data trace is being generated";
+            sw = rw; hwclr; hwset;
+        } DataTracing[1:1] = 0;
+
+//      field { desc = "Global enable/disable for data trace triggers"; }                    DataTrigEnable[3:3]      = 0;
+//      field { desc = "Set when overflow message is generated or TE requests hart stall"; } DataStallOrOverflow[3:3] = 0;
+//      field { desc = "Enable hart stall if TE cannot send a message"; }                    DataStallEna[4:4]        = 0;
+//      field { desc = "Set when data trace packet is dropped by hardware"; }                DataDrop[5:5]            = 0;
+//      field { desc = "Allow dropping data trace to avoid instruction trace overflows"; }   DataDropEna[6:6]         = 0;
+//      field { desc = "Omit data values from data trace packets when set"; }                DataNoValue[16:16]       = 0;
+//      field { desc = "Omit data address from data trace packets when set"; }               DataNoAddr[17:17]        = 0;
+
+        enum trTeDataAddrCompress_e {
+            DTR_ADDR_FULL     = 0 { desc = "Only send full (unmodified) addresses"; };
+         // DTR_ADDR_XOR      = 1 { desc = "Use XOR compression"; };
+         // DTR_ADDR_DIFF     = 2 { desc = "Use differential compression"; };
+         // DTR_ADDR_XOR_DIFF = 3 { desc = "Dynamically select XOR or differential compression"; };
+        };
+        field {
+            desc = "Data trace address compression mode
+
+Writable only while trTeControl.Enable=0.";
+            encode = trTeDataAddrCompress_e;
+            sw = rw;
+        } DataAddrCompress[19:18] = 0;
+
+        field {
+            desc = "Read as 1 if split-load tracing is implemented (sdata/lresp/ldata path).
+                    Force to 1 in generated RTL when SPLIT_DATA_ACCESS parameter=1 (see ct_cs_cpuif.sv). [C-Trace]";
+            hw = w; sw = r;
+        } DataSplitLoad[20:20] = 0;
+    } trTeDataControl @ 0x010;
+
+    // ====================================================================
+    // trTeDataFilters - C-Trace Trace Data Filters Register @ 0x01C
+    // ====================================================================
+    reg {
+        name = "C-Trace Trace Data Filters Register";
+        desc = "Defines filters for qualifying data trace generation.
+                Only accessible on trTeControl. Enable=0";
+
+        field {
+            desc = "Determine which filters qualify a data trace
+
+Writable only while trTeControl.Enable=0.";
+            sw = rw;
+        } Filters[NUM_TRACE_FILTER-1:0] = 0;
+    } trTeDataFilters @ 0x01C;
+
+    // ====================================================================
+    // trTsControl - C-Trace Timestamp Control Register @ 0x040
+    // ====================================================================
+    reg {
+        name = "C-Trace Timestamp Control Register";
+        desc = "Controls the behavior of the timestamp unit";
+
+        field {
+            desc = "Primary reset/enable for timestamp unit";
+            sw = rw;
+        } Active[0:0] = 0;
+
+        field {
+            desc = "Internal timestamp only. 1: counter runs, 0: counter stopped";
+            sw = rw;
+        } Count[1:1] = 0;
+
+        field {
+            desc = "Internal timestamp only. Write 1 to reset the timestamp counter";
+            sw = rw;
+        } Reset[2:2] = 0;
+
+//      field { desc = "Internal Core timestamp only. 1: counter runs when hart is halted (in debug mode), 0: stopped"; } trTsRunInDebug[3:3] = 0;
+
+        enum trTsType_e {
+            TR_TS_NONE     = 0 { desc = "No timestamp"; };
+//          TR_TS_EXTERNAL = 1 { desc = "External timestamp"; };
+            TR_TS_SYSTEM   = 2 { desc = "Timestamp from internal system (such as bus clock)"; };
+            TR_TS_CORE     = 3 { desc = "Timestamp from internal core"; };
+//          TR_TS_SHARED   = 4 { desc = "Shared timestamp"; };
+//          TR_TS_VENDOR0  = 5 { desc = "Vendor-specific timestamp"; };
+//          TR_TS_VENDOR1  = 6 { desc = "Vendor-specific timestamp"; };
+//          TR_TS_VENDOR2  = 7 { desc = "Vendor-specific timestamp"; };
+        };
+        field {
+            desc = "Type of Timestamp unit.
+                    Only accessible on trTeControl. Enable=0";
+            encode = trTsType_e;
+            sw = rw;
+        } Type[6:4] = 0;
+
+        field {
+            desc = "Internal timestamp only. Prescale timestamp clock by 2^2n (1, 4, 16, 64).
+                    Only accessible on trTeControl. Enable=0";
+            sw = rw;
+        } Prescale[9:8] = 0;
+
+        field {
+            desc = "Global enable for timestamp field in trace messages/packets";
+            sw = rw;
+        } Enable[15:15] = 1;
+
+        field {
+            desc = "Width of timestamp in bits (0..63).
+                    Only accessible on trTeControl. Enable=0";
+        } Width[29:24] = 63;
+    } trTsControl @ 0x040;
+
+    // ====================================================================
+    // trTsCounterLow - Timestamp Counter Register Low @ 0x048
+    // ====================================================================
+    reg {
+        name = "Timestamp Counter Register Low";
+        desc = "Stores the lower 32 bits (bits [31:0]) of the current 64-bit timestamp counter.";
+
+        field {
+            desc = "Lower 32 bits (bits [31:0]) of the timestamp counter";
+            hw = w;
+        } Value[31:0] = 0;
+    } trTsCounterLow @ 0x048;
+
+    // ====================================================================
+    // trTsCounterHigh - Timestamp Counter Register High @ 0x04C
+    // ====================================================================
+    reg {
+        name = "Timestamp Counter Register High";
+        desc = "Stores the upper 32 bits (bits [63:32]) of the current 64-bit timestamp counter.";
+
+        field {
+            desc = "Upper 32 bits (bits [63:32]) of the timestamp counter";
+            hw = w;
+        } Value[31:0] = 0;
+    } trTsCounterHigh @ 0x04C;
+
+    // ====================================================================
+    // 0x050 trTeTrigDbgControl      - N-Trace Debug Triggers control register        (optional, not implemented)
+    // 0x054 trTeTrigExtInControl    - N-Trace External Triggers Input control        (optional, not implemented)
+    // 0x058 trTeTrigExtOutControl   - N-Trace External Triggers Output control       (optional, not implemented)
+    // Addresses left unimplemented; they read 0 and ignore writes per N-Trace spec.
+    // ====================================================================
+
+    // ====================================================================
+    // trTeFilter[] - Trace Encoder Filter regfile @ 0x0400 += 0x20
+    // ====================================================================
+    regfile {
+        name = "C-Trace Trace Encoder Filter";
+        desc = "Single filter configuration. Only accessible on trTeControl. Enable=0";
+
+        reg {
+            name = "Filter Control Register";
+            desc = "Enable, input select, function, match mode, inversion and latching";
+
+            field {
+                desc = "Overall filter enable for filter #i
+
+Writable only while trTeControl.Enable=0.";
+                sw = rw;
+            } Enable[0:0] = 0;
+
+            field {
+                desc = "When set, match privilege levels specified by
+                        trTeFilterMatchChoicePrivilege field for filter #i
+
+Writable only while trTeControl.Enable=0.";
+                sw = rw;
+            } MatchPrivilege[1:1] = 0;
+
+            field {
+                desc = "When set, start matching from exception cause codes specified by trTeFilterMatchChoiceEcause
+                        field for filter #i, and stop matching upon return from the 1st matching exception.
+
+Writable only while trTeControl.Enable=0.";
+                sw = rw;
+            } MatchEcause[2:2] = 0;
+
+            field {
+                desc = "When set, start matching from either an interrupt or exception as specified by trTeFilterMatchValueInterrupt
+                        field for filter #i, and stop matching upon return from the 1st matching trap.
+
+Writable only while trTeControl.Enable=0.";
+                sw = rw;
+            } MatchInterrupt[3:3] = 0;
+
+            field {
+                desc = "When set, the output of the comparator selected by trTeFilterComp1
+                        must be true for the filter to match
+
+Writable only while trTeControl.Enable=0.";
+                sw = rw;
+            } MatchComp1[4:4] = 0;
+
+            field {
+                desc = "Specifies the comparator unit to use for the 1st comparison.
+
+Writable only while trTeControl.Enable=0.";
+                sw = rw;
+            } Comp1[7:5] = 0;
+
+            field {
+                desc = "When set, the output of the comparator selected by trTeFilterComp2
+                        must be true for the filter to match
+
+Writable only while trTeControl.Enable=0.";
+                sw = rw;
+            } MatchComp2[8:8] = 0;
+
+            field {
+                desc = "Specifies the comparator unit to use for the 2nd comparison.
+
+Writable only while trTeControl.Enable=0.";
+                sw = rw;
+            } Comp2[11:9] = 0;
+
+            field {
+                desc = "When set, the output of the comparator selected by trTeFilterComp3
+                        must be true for the filter to match
+
+Writable only while trTeControl.Enable=0.";
+                sw = rw;
+            } MatchComp3[12:12] = 0;
+
+            field {
+                desc = "Specifies the comparator unit to use for the 3rd comparison
+
+Writable only while trTeControl.Enable=0.";
+                sw = rw;
+            } Comp3[15:13] = 0;
+
+            field {
+                desc = "When set, match impdef values as specified by trTeFilterMatchValueImpdef
+                        and trTeFilterMatchMaskImpdef fields for filter #i.
+
+Writable only while trTeControl.Enable=0.";
+                sw = rw;
+            } Impdef[16:16] = 0;
+
+            field {
+                desc = "When set, match dtype values as specified by
+                        trTeFilterMatchChoiceDtype field for filter #i.
+
+Writable only while trTeControl.Enable=0.";
+                sw = rw;
+            } Dtype[24:24] = 0;
+
+            field {
+                desc = "When set, match dsize values as specified by
+                        trTeFilterMatchChoiceDsize field for filter #i)
+
+Writable only while trTeControl.Enable=0.";
+                sw = rw;
+            } Dsize[25:25] = 0;
+        } Control @ 0x000;
+
+        reg {
+            name = "Filter Instruction Match Control Register";
+            desc = "Privilege bitmap and interrupt/exception selector. Only accessible on trTeControl. Enable=0";
+
+            field {
+                desc = "Privilege bitmap; bit N=1 matches priv=N
+
+Writable only while trTeControl.Enable=0.";
+                sw = rw;
+            } ChoicePrivilege[7:0] = 0;
+
+            enum trTeFilterMatchInstExInt_e {
+                TR_FILTER_MATCHVALUE_EXCEPTION_TRAP = 0 { desc = "exception/trap"; };
+                TR_FILTER_MATCHVALUE_INTERRUPT      = 1 { desc = "interrupt"; };
+            };
+            field {
+                desc = "Interrupt/exception selector for start condition. 0: EXCEPTION_TRAP, 1: INTERRUPT
+
+Writable only while trTeControl.Enable=0.";
+                encode = trTeFilterMatchInstExInt_e;
+                sw = rw;
+            } ValueInterrupt[8:8] = 0;
+        } Match @ 0x004;
+
+        reg {
+            name = "Filter Ecause Match Control (low)";
+            desc = "Bits 31:0 of Ecause bitmap. Only accessible on trTeControl. Enable=0.
+                    Default configuration: Only Bits 0...15 are used.";
+
+            field {
+                desc = "Bitmap for ecause codes 0..31; bit N=1 matches ecause=N
+
+Writable only while trTeControl.Enable=0.";
+                sw = rw;
+            } Value[31:0] = 0;
+        } MatchChoiceEcauseLow @ 0x008;
+
+        reg {
+            name = "Filter Ecause Match Control (high)";
+            desc = "Bits 63:32 of Ecause bitmap. Only accessible on trTeControl. Enable=0.
+                    Not used in default configuration";
+
+            field {
+                desc = "Bitmap for ecause codes 32..63; bit N=1 matches ecause=N+32
+
+Writable only while trTeControl.Enable=0.";
+                sw = rw;
+            } Value[31:0] = 0;
+        } MatchChoiceEcauseHigh @ 0x00C;
+
+        reg {
+            name = "Filter Impdef Match Value";
+            desc = "Implementation-defined value (used with mask). Only accessible on trTeControl. Enable=0";
+
+            field {
+                desc = "Value compared with (impdef & mask)
+
+Writable only while trTeControl.Enable=0.";
+                sw = rw;
+            } Value[31:0] = 0;
+        } MatchValueImpdef @ 0x010;
+
+        reg {
+            name = "Filter Impdef Match Mask";
+            desc = "Implementation-defined mask. Only accessible on trTeControl. Enable=0";
+
+            field {
+                desc = "Mask for implementation-defined compare
+
+Writable only while trTeControl.Enable=0.";
+                sw = rw;
+            } Value[31:0] = 0;
+        } MatchMaskImpdef @ 0x014;
+
+        reg {
+            name = "Filter Data Match Control";
+            desc = "dtype/dsize selection bitmaps. Only accessible on trTeControl. Enable=0";
+
+            field { desc = "Bitmap for dtype; bit N=1 matches dtype=N
+
+Writable only while trTeControl.Enable=0."; sw = rw; } Dtype[15:0]  = 0;
+            field { desc = "Bitmap for dsize; bit N=1 matches dsize=N
+
+Writable only while trTeControl.Enable=0."; sw = rw; } Dsize[23:16] = 0;
+        } MatchChoiceData @ 0x018;
+    } trTeFilter[NUM_TRACE_FILTER] @ 0x0400 += 0x20;
+
+    // ====================================================================
+    // trTeComp[] - Trace Encoder Comparator regfile @ 0x0600 += 0x20
+    // ====================================================================
+    regfile {
+        name = "C-Trace Trace Encoder Comparator";
+        desc = "Primary/Secondary comparator pair with control and match registers.
+                Only accessible on trTeControl. Enable=0";
+
+        // Encodings as comments (tooling may turn these into enums if desired)
+        // trTeCompPInput / trTeCompSInput: 0=iaddr, 1=context, 2=tval, 3=daddr
+        // trTeCompPFunction (E-Trace v2.0 Table 2.6):
+        //   0==,1!=,2<,3<=,4>,5>=,6=reserved (always match),7=always match
+        // trTeCompSFunction (E-Trace v2.0 Table 2.6):
+        //   0==,1!=,2<,3<=,4>,5>=,6=use SMatch as mask for PMatch (always match),7=always match
+        // trTeCompMatchMode:
+        //   0:P true, 1:P&&S, 2:!(P&&S), 3:latch on P true until instr after S true
+
+        // 0x000: trTeCompjControl
+        reg {
+            name = "Comparator Control Register";
+            desc = "Input select, compare functions, mode, notify";
+
+            enum trTeCompInput_e {
+                TR_COMP_INPUT_IADDR   = 0 { desc = "iaddr"; };
+                TR_COMP_INPUT_CONTEXT = 1 { desc = "context"; };
+                TR_COMP_INPUT_TVAL    = 2 { desc = "tval"; };
+                TR_COMP_INPUT_DADDR   = 3 { desc = "daddr"; };
+            };
+            field { desc = "Primary input select
+
+Writable only while trTeControl.Enable=0.";   encode = trTeCompInput_e; sw = rw; } PInput[1:0] = 0;
+            field { desc = "Secondary input select
+
+Writable only while trTeControl.Enable=0."; encode = trTeCompInput_e; sw = rw; } SInput[3:2] = 0;
+
+            enum trTeCompPFunction_e {
+                TR_COMP_PFUNC_EQUAL          = 0 { desc = "Equal to trTeCompPMatch"; };
+                TR_COMP_PFUNC_NOT_EQUAL      = 1 { desc = "Not equal to trTeCompPMatch"; };
+                TR_COMP_PFUNC_LESS           = 2 { desc = "Less than trTeCompPMatch"; };
+                TR_COMP_PFUNC_LESS_EQUAL     = 3 { desc = "Less than or equal to trTeCompPMatch"; };
+                TR_COMP_PFUNC_GREATER        = 4 { desc = "Greater than trTeCompPMatch"; };
+                TR_COMP_PFUNC_GREATER_EQUAL  = 5 { desc = "Greater than or equal to trTeCompPMatch"; };
+                TR_COMP_PFUNC_RESERVED_MATCH = 6 { desc = "Reserved (always match)"; };
+                TR_COMP_PFUNC_ALWAYS_MATCH   = 7 { desc = "Always match"; };
+            };
+            enum trTeCompSFunction_e {
+                TR_COMP_SFUNC_EQUAL          = 0 { desc = "Equal to trTeCompSMatch"; };
+                TR_COMP_SFUNC_NOT_EQUAL      = 1 { desc = "Not equal to trTeCompSMatch"; };
+                TR_COMP_SFUNC_LESS           = 2 { desc = "Less than trTeCompSMatch"; };
+                TR_COMP_SFUNC_LESS_EQUAL     = 3 { desc = "Less than or equal to trTeCompSMatch"; };
+                TR_COMP_SFUNC_GREATER        = 4 { desc = "Greater than trTeCompSMatch"; };
+                TR_COMP_SFUNC_GREATER_EQUAL  = 5 { desc = "Greater than or equal to trTeCompSMatch"; };
+                TR_COMP_SFUNC_PMASK          = 6 { desc = "Use SMatch as mask for PMatch (always match)"; };
+                TR_COMP_SFUNC_ALWAYS_MATCH   = 7 { desc = "Always match"; };
+            };
+            field { desc = "Primary function
+
+Writable only while trTeControl.Enable=0.";   encode = trTeCompPFunction_e; sw = rw; } PFunction[6:4]  = 0;
+            field { desc = "Secondary function
+
+Writable only while trTeControl.Enable=0."; encode = trTeCompSFunction_e; sw = rw; } SFunction[10:8] = 0;
+
+            enum trTeCompMatchMode_e {
+                TR_COMP_MATCH_MODE0 = 0 { desc = "Primary result true"; };
+                TR_COMP_INPUT_MODE1 = 1 { desc = "Primary and secondary result both true: (P && S)"; };
+                TR_COMP_INPUT_MODE2 = 2 { desc = "Either primary or secondary result does not match: !(P && S)"; };
+                TR_COMP_INPUT_MODE3 = 3 { desc = "Set when primary result is true and continue to assert until instruction after secondary result is true"; };
+            };
+            field {
+                desc = "Match mode (0..3, see desc)
+
+Writable only while trTeControl.Enable=0.";
+                encode = trTeCompMatchMode_e;
+                sw = rw;
+            } MatchMode[13:12] = 0;
+
+            field {
+                desc = "Generate a trace packet explicitly reporting the address of the final instruction in a block
+                        that causes a PRIMARY match. This is also known as a watchpoint.
+
+Writable only while trTeControl.Enable=0.";
+                sw = rw;
+            } PNotify[14:14] = 0;
+
+            field {
+                desc = "Generate a trace packet explicitly reporting the address of the final instruction in a block
+                        that causes a SECONDARY match. This is also known as a watchpoint.
+
+Writable only while trTeControl.Enable=0.";
+                sw = rw;
+            } SNotify[15:15] = 0;
+        } Control @ 0x000;
+
+        reg {
+            name = "Primary Match (low)";
+            desc = "Bits 31:0.  Only accessible on trTeControl. Enable=0";
+            field {
+                desc = "Primary match value, bits [31:0].
+
+Writable only while trTeControl.Enable=0.";
+                sw = rw;
+            } Value[31:0] = 0;
+        } PMatchLow @ 0x010;
+
+        reg {
+            name = "Primary Match (high)";
+            desc = "Bits 63:32. Only accessible on trTeControl. Enable=0";
+            field {
+                desc = "Primary match value, bits [63:32].
+
+Writable only while trTeControl.Enable=0.";
+                sw = rw;
+            } Value[31:0] = 0;
+        } PMatchHigh @ 0x014;
+
+        reg {
+            name = "Secondary Match (low)";
+            desc = "Bits 31:0.  Only accessible on trTeControl. Enable=0";
+            field {
+                desc = "Secondary match value, bits [31:0].
+
+Writable only while trTeControl.Enable=0.";
+                sw = rw;
+            } Value[31:0] = 0;
+        } SMatchLow @ 0x018;
+
+        reg {
+            name = "Secondary Match (high)";
+            desc = "Bits 63:32. Only accessible on trTeControl. Enable=0";
+            field {
+                desc = "Secondary match value, bits [63:32].
+
+Writable only while trTeControl.Enable=0.";
+                sw = rw;
+            } Value[31:0] = 0;
+        } SMatchHigh @ 0x01C;
+    } trTeComp[NUM_TRACE_COMPARATORS] @ 0x0600 += 0x20;
+
+        // ====================================================================
+        // C-Trace extensions in TE vendor range (0xE00-0xFFF per N-Trace Table 3)
+        // ====================================================================
+
+        // trTeCsrControl - CSR TE Control Register @ te:0xE00 (was top-level 0x1300)
+        reg {
+            name = "CSR TE Control Register (access via CSR only)";
+            desc = "TE control via CSR. [C-Trace]";
+
+            field { desc = "Do send Sync";        hw = rw; sw = r; } trTeCsrSendSync[0:0] = 0;
+            field { desc = "Do send PC";          hw = rw; sw = r; } trTeCsrSendPC[1:1]   = 0;
+            field { desc = "Do send TS";          hw = rw; sw = r; } trTeCsrSendTS[2:2]   = 0;
+            field { desc = "Do send Clock Cycle"; hw = rw; sw = r; } trTeCsrSendCC[3:3]   = 0;
+        } trTeCsrControl @ 0xE00;
+
+        // trTeTipFifoStatus - TIP FIFO Status Register @ te:0xE04 (was top-level 0x1400)
+        reg {
+            name = "TIP FIFO Status Register";
+            desc = "Provides TIP FIFO statistics. [C-Trace]";
+
+            field {
+                desc = "Max fill level of internal buffering fifo since the last clear.
+                        Saturates at 0x7FFF.";
+                hw = w;
+            } trTeTipFifoMaxFill[14:0] = 0;
+
+            field {
+                desc = "Write 1 to clear trTeTipFifoMaxFill and hold it at 0, write 0 to re-arm.";
+                sw = rw;
+            } trTeTipFifoMaxFillClear[15:15] = 0;
+
+            field {
+                desc = "Count of discard events (dropped message beats) since the last clear.
+                        Saturates at 0x7FFF.";
+                hw = w;
+            } trTeTipFifoNumOverflows[30:16] = 0;
+
+            field {
+                desc = "Write 1 to clear trTeTipFifoNumOverflows and hold it at 0, write 0 to re-arm.";
+                sw = rw;
+            } trTeTipFifoNumOverflowsClear[31:31] = 0;
+        } trTeTipFifoStatus @ 0xE04;
+
+    } te @ 0x0000;
+
+    // ====================================================================
+    // act_st_mem_t - Watchpoints memory entry type (64-bit)
+    // ====================================================================
+    mem act_st_mem_t {
+        memwidth   = 64;
+        mementries = NUM_ACT_ST;
+
+        reg {
+            name = "Watchpoint Address (PC)";
+            desc = "Address (PC) that arms this watchpoint entry. When the retired CPU PC
+                    matches Addr, the Cmd at +0x4 of the same entry is dispatched through the
+                    C-Trace unit. [C-Trace]";
+
+            field { sw = rw; } Value[31:0] = 0;
+        } Addr @ 0x0;
+
+        reg {
+            name = "Watchpoint Command";
+            desc = "Command dispatched when the entry's Addr matches the retired CPU PC.
+                    Bit layout is shared with RISC-V CSR 0x0B10 (ACT-CAP protocol), which
+                    the CPU can write directly to dispatch the same command immediately
+                    without going through the watchpoints memory. [C-Trace]";
+
+            field { desc = "HSI command"; encode = trActCapStCmd_e;  sw = rw; } Cmd[5:0]  = 0;
+            field { desc = "Sink";        encode = trActCapStSink_e; sw = rw; } Sink[7:6] = 0;
+            field {
+                desc = "Direct data (24 bits). Always included in the DAQ message payload.
+                        A value of 0 is cost-free: Nexus MDO/MSEO variable-length encoding
+                        strips leading zeros, so an all-zero field adds no MDO cycles.";
+                sw = rw;
+            } DirectData[31:8] = 0;
+        } Cmd @ 0x4;
+    };
+
+    // ====================================================================
+    // df_mem_t - DF range filter memory entry type (64-bit)
+    // ====================================================================
+    mem df_mem_t {
+        memwidth   = 64;
+        mementries = NUM_DF_RANGE;
+
+        reg {
+            name = "DF Range Filter Key0 (low bound)";
+            desc = "Lower 32-bit word of a 64-bit DF range-filter entry. Holds Key0, the
+                    inclusive low bound of the data-address range (Key0 <= daddr <= Key1). [C-Trace]";
+
+            field { sw = rw; } Value[31:0] = 0;
+        } Key0 @ 0x0;
+
+        reg {
+            name = "DF Range Filter Key1 (high bound)";
+            desc = "Upper 32-bit word of a 64-bit DF range-filter entry. Holds Key1, the
+                    inclusive high bound of the data-address range (Key0 <= daddr <= Key1). [C-Trace]";
+
+            field { sw = rw; } Value[31:0] = 0;
+        } Key1 @ 0x4;
+    };
+
+    // ====================================================================
+    // wp - Watchpoints component @ 0x4000 (C-Trace, vendor CompType=0x4)
+    // SystemRDL does not allow 'mem' instantiations inside a regfile, so the
+    // stubs and the external memory live as siblings in the same 4 KB window.
+    // ====================================================================
+    reg {
+        name = "Watchpoints Control Register";
+        desc = "Primary activate/reset for the Watchpoints component. [C-Trace]";
+        field {
+            desc = "Primary activate/reset bit.
+                    [Not implemented yet: bit is SW-writable storage only; no effect on RTL.]";
+            sw = r;
+        } Active[0:0] = 1;
+    } trWpControl @ 0x4000;
+
+    reg {
+        name = "Watchpoints Implementation Register";
+        desc = "Version and component type information for the Watchpoints component. [C-Trace]";
+        field { desc = "Component Major Version"; } VerMajor[3:0]      = 1;
+        field { desc = "Component Minor Version"; } VerMinor[7:4]      = 0;
+        field { desc = "Component Type (vendor: 0x4)"; } CompType[11:8] = 0x4;
+    } trWpImpl @ 0x4004;
+
+    // ====================================================================
+    // External memories
+    // ====================================================================
+    external act_st_mem_t watchpoints @ 0x4100;
+    watchpoints->name = "Watchpoints Memory (ACT-ST)";
+    watchpoints->sw = rw;
+    watchpoints->desc = "Array of NUM_ACT_ST watchpoint entries. Each 64-bit entry is a
+                  {Cmd, Addr} pair that fires Cmd through the C-Trace unit whenever the
+                  retired CPU PC equals Addr.
+
+                  Rules for programming the table:
+
+                    1. Fill ALL NUM_ACT_ST slots. Unused slots are not optional —
+                       leaving a slot at its reset value can mask real watchpoints.
+                    2. Addr values across slot 0 .. slot NUM_ACT_ST-1 must be
+                       strictly ascending and unique (Addr[i] < Addr[i+1]).
+                    3. Each slot is updated as a pair: write Addr at offset +0x0
+                       first, then Cmd at offset +0x4. A Cmd write is what commits
+                       the entry; an Addr write alone has no effect.
+                    4. Update the entire table with tracing disabled
+                       (trTeControl.Active = 0). Modifying entries while tracing
+                       is active produces undefined matches.
+
+                  For slots you do not need as real watchpoints, pick an Addr the CPU
+                  will never execute (odd instruction addresses are ideal — the core
+                  forces PC[0] = 0, so odd Addr values never match) and set
+                  Cmd.Cmd = ACT_CAP_ST_NONE. The Addr values of such padding slots
+                  still have to satisfy rule 2.
+
+                  Cmd can also be dispatched directly by the CPU via RISC-V CSR 0x0B10
+                  (ACT-CAP protocol). That path bypasses this table entirely and does
+                  not require any setup here. [C-Trace]";
+
+    // ====================================================================
+    // df - DF range filter component @ 0x5000 (C-Trace, vendor CompType=0x5)
+    // SystemRDL does not allow 'mem' instantiations inside a regfile, so the
+    // stubs and the external memory live as siblings. df logically spans
+    // 0x5000-0x7FFF (stubs in the first 4 KB, mem starts at 0x6000; the
+    // memory occupies NUM_DF_RANGE * 8 bytes within that window).
+    // ====================================================================
+    reg {
+        name = "DF RangeFilter Control Register";
+        desc = "Primary activate/reset for the DF RangeFilter component. [C-Trace]";
+        field {
+            desc = "Primary activate/reset bit.
+                    [Not implemented yet: bit is SW-writable storage only; no effect on RTL.]";
+            sw = r;
+        } Active[0:0] = 1;
+    } trDfControl @ 0x5000;
+
+    reg {
+        name = "DF RangeFilter Implementation Register";
+        desc = "Version and component type information for the DF RangeFilter component. [C-Trace]";
+        field { desc = "Component Major Version"; } VerMajor[3:0]      = 1;
+        field { desc = "Component Minor Version"; } VerMinor[7:4]      = 0;
+        field { desc = "Component Type (vendor: 0x5)"; } CompType[11:8] = 0x5;
+    } trDfImpl @ 0x5004;
+
+    external df_mem_t mem1 @ 0x6000;
+    mem1->name = "DF RangeFilter Memory";
+    mem1->sw = rw;
+    mem1->desc = "Read/write DF range filter memory. Each 64-bit entry is a {Key1, Key0}
+                  pair with Key0 <= daddr <= Key1. Software writes/reads the lower 32-bit
+                  Key0 word first, then the upper 32-bit Key1 word. Memory has NUM_DF_RANGE
+                  entries (sized to match the hardware binary-search tree depth
+                  M1_DIM; 15 entries for the current M1_DIM=4 configuration). [C-Trace]";
+
+
+    // ====================================================================
+    // pc - Performance Counter sub-component @ 0x3000 (vendor, 4 KB)
+    // C-Trace extension for per-region instruction/data access counters.
+    // CompType=0x3 (Accemic vendor-assigned). Paths hwif_*.pc.XxxYyy.
+    // ====================================================================
+    regfile {
+        name = "Performance Counters";
+        desc = "Performance Counter sub-component (C-Trace, vendor CompType=0x3). [C-Trace]";
+        default regwidth = 32;
+        default sw = r;
+        default hw = r;
+
+        // Required stub: tr??Control
+        reg {
+            name = "PerfCounter Control Register";
+            desc = "Primary activate/reset for the Performance Counter component. [C-Trace]";
+            field {
+                desc = "Primary activate/reset bit.
+                    [Not implemented yet: bit is SW-writable storage only; no effect on RTL.]";
+                sw = r;
+            } Active[0:0] = 1;
+        } trPcControl @ 0x000;
+
+        // Required stub: tr??Impl
+        reg {
+            name = "PerfCounter Implementation Register";
+            desc = "Version and component type information for the Performance Counter component. [C-Trace]";
+            field { desc = "Component Major Version"; } VerMajor[3:0]      = 1;
+            field { desc = "Component Minor Version"; } VerMinor[7:4]      = 0;
+            field { desc = "Component Type (vendor: 0x3)"; } CompType[11:8] = 0x3;
+        } trPcImpl @ 0x004;
+
+        // ================================================================
+        // trTeConstants - C-Trace Implementation Parameters (was 0x2000)
+        // ================================================================
+        reg {
+            name = "C-Trace Implementation Parameters";
+            desc = "Implementatopn parameters for synchronization with RDL implementation. (RDL has no direct access PeakRDL parameters.) [C-Trace]";
+
+            field { desc = "NUM_TRACE_FILTER";              } num_trace_filter              [ 4: 0] = NUM_TRACE_FILTER;
+            field { desc = "NUM_TRACE_COMPARATORS";         } num_trace_comparators         [ 8: 5] = NUM_TRACE_COMPARATORS;
+            field { desc = "NUM_PERFCNT_IFETCH_TH_RANGES";  } num_perfcnt_ifetch_th_ranges  [12: 9] = NUM_PERFCNT_IFETCH_TH_RANGES;
+            field { desc = "NUM_PERFCNT_DATA_RD_TH_RANGES"; } num_perfcnt_data_rd_th_ranges [16:13] = NUM_PERFCNT_DATA_RD_TH_RANGES;
+            field { desc = "NUM_PERFCNT_DATA_RD_RANGES";    } num_perfcnt_data_rd_ranges    [20:17] = NUM_PERFCNT_DATA_RD_RANGES;
+            field { desc = "NUM_PERFCNT_DATA_WR_RANGES";    } num_perfcnt_data_wr_ranges    [24:21] = NUM_PERFCNT_DATA_WR_RANGES;
+        } trTeConstants @ 0x008;
+
+        // ================================================================
+        // trPerfCntControl - Encoder Perf Counter Ctrl Register (was 0x2004)
+        // ================================================================
+        reg {
+            name = "Encoder Perf Counter Ctrl Register";
+            desc = "Control register for the encoder's performance counter. [C-Trace]";
+
+            field {
+                desc = "CPU cycles threshold for instruction fetch.
+                        When required CPU clock cycles exceed this threshold, the respective counter increments.";
+                sw = rw;
+            } IFetchThreshold[7:0] = 4;
+
+            field {
+                desc = "CPU cycles threshold.
+                        When required CPU clock cycles exceed this threshold, the respective counter increments.";
+                sw = rw;
+            } DataWrThreshold[15:8] = 4;
+        } trPerfCntControl @ 0x010;
+
+        // ================================================================
+        // Instruction fetch ranges exceeding threshold (was 0x2100)
+        // ================================================================
+        regfile {
+            name = "Instruction Fetch Exceeding Threshold Ranges";
+            desc = "Instruction address ranges for instruction fetch events exceeding CPU cycle threshold (trPcIFetchThreshold).
+                    Each entry contains the inclusive low and high address of the monitored range. [C-Trace]";
+
+            reg {
+                name = "IFetch Range Threshold Low register";
+                desc = "Inclusive low address of instruction fetch range.";
+                field { desc = "Start address of the range (inclusive).
+
+Writable only while trTeControl.Enable=0."; sw = rw; } Value[31:0] = 0;
+            } Low  @ 0x0000;
+
+            reg {
+                name = "IFetch Range Threshold High register";
+                desc = "Inclusive high address of instruction fetch range.";
+                field { desc = "End address of the range (inclusive).
+
+Writable only while trTeControl.Enable=0.";   sw = rw; } Value[31:0] = 0;
+            } High @ 0x0004;
+        } trTePerfCntIFetchRange[NUM_PERFCNT_IFETCH_TH_RANGES] @ 0x100;
+
+        // ================================================================
+        // Data read accesses exceeding threshold ranges (was 0x2200)
+        // ================================================================
+        regfile {
+            name = "Data Read Accesses Exceeding Threshold Ranges";
+            desc = "Data address ranges for data read accesses exceeding cycle threshold (trPcDataRdThreshold).
+                    Each entry specifies the low and high addresses bounding the monitored range. [C-Trace]";
+
+            reg {
+                name = "Data Read Threshold Range Low register";
+                desc = "Inclusive low address of data read range.";
+                field { desc = "Start address of the range (inclusive).
+
+Writable only while trTeControl.Enable=0."; sw = rw; } Value[31:0] = 0;
+            } Low  @ 0x0000;
+
+            reg {
+                name = "Data Read Threshold High register";
+                desc = "High address of data write threshold range.";
+                field { desc = "End address of the range (inclusive).
+
+Writable only while trTeControl.Enable=0.";   sw = rw; } Value[31:0] = 0;
+            } High @ 0x0004;
+        } trTePerfCntDataRdThRange[NUM_PERFCNT_DATA_RD_TH_RANGES] @ 0x200;
+
+        // ================================================================
+        // Data read count ranges (was 0x2300)
+        // ================================================================
+        regfile {
+            name = "Data Read Count Ranges";
+            desc = "Data address ranges for data read accesses to be counted.
+                    Each entry specifies the low and high addresses bounding the monitored range. [C-Trace]";
+
+            reg {
+                name = "Data Read Count Range Low register";
+                desc = "Low address of data read range.";
+                field { desc = "Start address of the range (inclusive).
+
+Writable only while trTeControl.Enable=0."; sw = rw; } Value[31:0] = 0;
+            } Low  @ 0x0000;
+
+            reg {
+                name = "Data Read Count Range High register";
+                desc = "High address of data write range.";
+                field { desc = "End address of the range (inclusive).
+
+Writable only while trTeControl.Enable=0.";   sw = rw; } Value[31:0] = 0;
+            } High @ 0x0004;
+        } trTePerfCntDataRdRange[NUM_PERFCNT_DATA_RD_RANGES] @ 0x300;
+
+        // ================================================================
+        // Data write count ranges (was 0x2400)
+        // ================================================================
+        regfile {
+            name = "Data Write Count Ranges";
+            desc = "Data address ranges for data write accesses to be counted.
+                    Each entry specifies the low and high addresses bounding the monitored range. [C-Trace]";
+
+            reg {
+                name = "Data Write Count Range Low register";
+                desc = "Low address of data write range.";
+                field { desc = "Start address of the range (inclusive).
+
+Writable only while trTeControl.Enable=0."; sw = rw; } Value[31:0] = 0;
+            } Low  @ 0x0000;
+
+            reg {
+                name = "Data Write Count Range High register";
+                desc = "High address of data write range.";
+                field { desc = "End address of the range (inclusive).
+
+Writable only while trTeControl.Enable=0.";   sw = rw; } Value[31:0] = 0;
+            } High @ 0x0004;
+        } trTePerfCntDataWrRange[NUM_PERFCNT_DATA_WR_RANGES] @ 0x400;
+
+    } pc @ 0x3000;
+
+    // ====================================================================
+    // atb - Trace ATB Bridge sub-component @ 0x1000 (N-Trace compliant, 4 KB)
+    // Matches the spec's trAtbBridge?? register layout (RISC-V Trace Control
+    // Interface Spec, Tables 56/57). CompType=0xE (TRCOMP_ATBBRIDGE).
+    // Paths are hwif_*.atb.trAtbBridgeXxx.
+    // ====================================================================
+    regfile {
+        name = "Trace ATB Bridge";
+        desc = "Trace ATB Bridge sub-component (N-Trace compliant, CompType=0xE).
+                See RISC-V N-Trace Control Interface spec Chapter 10 (Tables 56/57).";
+        default regwidth = 32;
+        default sw = r;
+        default hw = r;
+
+        // Table 56
+        reg {
+            name = "ATB Bridge Control Register";
+            desc = "Primary control register for the ATB Bridge.";
+
+            field {
+                desc = "Primary activate/reset for the ATB Bridge. When 0, the ATB Bridge
+                        may have clocks gated off or be powered down, and other register
+                        locations may be inaccessible.
+                        [Not implemented yet: bit is SW-writable storage only; no effect on RTL.]";
+                sw = r;
+            } Active[0:0] = 1;
+
+            field {
+                desc = "1: ATB Bridge enabled. Setting Enable to 0 flushes any queued trace
+                        data to ATB.";
+                sw = r;
+            } Enable[1:1] = 1;
+
+            field {
+                desc = "Reads as 1 when ATB Bridge internal buffers are empty.";
+                hw = w;
+            } Empty[3:3] = 1;
+
+            // The ATID values 0x00, 0x70-0x7C, 0x7E, and 0x7F are reserved for use by
+            // the CoreSight Architecture and must not be used as ATB IDs.
+            field {
+                desc = "ID of this node on ATB. Values 0x00 and 0x70-0x7F are reserved by
+                        the ATB specification and should not be used.
+
+Writable only while trTeControl.Enable=0.";
+                sw = rw;
+            } ID[14:8] = 8;
+        } trAtbBridgeControl @ 0x000;
+
+        // Table 57
+        reg {
+            name = "ATB Bridge Implementation Register";
+            desc = "Contains version and protocol information for the ATB Bridge.";
+
+            field { desc = "ATB Bridge Component Major Version";   } VerMajor[3:0]      = 1;
+            field { desc = "ATB Bridge Component Minor Version";   } VerMinor[7:4]      = 0;
+            field { desc = "ATB Bridge Component Type (0xE)";      } CompType[11:8]     = 0xE;
+            field {
+                desc = "Async packet frequency. 0: Async disabled; 1..7: different levels
+                        of alignment synchronization.
+
+Writable only while trTeControl.Enable=0.";
+                sw = rw;
+            } AsyncFreq[14:12] = 0;
+        } trAtbBridgeImpl @ 0x004;
+    } atb @ 0x1000;
+
+    // ====================================================================
+    // Dynamic property assignments: swwel gating
+    // ====================================================================
+    // Every configuration field listed below becomes software-writable only
+    // while te.trTeControl.Enable == 0. PeakRDL-regblock honours the
+    // `swwel = <field>` reference and generates the internal write gate, so
+    // no manual `hwif_in.*.swwe` plumbing is needed in ct_cs_cpuif_wb.sv.
+    //
+    // Not gated (intentionally always writable):
+    //   - te.trTeTipFifoStatus.{trTeTipFifoMaxFillClear,trTeTipFifoNumOverflowsClear}
+    //     (status clear bits — user may re-arm at any time).
+    //   - te.trTeControl.{Active,Enable,InstTracing,InstSyncReq} and other
+    //     runtime status/control bits.
+    //
+    // Arrays collapse to a single assignment (applied to every instance).
+    // ====================================================================
+
+    // trTeControl fields (self-gated by sibling Enable)
+    te.trTeControl.InstMode         ->swwel = te.trTeControl.Enable;
+    te.trTeControl.InhibitSrc       ->swwel = te.trTeControl.Enable;
+    te.trTeControl.InstSyncMode     ->swwel = te.trTeControl.Enable;
+    te.trTeControl.InstSyncMax      ->swwel = te.trTeControl.Enable;
+
+    // Other te scalars
+    te.trTeInstFeatures.SrcID       ->swwel = te.trTeControl.Enable;
+    te.trTeInstFeatures.SrcBits     ->swwel = te.trTeControl.Enable;
+    te.trTeInstFilters.Filters      ->swwel = te.trTeControl.Enable;
+    te.trTeDataControl.DataAddrCompress->swwel = te.trTeControl.Enable;
+    te.trTeDataFilters.Filters      ->swwel = te.trTeControl.Enable;
+    te.trTsControl.Type             ->swwel = te.trTeControl.Enable;
+    te.trTsControl.Prescale         ->swwel = te.trTeControl.Enable;
+
+    // trTeFilter[NUM_TRACE_FILTER] — one dynamic assignment per field covers all instances
+    te.trTeFilter.Control.Enable              ->swwel = te.trTeControl.Enable;
+    te.trTeFilter.Control.MatchPrivilege      ->swwel = te.trTeControl.Enable;
+    te.trTeFilter.Control.MatchEcause         ->swwel = te.trTeControl.Enable;
+    te.trTeFilter.Control.MatchInterrupt      ->swwel = te.trTeControl.Enable;
+    te.trTeFilter.Control.MatchComp1          ->swwel = te.trTeControl.Enable;
+    te.trTeFilter.Control.Comp1               ->swwel = te.trTeControl.Enable;
+    te.trTeFilter.Control.MatchComp2          ->swwel = te.trTeControl.Enable;
+    te.trTeFilter.Control.Comp2               ->swwel = te.trTeControl.Enable;
+    te.trTeFilter.Control.MatchComp3          ->swwel = te.trTeControl.Enable;
+    te.trTeFilter.Control.Comp3               ->swwel = te.trTeControl.Enable;
+    te.trTeFilter.Control.Impdef              ->swwel = te.trTeControl.Enable;
+    te.trTeFilter.Control.Dtype               ->swwel = te.trTeControl.Enable;
+    te.trTeFilter.Control.Dsize               ->swwel = te.trTeControl.Enable;
+    te.trTeFilter.Match.ChoicePrivilege       ->swwel = te.trTeControl.Enable;
+    te.trTeFilter.Match.ValueInterrupt        ->swwel = te.trTeControl.Enable;
+    te.trTeFilter.MatchChoiceEcauseLow.Value  ->swwel = te.trTeControl.Enable;
+    te.trTeFilter.MatchChoiceEcauseHigh.Value ->swwel = te.trTeControl.Enable;
+    te.trTeFilter.MatchValueImpdef.Value      ->swwel = te.trTeControl.Enable;
+    te.trTeFilter.MatchMaskImpdef.Value       ->swwel = te.trTeControl.Enable;
+    te.trTeFilter.MatchChoiceData.Dtype       ->swwel = te.trTeControl.Enable;
+    te.trTeFilter.MatchChoiceData.Dsize       ->swwel = te.trTeControl.Enable;
+
+    // trTeComp[NUM_TRACE_COMPARATORS]
+    te.trTeComp.Control.PInput      ->swwel = te.trTeControl.Enable;
+    te.trTeComp.Control.SInput      ->swwel = te.trTeControl.Enable;
+    te.trTeComp.Control.PFunction   ->swwel = te.trTeControl.Enable;
+    te.trTeComp.Control.SFunction   ->swwel = te.trTeControl.Enable;
+    te.trTeComp.Control.MatchMode   ->swwel = te.trTeControl.Enable;
+    te.trTeComp.Control.PNotify     ->swwel = te.trTeControl.Enable;
+    te.trTeComp.Control.SNotify     ->swwel = te.trTeControl.Enable;
+    te.trTeComp.PMatchLow.Value     ->swwel = te.trTeControl.Enable;
+    te.trTeComp.PMatchHigh.Value    ->swwel = te.trTeControl.Enable;
+    te.trTeComp.SMatchLow.Value     ->swwel = te.trTeControl.Enable;
+    te.trTeComp.SMatchHigh.Value    ->swwel = te.trTeControl.Enable;
+
+    // Performance-counter address-range arrays (all use .Low.Value and .High.Value)
+    pc.trTePerfCntIFetchRange.Low.Value   ->swwel = te.trTeControl.Enable;
+    pc.trTePerfCntIFetchRange.High.Value  ->swwel = te.trTeControl.Enable;
+    pc.trTePerfCntDataRdThRange.Low.Value ->swwel = te.trTeControl.Enable;
+    pc.trTePerfCntDataRdThRange.High.Value->swwel = te.trTeControl.Enable;
+    pc.trTePerfCntDataRdRange.Low.Value   ->swwel = te.trTeControl.Enable;
+    pc.trTePerfCntDataRdRange.High.Value  ->swwel = te.trTeControl.Enable;
+    pc.trTePerfCntDataWrRange.Low.Value   ->swwel = te.trTeControl.Enable;
+    pc.trTePerfCntDataWrRange.High.Value  ->swwel = te.trTeControl.Enable;
+
+    // ATB bridge config
+    atb.trAtbBridgeControl.ID       ->swwel = te.trTeControl.Enable;
+    atb.trAtbBridgeImpl.AsyncFreq   ->swwel = te.trTeControl.Enable;
+
+};

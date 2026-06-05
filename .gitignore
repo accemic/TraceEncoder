@@ -1,0 +1,41 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: ISC
+
+# abc-flow build output
+bld/
+
+# Vivado
+*.jou
+*.log
+*.str
+.Xil/
+vivado_*.backup.*
+vivado_pid*.str
+xsim.dir/
+webtalk*.log
+webtalk*.jou
+.cxl.*.log
+
+# Editor / IDE
+*.swp
+*.swo
+.vscode/
+.idea/
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Private / local-only notes — never published with the public release
+.private/
+
+# Python (PeakRDL toolchain)
+__pycache__/
+*.pyc
+.venv/
+.venv-rdl/
+*.egg-info/
+
+# NOTE: the generated SV (rtl/pkg/ct_cs_cpuif*.sv,
+# tests/lib/ct_cs_cpuif_wb_helper.sv) is intentionally committed, not ignored.

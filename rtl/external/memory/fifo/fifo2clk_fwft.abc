@@ -1,0 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+import	../../stream/sink_if ../../stream/source_if
+import	../../common/math_pkg ../../common/cross_reset
+read_sv	fifo2clk_fwft.sv
+constraints impl fifo2clk_fwft.xdc

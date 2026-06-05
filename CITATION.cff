@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: ISC
+cff-version: 1.2.0
+title: "C-Trace — RISC-V N-Trace Encoder IP"
+message: >-
+  If you use this software in academic or research work, please cite it
+  using the metadata in this file.
+type: software
+authors:
+  - name: "Accemic Technologies GmbH"
+    website: "https://www.accemic.com"
+repository-code: "https://github.com/accemic/C-Trace"
+url: "https://www.accemic.com"
+abstract: >-
+  C-Trace is an open-source SystemVerilog implementation of a RISC-V
+  N-Trace encoder. It ingests a core's instruction-trace port (TIP),
+  compresses the execution stream into N-Trace messages, and emits them
+  on an ATB or AXI-Stream output. The IP is dual-licensed under
+  CERN-OHL-S-2.0 or an Accemic commercial license.
+keywords:
+  - RISC-V
+  - N-Trace
+  - tracing
+  - hardware
+  - SystemVerilog
+  - open hardware
+  - FPGA
+license: CERN-OHL-S-2.0
+license-url: "https://github.com/accemic/C-Trace/blob/main/LICENSE.md"
+version: "0.1.0"

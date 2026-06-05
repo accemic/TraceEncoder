@@ -1,0 +1,82 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: ISC
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: SystemVerilog lint (verible)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Verible
+        run: |
+          url=$(curl -fsSL https://api.github.com/repos/chipsalliance/verible/releases/latest \
+            | grep -oE '"browser_download_url": *"[^"]*linux-static-x86_64\.tar\.gz"' \
+            | sed -E 's/.*"(https[^"]*)"/\1/' | head -1)
+          test -n "$url"
+          curl -fsSL "$url" -o verible.tar.gz
+          mkdir -p "$HOME/verible"
+          tar -xzf verible.tar.gz -C "$HOME/verible" --strip-components=1
+          echo "$HOME/verible/bin" >> "$GITHUB_PATH"
+      - name: Run make lint
+        run: make lint
+
+  sim:
+    name: Simulation (Verilator)
+    runs-on: ubuntu-latest
+    env:
+      # Pinned Verilator, built from source. Ubuntu's apt ships 5.020, which
+      # rejects the standards-compliant binary $fopen modes ("wb") the dump
+      # testbenches use — binary-mode $fopen needs a newer Verilator. Bump this
+      # deliberately, the same way .abc.config pins the Vivado version.
+      VERILATOR_VERSION: v5.042
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Verilator ${{ env.VERILATOR_VERSION }}
+        id: verilator-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/verilator
+          key: verilator-${{ env.VERILATOR_VERSION }}-${{ runner.os }}
+
+      - name: Build Verilator ${{ env.VERILATOR_VERSION }}
+        if: steps.verilator-cache.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git autoconf g++ flex bison make help2man \
+                                  libfl-dev libfl2 perl python3
+          git clone --depth 1 --branch "$VERILATOR_VERSION" \
+            https://github.com/verilator/verilator.git /tmp/verilator
+          cd /tmp/verilator
+          autoconf
+          ./configure --prefix="$HOME/.local/verilator"
+          make -j"$(nproc)"
+          make install
+
+      - name: Set up sim toolchain
+        run: |
+          sudo apt-get update
+          # tclsh evaluates the .abc dependency files; libfl2 is Verilator's
+          # runtime dependency (needed on a cache hit too, when the build above
+          # is skipped); python3 runs the abc launcher.
+          sudo apt-get install -y tcl libfl2
+          echo "$HOME/.local/verilator/bin" >> "$GITHUB_PATH"
+
+      - name: Install abc (abc-flow)
+        run: |
+          git clone --depth 1 https://github.com/accemic/abc-flow.git "$HOME/abc-flow"
+          echo "$HOME/abc-flow/abc" >> "$GITHUB_PATH"
+
+      - name: Run make sim
+        run: |
+          verilator --version
+          abc -h >/dev/null
+          make sim

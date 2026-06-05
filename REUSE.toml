@@ -1,0 +1,44 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: ISC
+#
+# REUSE configuration for files that cannot carry an in-file SPDX header
+# (e.g. plain-text version files, empty placeholders).
+
+version = 1
+SPDX-PackageName = "C-Trace"
+SPDX-PackageSupplier = "Accemic Technologies GmbH <info@accemic.com>"
+SPDX-PackageDownloadLocation = "https://github.com/accemic/C-Trace"
+
+[[annotations]]
+path = ["VERSION", "**/.gitkeep"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
+SPDX-License-Identifier = "ISC"
+
+# Vendored NexRv reference decoder binary. Built from the C-Trace port
+# at https://github.com/accemic/NexRv-for-C-Trace, derived from the IAR
+# Systems NexRv tool and licensed under ISC; Accemic's modifications are
+# likewise ISC. The binary carries no in-file SPDX header, so the
+# copyright and license are recorded here.
+[[annotations]]
+path = "bin/NexRv"
+precedence = "aggregate"
+SPDX-FileCopyrightText = ["2020 IAR Systems AB", "2026 Accemic Technologies GmbH"]
+SPDX-License-Identifier = "ISC"
+
+# Verible lint rule files. The format is a bare list of +rule / -rule
+# lines and doesn't accept in-file comments without risking parser
+# rejection, so license info lives here.
+[[annotations]]
+path = "**/.rules.verible_lint"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
+SPDX-License-Identifier = "ISC"
+
+# Documentation images. PNG/SVG exports are binary/opaque and carry no
+# in-file header (the editable .drawio sources do). License info lives here.
+[[annotations]]
+path = ["doc/images/*.png", "doc/images/*.svg"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
+SPDX-License-Identifier = "CC-BY-4.0"

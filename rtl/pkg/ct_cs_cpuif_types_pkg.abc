@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+# Type-only package emitted by generate_wb_pkg.py alongside the Wishbone
+# helper package: it rebuilds the SV enum + struct typedefs of any RDL
+# register marked `ispresent = false` (used as a type anchor only).
+#
+# The committed ct_cs_cpuif_types_pkg.sv is the build-time source of
+# truth. Regeneration logic was stripped pending C-Trace path rewrites;
+# run `make rdl` to refresh.
+
+import @rtl/pkg : ct_cs_cpuif_pkg
+
+read_sv ct_cs_cpuif_types_pkg.sv

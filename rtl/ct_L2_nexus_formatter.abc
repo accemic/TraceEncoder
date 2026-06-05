@@ -1,0 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+import     @rtl/pkg : ct_pkg ct_cs_if nexus_vendor_riscv_pkg
+
+read_sv	ct_L2_nexus_formatter.sv

@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: ISC
+#
+# GitHub CODEOWNERS — review routing.
+# Human-readable maintainer list lives in MAINTAINERS.md.
+#
+# Owners: @accemic (company profile) and @albertschulz (main developer).
+
+# Default — every change needs a maintainer review.
+*                       @accemic @albertschulz
+
+# Legal / CI surface — extra care.
+/LICENSE.md             @accemic @albertschulz
+/LICENSES/              @accemic @albertschulz
+/.github/workflows/     @accemic @albertschulz
+/.github/CODEOWNERS     @accemic @albertschulz
+/CITATION.cff           @accemic @albertschulz
+/.abc.config            @accemic @albertschulz
