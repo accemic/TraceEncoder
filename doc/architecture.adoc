@@ -161,7 +161,7 @@ by regenerating with a different `--cpuif`.
 |===
 | Range | Block | Purpose | CompType
 
-| `0x0000-0x0FFF` | `te`  | Trace Encoder (N-Trace compliant)     | `0x1`
+| `0x0000-0x0FFF` | `te`  | Trace Encoder (implements N-Trace)    | `0x1`
 | `0x1000-0x1FFF` | `atb` | Trace ATB Bridge                      | `0xE`
 | `0x3000-0x3FFF` | `pc`  | Performance Counters (C-Trace vendor) | `0x3`
 | `0x4000-0x4FFF` | `wp`  | Watchpoints / ACT-ST (C-Trace vendor) | `0x4`
@@ -181,7 +181,7 @@ exporter but is **not** decoded on the Wishbone bus; see
 link:enhanced-features.adoc[Enhanced features].
 
 
-=== RISC-V Trace Control Interface compliance
+=== RISC-V Trace Control Interface — targets the TCI specification
 
 The register map targets the
 https://docs.riscv.org/reference/trace-control-interface/index.html[RISC-V

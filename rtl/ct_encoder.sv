@@ -11,7 +11,7 @@
  * @brief    C-Trace Encoder for RISC-V
  *
  * @details
- *   Emits NEXUS-compliant trace messages following the RISC-V N-Trace
+ *   Emits NEXUS trace messages following the RISC-V N-Trace
  *   specification (see https://github.com/riscv-non-isa/tg-nexus-trace).
  *
  *   The control/status register layout accessed via the Wishbone port is

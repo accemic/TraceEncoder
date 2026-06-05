@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
 // SPDX-License-Identifier: CC-BY-4.0
 
-= Trace format — Nexus / RISC-V N-Trace compliance
+= Trace format — developed according to the RISC-V N-Trace specification
 :toc: macro
 :toclevels: 3
 :nexus-spec: https://github.com/riscv-non-isa/riscv-nexus-trace/blob/main/docs/nexus-standard/IEEE-ISTO-5001-2012-v3.0.1-Nexus-Standard.pdf
