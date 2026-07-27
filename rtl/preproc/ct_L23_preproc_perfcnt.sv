@@ -9,11 +9,11 @@
  * Address: Kiefersfelden, Germany
  *
  * @file    ct_L23_preproc_perfcnt.sv
- * @brief   Accemic C-Trace performance counter preprocessing unit.
+ * @brief   Accemic CEDARtools.TraceEncoder performance counter preprocessing unit.
  *
  * @description
  *   This module implements a preprocessing unit for performance counter measurement
- *   within the C-Trace architecture. It tracks read and write accesses to data address
+ *   within the CEDARtools.TraceEncoder architecture. It tracks read and write accesses to data address
  *   ranges and fetches within instruction address ranges.
  *   Internal counters are instantiated for each monitored range, counting hits and misses,
  *   with saturation mode for overflow protection. Threshold handling and range selection
@@ -36,7 +36,7 @@
  *   - Counters operate in saturation mode; no wrapping is performed on overflow.
  *   - Internal clear and reset signals ensure robust, glitch-free operation.
  *   - No mode or option for down-counting; all counters increment only.
- *   - Module is designed for integration into C-Trace stage 2 preprocessing of performance metrics.
+ *   - Module is designed for integration into CEDARtools.TraceEncoder stage 2 preprocessing of performance metrics.
  */
 
 `undef  MY_DEBUG

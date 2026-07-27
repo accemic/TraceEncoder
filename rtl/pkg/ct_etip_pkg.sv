@@ -8,7 +8,7 @@
 /**
  * @author   Alexander Weiss <aweiss@accemic.com>, Albert Schulz <aschulz@accemic.com>, Alexander Lange <alange@accemic.com>
  *
- * @brief    C-Trace internal "Extended TIP" (Trace Ingress Port) definitions
+ * @brief    CEDARtools.TraceEncoder internal "Extended TIP" (Trace Ingress Port) definitions
  */
 
 package ct_etip_pkg;

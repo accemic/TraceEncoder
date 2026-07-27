@@ -27,7 +27,7 @@ module interrupts_tb;
 	import cpu_model_pkg::*;
 	import tip_pkg::*;   // ILLEGAL_INSTR (tip_ecause_e), for exception_trap
 
-	ctrace_env #(
+	ct_env #(
 		.SPLIT_DATA_ACCESS  (0),
 		.CYCLES_PER_INSTR   (4),
 		.ATB_DUMP_PATH      ("interrupts_tb.atb.bin"),

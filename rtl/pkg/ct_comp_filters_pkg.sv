@@ -8,7 +8,7 @@
 /**
  * @author   Alexander Weiss <aweiss@accemic.com>, Albert Schulz <aschulz@accemic.com>, Alexander Lange <alange@accemic.com>
  *
- * @brief    Accemic C-Trace Comparator/Filter Helper Package (for simulation)
+ * @brief    Accemic CEDARtools.TraceEncoder Comparator/Filter Helper Package (for simulation)
  */
 
 package ct_comp_filters_pkg;

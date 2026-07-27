@@ -8,7 +8,7 @@
 /**
  * @author   Alexander Weiss <aweiss@accemic.com>, Albert Schulz <aschulz@accemic.com>, Alexander Lange <alange@accemic.com>
  *
- * @brief    C-Trace layer 2/3 AXIS composer (internal trace/instrumentation sink).
+ * @brief    CEDARtools.TraceEncoder layer 2/3 AXIS composer (internal trace/instrumentation sink).
  *
  * @details
  *   Composes the AXI-Stream output that serves as an internal trace and

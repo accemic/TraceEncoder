@@ -8,7 +8,7 @@
 /**
  * @author   Alexander Weiss <aweiss@accemic.com>, Albert Schulz <aschulz@accemic.com>, Alexander Lange <alange@accemic.com>
  *
- * @brief    C-Trace layer 2/3 preprocessor (tip_clk domain).
+ * @brief    CEDARtools.TraceEncoder layer 2/3 preprocessor (tip_clk domain).
  *
  * @details
  *   Preprocesses the incoming TIP stream into the eTIP and next-IADDR streams

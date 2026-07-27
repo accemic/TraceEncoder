@@ -8,7 +8,7 @@
 /**
  * @author   Alexander Weiss <aweiss@accemic.com>
  *
- * @brief    C-Trace Nexus Decoder (ATB -> nexus_message_t)
+ * @brief    CEDARtools.TraceEncoder Nexus Decoder (ATB -> nexus_message_t)
  */
 
 `undef  MY_DEBUG
@@ -39,7 +39,7 @@ module ct_nexus_decoder #(
 	localparam int NUM_CHUNKS_PER_ATB_BEAT  = ATB_BEAT_WIDTH / NEXUS_CHUNK_WIDTH;
 	localparam int DF_ADDR_MAX_BITS         = NEXUS_MSG_ADDRESS_WIDTH + NEXUS_MSG_DSZ_WIDTH;
 	// The package-level NEXUS_MAX_CHUNKS is sized for generic packet transport,
-	// but real C-Trace DF messages with 64-bit payloads and timestamps can exceed
+	// but real CEDARtools.TraceEncoder DF messages with 64-bit payloads and timestamps can exceed
 	// 20 chunks. Keep a larger local decoder window so long messages are not
 	// truncated before their terminating END_IDLE chunk arrives.
 	localparam int DECODER_MAX_CHUNKS        = 64;

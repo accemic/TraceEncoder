@@ -3,10 +3,10 @@ SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
 SPDX-License-Identifier: CC-BY-4.0
 -->
 
-# Contributing to C-Trace
+# Contributing to CEDARtools.TraceEncoder
 
 Thanks for your interest in contributing. This document describes the
-expectations for changes to C-Trace.
+expectations for changes to CEDARtools.TraceEncoder.
 
 ## Quick checklist
 
@@ -71,7 +71,7 @@ valid SPDX header.
 
 ## License & CLA
 
-C-Trace is licensed per artifact type (see [`LICENSE.md`](LICENSE.md)):
+CEDARtools.TraceEncoder is licensed per artifact type (see [`LICENSE.md`](LICENSE.md)):
 the **hardware IP** is dual-licensed under **CERN-OHL-S-2.0** or a
 **commercial license** from Accemic Technologies GmbH, **software** is
 **ISC**, and **documentation** is **CC-BY-4.0**.

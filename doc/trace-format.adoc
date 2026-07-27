@@ -6,7 +6,7 @@
 :toclevels: 3
 :nexus-spec: https://github.com/riscv-non-isa/riscv-nexus-trace/blob/main/docs/nexus-standard/IEEE-ISTO-5001-2012-v3.0.1-Nexus-Standard.pdf
 
-C-Trace emits trace messages following the
+CEDARtools.TraceEncoder emits trace messages following the
 https://github.com/riscv-non-isa/riscv-trace-spec[RISC-V N-Trace
 specification], which is a RISC-V interpretation of the
 {nexus-spec}[**IEEE-ISTO 5001-2012 (Nexus)** standard]. This page summarizes the
@@ -31,7 +31,7 @@ RISC-V N-Trace fixes the interpretation of the address and
 instruction-count fields for RISC-V, and defines the program-trace,
 data-trace and synchronization messages that a compliant encoder emits.
 
-NOTE: This page covers the *encoded* MDO/MSEO trace stream. C-Trace also
+NOTE: This page covers the *encoded* MDO/MSEO trace stream. CEDARtools.TraceEncoder also
 provides a separate 96-bit *AXI-Stream* output (`axis_if.master`) that
 carries ACT-CAP / DAQ instrumentation independently of the Nexus stream —
 intended for on-chip consumers (e.g. a runtime verification) that process
@@ -39,21 +39,21 @@ instrumentation data inside the fabric rather than off-chip. See
 link:enhanced-features.adoc#axis-output[Enhanced features → Output: AXIS
 export and the ATB funnel].
 
-[#where-c-trace-sits]
-=== Where C-Trace sits — at a glance
+[#where-traceencoder-sits]
+=== Where CEDARtools.TraceEncoder sits — at a glance
 
-image::images/specs-overlap.drawio.png[C-Trace relative to the Nexus and N-Trace specifications,width=400]
+image::images/specs-overlap.drawio.png[CEDARtools.TraceEncoder relative to the Nexus and N-Trace specifications,width=400]
 
-C-Trace targets the *RISC-V N-Trace specification* v1.0 (ratified
+CEDARtools.TraceEncoder targets the *RISC-V N-Trace specification* v1.0 (ratified
 2024-11-21), a profile of *IEEE-ISTO 5001-2012 (Nexus)* v3.0.1, and aims
 for *strict* interoperability with a stock N-Trace decoder. The matrix
 shows how each message and capability is treated by the base Nexus
-standard, the N-Trace profile, and the C-Trace implementation; the
+standard, the N-Trace profile, and the CEDARtools.TraceEncoder implementation; the
 <<conformance>> section details only the gaps and deviations.
 
 [%autowidth, cols="3,^1,^1,2", options="header"]
 |===
-| Capability / message (TCODE) | Nexus | N-Trace | C-Trace
+| Capability / message (TCODE) | Nexus | N-Trace | CEDARtools.TraceEncoder
 
 4+s| Program / instruction trace
 | Program Trace Synchronization (9)          | ✔ | ✔ (req.) | ✔
@@ -95,20 +95,20 @@ standard, the N-Trace profile, and the C-Trace implementation; the
 
 [.small]
 ✔ defined & implemented conformantly • ◐ partial, unverified, or deviating
-(see notes) • ○ defined by the spec but not implemented in C-Trace • —
+(see notes) • ○ defined by the spec but not implemented in CEDARtools.TraceEncoder • —
 not defined / not applicable in that spec.
 
 NOTE: The mode names *HTM* and *BTM* are RISC-V N-Trace's; the underlying
 methods are pure Nexus. {nexus-spec}[Nexus] §3.3.2 (Branch Trace Messaging) defines two
 kinds of branch message — *traditional* (per-branch, = N-Trace BTM) and
 *history* (the HIST field + Indirect Branch History messages, TCODE
-28/29, = N-Trace HTM) — so both are defined in Nexus too. C-Trace
+28/29, = N-Trace HTM) — so both are defined in Nexus too. CEDARtools.TraceEncoder
 implements only the history method (HTM); the traditional per-branch
 method (BTM) is intentionally omitted because it is bandwidth-inefficient.
 
 == Message types
 
-TCODEs are defined by `nexus_tcode_e`. The categories C-Trace works with:
+TCODEs are defined by `nexus_tcode_e`. The categories CEDARtools.TraceEncoder works with:
 
 [cols="1,2,3", options="header"]
 |===
@@ -155,7 +155,7 @@ reference address (`GetUaddr`) and right-shifted by `NEXUS_MSG_PC_ADDR_SHIFT`.
 [#sync-reasons]
 == Synchronization reasons
 
-The SYNC field of a sync message uses `nexus_sync_reason_e`. C-Trace
+The SYNC field of a sync message uses `nexus_sync_reason_e`. CEDARtools.TraceEncoder
 implements:
 
 [cols="1,2,3", options="header"]
@@ -165,9 +165,9 @@ implements:
 | 2  | `PERIODIC`          | Periodic synchronization (implemented).
 | 5  | `TRACE_ENABLE`      | Emitted when tracing is enabled (implemented).
 | 7  | `FIFO_OVERRUN`      | Restart marker after a queue overrun.
-| 12 | `REQ_CSR`           | [C-Trace] sync requested via CSR.
-| 13 | `REQ_ATB`           | [C-Trace] sync requested via APB.
-| 14 | `TRACE_QUOTA`       | [C-Trace] sync due to a trace quota limit (# messages / # bytes).
+| 12 | `REQ_CSR`           | [CEDARtools.TraceEncoder] sync requested via CSR.
+| 13 | `REQ_ATB`           | [CEDARtools.TraceEncoder] sync requested via APB.
+| 14 | `TRACE_QUOTA`       | [CEDARtools.TraceEncoder] sync due to a trace quota limit (# messages / # bytes).
 |===
 
 Values 0, 1, 3, 4, 6, 8–11 are defined by the standard (external
@@ -215,14 +215,14 @@ cost no bytes.
 [#conformance]
 == Nexus / N-Trace conformance
 
-The matrix in <<where-c-trace-sits>> gives the status at a glance; this
+The matrix in <<where-traceencoder-sits>> gives the status at a glance; this
 section details only the gaps and deviations (the ◐ / ○ rows).
 
 === Known deviations
 
 [cols="2,2,3,2", options="header"]
 |===
-| Item | Spec reference | C-Trace behavior | Status
+| Item | Spec reference | CEDARtools.TraceEncoder behavior | Status
 
 | Vendor SYNC reasons
 | Nexus Table 4-13 (12–13 Reserved, 14–15 Vendor)
@@ -265,7 +265,7 @@ Lower-priority optional messages and modes:
 === Intentionally not implemented
 
 * **BTM mode** — traditional Branch Trace Messaging (Nexus DirectBranch /
-  IndirectBranch, TCODE 3/4; N-Trace `ITR_BRANCH`). C-Trace implements
+  IndirectBranch, TCODE 3/4; N-Trace `ITR_BRANCH`). CEDARtools.TraceEncoder implements
   history mode (HTM) only. Per-branch BTM messaging is bandwidth-inefficient
   — HTM conveys the same control flow at far lower bandwidth — so BTM is
   omitted by design, not pending. The `ITR_BRANCH` encoding is reserved in

@@ -6,7 +6,7 @@
 `default_nettype none
 
 /**
- * @brief    C-Trace test environment (sketch).
+ * @brief    CEDARtools.TraceEncoder test environment (sketch).
  *
  * @details
  *   Single-instance harness around `ct_encoder`. Provides:
@@ -29,7 +29,7 @@
  *   after enabling tracing", which is enough to validate the harness.
  */
 
-module ctrace_env #(
+module ct_env #(
 	bit    SPLIT_DATA_ACCESS = 0,
 	int    CYCLES_PER_INSTR  = 4,
 	// REQUIRED: binary ATB trace output. This is the primary artifact
@@ -240,7 +240,7 @@ module ctrace_env #(
 	// ------------------------------------------------------------------
 	initial begin
 		if (ATB_DUMP_PATH == "") begin
-			$display("FATAL: ctrace_env requires ATB_DUMP_PATH parameter to be set.");
+			$display("FATAL: ct_env requires ATB_DUMP_PATH parameter to be set.");
 			$display("       The ATB binary trace is the primary output of every test.");
 			$fatal(1);
 		end
@@ -304,6 +304,6 @@ module ctrace_env #(
 		endcase
 	endtask
 
-endmodule : ctrace_env
+endmodule : ct_env
 
 `default_nettype wire

@@ -6,7 +6,7 @@ SPDX-License-Identifier: CC-BY-4.0
 # High-level tests
 
 This directory is for **high-level / system / integration testbenches**
-only — anything that exercises C-Trace end-to-end or spans multiple
+only — anything that exercises CEDARtools.TraceEncoder end-to-end or spans multiple
 modules.
 
 **Per-module unit testbenches do not live here.** They live next to
@@ -17,7 +17,7 @@ the module they test, under `rtl/<module>/test/`. See
 
 | Directory | What it tests |
 |-----------|---------------|
-| [`lib/`](lib/) | Shared verification infrastructure: `ctrace_env`, `cpu_model`, `csr_helper`, `nexus_decoder`, `trace_scoreboard`, helper packages. Not runnable on its own. |
+| [`lib/`](lib/) | Shared verification infrastructure: `ct_env`, `cpu_model`, `csr_helper`, `nexus_decoder`, `trace_scoreboard`, helper packages. Not runnable on its own. |
 | [`instruction/`](instruction/) | Instruction-trace feature tests (basic, interrupts, address filter). |
 | [`data/`](data/) | Data-trace feature tests (basic, address filter, split access). |
 | [`hsi/`](hsi/) | Hardware-supported instrumentation tests (CSR-CAP, CSR-ST). |
@@ -53,8 +53,8 @@ See the **Testbench skeleton** section below.
 
 ## Testbench skeleton
 
-A test instantiates the shared `ctrace_env`
-([`lib/ctrace_env.sv`](lib/ctrace_env.sv)) — which wires `cpu_model`,
+A test instantiates the shared `ct_env`
+([`lib/ct_env.sv`](lib/ct_env.sv)) — which wires `cpu_model`,
 the DUT, and the trace sinks together — drives the scenario through the
 `cpu_model` task API, then writes the `expected.*` reference files the
 [`scripts/decode_and_check.sh`](../scripts/decode_and_check.sh) check

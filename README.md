@@ -3,16 +3,16 @@ SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
 SPDX-License-Identifier: CC-BY-4.0
 -->
 
-# C-Trace
+# CEDARtools.TraceEncoder
 
 **RISC-V N-Trace encoder IP — SystemVerilog, dual-licensed.**
 
 [![License: CERN-OHL-S-2.0 OR Accemic-Commercial](https://img.shields.io/badge/license-CERN--OHL--S--2.0%20OR%20Accemic--Commercial-blue.svg)](LICENSE.md)
 [![REUSE compliant](https://img.shields.io/badge/REUSE-compliant-brightgreen.svg)](https://reuse.software)
 
-## What is C-Trace?
+## What is CEDARtools.TraceEncoder?
 
-C-Trace is an open-source hardware implementation of a [**RISC-V N-Trace
+CEDARtools.TraceEncoder (formerly *C-Trace*) is an open-source hardware implementation of a [**RISC-V N-Trace
 encoder**](https://docs.riscv.org/reference/nexus-trace/index.html). It
 ingests a core's [instruction-trace port (TIP / ITI)](https://docs.riscv.org/reference/nexus-trace/ntrace_ingress_port.html),
 compresses the execution stream into [NEXUS-IEEE-ISTO-5001-2012-compliant](https://github.com/riscv-non-isa/riscv-nexus-trace/blob/main/docs/nexus-standard/IEEE-ISTO-5001-2012-v3.0.1-Nexus-Standard.pdf)
@@ -52,7 +52,7 @@ pipeline, the five clock domains, and the top-level IO.
   **Avalon-MM**, and **OBI** too — regenerate with a different `--cpuif`,
   or wrap the passthrough interface like the bundled Wishbone adapter.
 
-**C-Trace Bonus (beyond N-Trace)**
+**CEDARtools.TraceEncoder Bonus (beyond N-Trace)**
 
 - **Data trace** — read / write messages with address, size and data
   value (plus their sync variants). Unified or split load/store data via
@@ -62,7 +62,7 @@ pipeline, the five clock domains, and the top-level IO.
 - **Lightweight instrumentation** - Data Acquisition messages driven by
   ACT-CAP / ACT-ST, routable to the Nexus (ATB) and/or AXIS sinks.
 
-For the detail behind the C-Trace-specific extensions, see
+For the detail behind the CEDARtools.TraceEncoder-specific extensions, see
 [`doc/enhanced-features.adoc`](doc/enhanced-features.adoc); for the
 Nexus / N-Trace message formats, see
 [`doc/trace-format.adoc`](doc/trace-format.adoc).
@@ -95,7 +95,7 @@ Either simulator can run the testbenches: `abc` drives both Vivado's
 
 Simulations run out of the gitignored `bld/` directory. `make sim` drives
 each testbench through `abc` and checks the output against the NexRv
-reference decoder (the C-Trace port,
+reference decoder (the CEDARtools.TraceEncoder port,
 [accemic/NexRv-for-C-Trace](https://github.com/accemic/NexRv-for-C-Trace))
 — to run one by hand:
 
@@ -123,7 +123,7 @@ answer key, and the decode-and-compare loop) is described in
 │   └── <module>/test/  per-module testbenches live next to the module
 ├── tests/              high-level / integration tests (multi-module)
 ├── scripts/            developer helpers (RDL gen, lint, decode/check)
-├── bin/                NexRv reference decoder (C-Trace port — see bin/README.md)
+├── bin/                NexRv reference decoder (CEDARtools.TraceEncoder port — see bin/README.md)
 ├── .github/workflows/  CI: lint, sim, REUSE compliance
 └── LICENSES/           full text of every license used by this repo
 ```
@@ -136,7 +136,7 @@ Full documentation lives under [`doc/`](doc/):
   top-level IO, pipeline stages, register-map overview.
 - [Trace format](doc/trace-format.adoc) — Nexus / RISC-V N-Trace
   compliance, message types, MDO/MSEO encoding.
-- [Enhanced features](doc/enhanced-features.adoc) — the C-Trace-specific
+- [Enhanced features](doc/enhanced-features.adoc) — the CEDARtools.TraceEncoder-specific
   extensions (DAQ / ACT-CAP, filtering, sync variants, funnel, …).
 - [Verification](doc/verification.adoc) — the test harness and checking
   principle.
@@ -171,7 +171,7 @@ Larger enhancements under consideration:
 
 ## License
 
-C-Trace is licensed per artifact type — see [`LICENSE.md`](LICENSE.md)
+CEDARtools.TraceEncoder is licensed per artifact type — see [`LICENSE.md`](LICENSE.md)
 for the full statement:
 
 - **Hardware IP** (RTL, RDL, constraints, and the SystemVerilog/`.abc`

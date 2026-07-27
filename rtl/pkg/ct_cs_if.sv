@@ -8,7 +8,7 @@
 /**
  * @author   Alexander Weiss <aweiss@accemic.com>, Albert Schulz <aschulz@accemic.com>, Alexander Lange <alange@accemic.com>
  *
- * @brief    C-Trace Control & Status Interface for individual clk domains
+ * @brief    CEDARtools.TraceEncoder Control & Status Interface for individual clk domains
  */
 
 import ct_pkg::*;

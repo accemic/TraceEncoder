@@ -8,7 +8,7 @@
 /**
  * @author   Alexander Weiss <aweiss@accemic.com>, Albert Schulz <aschulz@accemic.com>, Alexander Lange <alange@accemic.com>
  *
- * @brief    C-Trace layer 2 trace message generator (eTIP -> generic Nexus messages).
+ * @brief    CEDARtools.TraceEncoder layer 2 trace message generator (eTIP -> generic Nexus messages).
  *
  * @details
  *   Generates generic trace messages — oriented on Nexus message fields — from

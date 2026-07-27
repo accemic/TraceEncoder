@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
 // SPDX-License-Identifier: CC-BY-4.0
 
-= Enhanced features — C-Trace extensions
+= Enhanced features — CEDARtools.TraceEncoder extensions
 :toc: macro
 :toclevels: 3
 :nexus-spec: https://github.com/riscv-non-isa/riscv-nexus-trace/blob/main/docs/nexus-standard/IEEE-ISTO-5001-2012-v3.0.1-Nexus-Standard.pdf
 
-Beyond the baseline RISC-V N-Trace program- and data-trace, C-Trace adds
+Beyond the baseline RISC-V N-Trace program- and data-trace, CEDARtools.TraceEncoder adds
 a set of vendor extensions on top of the {nexus-spec}[Nexus] framework. They reuse the
 standard message machinery (vendor TCODEs, reserved sync reasons,
 variable-length fields) so a Nexus-aware decoder can still frame the
@@ -23,7 +23,7 @@ toc::[]
 
 == Data Acquisition (DAQ) and ACT-CAP / ACT-ST
 
-C-Trace can export instrumentation data as **Data Acquisition** messages
+CEDARtools.TraceEncoder can export instrumentation data as **Data Acquisition** messages
 (TCODE 7): an `IDTAG` plus a variable-length payload up to
 `NEXUS_MSG_DATA_WIDTH` (192 bits), optionally timestamped. This carries
 more than the 64 bits a standard data-trace message allows, which is why
@@ -69,7 +69,7 @@ bandwidth at the source.
 
 == Synchronization variants
 
-In addition to the standard periodic and trace-enable sync, C-Trace
+In addition to the standard periodic and trace-enable sync, CEDARtools.TraceEncoder
 defines vendor sync reasons (see link:trace-format.adoc#sync-reasons[Trace
 format]):
 
@@ -94,7 +94,7 @@ along as the `TSTAMP` field of sync, data and DAQ messages.
 == Overflow and overrun recovery
 
 Under sustained back-pressure (ATB stalled while TIP keeps retiring), the
-internal queues can overrun. C-Trace handles this explicitly:
+internal queues can overrun. CEDARtools.TraceEncoder handles this explicitly:
 
 * The composer injects a **QueueOverrun** condition; the encoder emits an
   **Error** message (TCODE 8, `ETYPE = QUEUE_OVERRUN`) whose **ECODE**

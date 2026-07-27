@@ -23,7 +23,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 ## Environment
 
-- C-Trace commit / version:
+- CEDARtools.TraceEncoder commit / version:
 - Vivado version:
 - `abc` version:
 - PeakRDL version (if RDL-related):

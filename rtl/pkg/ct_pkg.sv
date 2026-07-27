@@ -8,7 +8,7 @@
 /**
  * @author   Alexander Weiss <aweiss@accemic.com>, Albert Schulz <aschulz@accemic.com>, Alexander Lange <alange@accemic.com>
  *
- * @brief    C-Trace Package
+ * @brief    CEDARtools.TraceEncoder Package
  */
 
 package ct_pkg;
@@ -91,7 +91,7 @@ package ct_pkg;
 	localparam ACT_CAP_AXIS_TDATA_WIDTH  = 3 * ACT_CAP_INT_ELEMENT_WIDTH;
 	localparam ACT_CAP_AXIS_TID_WIDTH    = 8; // TODO: check with act_cap_cmd_t.data.id_data.id
 
-	// C-trace internal sub message type
+	// CEDARtools.TraceEncoder internal sub message type
 	typedef enum logic [2:0] {
 		SUB_MSG_NONE  = 0, // sub message is not valid
 		SUB_MSG_CF    = 1, // sub message is etip_cf_msg_struct_t

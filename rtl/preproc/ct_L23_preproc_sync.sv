@@ -8,7 +8,7 @@
 /**
  * @author   Alexander Weiss <aweiss@accemic.com>, Albert Schulz <aschulz@accemic.com>, Alexander Lange <alange@accemic.com>
  *
- * @brief    Accemic C-Trace periodic / one-shot synchronization generator.
+ * @brief    Accemic CEDARtools.TraceEncoder periodic / one-shot synchronization generator.
  *
  * @details
  *   Generates a `nexus_sync_reason_e` in the TIP clock domain which is later

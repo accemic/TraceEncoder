@@ -10,7 +10,7 @@
  *
  * @details
  *   Vendor-specific parameters, message/field widths, TCODE enums and helper
- *   functions used by the C-Trace encoder.
+ *   functions used by the CEDARtools.TraceEncoder.
  */
 
 package nexus_vendor;
@@ -161,9 +161,9 @@ package nexus;
 		NEXUS_SYNC_EXIT_FROM_POWERDOWN      =  9, //4'b1001,    // Exit from Powerdown
 		NEXUS_SYNC_RESERVED_1               = 10, //4'b1010,    // (Reserved)
 		NEXUS_SYNC_MSG_CONTENTION           = 11, //4'b1011,    // Contention with higher priority messages caused message(s) to be lost
-		NEXUS_SYNC_REQ_CSR                  = 12, //4'b1100,    // (Reserved)       C-Trace commercial: Synq request via CSR
-		NEXUS_SYNC_REQ_ATB                  = 13, //4'b1101,    // (Reserved)       C-Trace commercial: Synq request via APB
-		NEXUS_SYNC_TRACE_QUOTA              = 14, //4'b1110,    // (Vendor Defined) C-Trace commercial: Synq request due to trace quota limit (# of trace messages / # of trace bytes)
+		NEXUS_SYNC_REQ_CSR                  = 12, //4'b1100,    // (Reserved)       CEDARtools.TraceEncoder commercial: Synq request via CSR
+		NEXUS_SYNC_REQ_ATB                  = 13, //4'b1101,    // (Reserved)       CEDARtools.TraceEncoder commercial: Synq request via APB
+		NEXUS_SYNC_TRACE_QUOTA              = 14, //4'b1110,    // (Vendor Defined) CEDARtools.TraceEncoder commercial: Synq request due to trace quota limit (# of trace messages / # of trace bytes)
 		NEXUS_SYNC_NONE                     = 15  //4'b1111     // (Vendor Defined) for better self-explaining code
 	} nexus_sync_reason_e;
 
@@ -171,7 +171,7 @@ package nexus;
 		NEXUS_RCODE_ICNT_OVERFLOW           =  0, //4'b0000,
 		NEXUS_RCODE_HIST_OVERFLOW           =  1, //4'b0001,
 		NEXUS_RCODE_HIST_OVERFLOW_REPEATED  =  2, //4'b0010,    // link:../../references/147_RISC-V-N-Trace-Specification.pdr#page=27
-		NEXUS_RCODE_TRACE_DISABLED          =  3, //4'b0011,    // [C-Trace] internal marker: composer -> msg_gen, request a
+		NEXUS_RCODE_TRACE_DISABLED          =  3, //4'b0011,    // [CEDARtools.TraceEncoder] internal marker: composer -> msg_gen, request a
 															//           Program Trace Correlation Message (TCODE 33,
 															//           EVCODE=Program Trace Disabled) flushing the residual ICNT/HIST
 		NEXUS_RCODE_NONE                    = 15  //4'b1111     // for debug
@@ -477,7 +477,7 @@ package nexus;
 			end
 
 			// 4.3.16 Program Trace - Correlation Message (TCODE = 33)
-			// C-Trace emits this only as the "Program Trace Disabled" event
+			// CEDARtools.TraceEncoder emits this only as the "Program Trace Disabled" event
 			// (EVCODE=4) on trace-off, carrying the residual ICNT and (when
 			// branch history is pending, CDF=1) the HIST in the CDATA slot.
 			NEXUS_MSG_PROGRAM_TRACE_CORRELATION: begin

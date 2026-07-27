@@ -8,7 +8,7 @@
 /**
  * @author   Alexander Weiss <aweiss@accemic.com>, Albert Schulz <aschulz@accemic.com>, Alexander Lange <alange@accemic.com>
  *
- * @brief    C-Trace Encoder for RISC-V
+ * @brief    CEDARtools.TraceEncoder for RISC-V
  *
  * @details
  *   Emits NEXUS trace messages following the RISC-V N-Trace

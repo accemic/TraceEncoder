@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Register description (SystemRDL)
 
-This directory holds the **SystemRDL** source that describes C-Trace's
+This directory holds the **SystemRDL** source that describes CEDARtools.TraceEncoder's
 control / status register map. The RDL is the **single source of
 truth** for the register layout; the generated SystemVerilog is committed
 alongside it (under `../rtl/pkg/` and `../tests/lib/`) so the repo is

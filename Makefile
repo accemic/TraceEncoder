@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
 # SPDX-License-Identifier: ISC
 #
-# C-Trace top-level Makefile.
+# CEDARtools.TraceEncoder top-level Makefile.
 
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
@@ -18,7 +18,7 @@ COV_DIR := bld/coverage
 
 ## help: List available targets.
 help:
-	@echo "C-Trace — available make targets:"
+	@echo "CEDARtools.TraceEncoder — available make targets:"
 	@echo ""
 	@awk 'BEGIN {FS = ":.*?## "} /^## / { sub(/^## /,""); print "  " $$0 }' $(MAKEFILE_LIST)
 	@echo ""

@@ -79,7 +79,7 @@ module overrun_recovery_tb;
 
 	import cpu_model_pkg::*;
 
-	ctrace_env #(
+	ct_env #(
 		.SPLIT_DATA_ACCESS  (0),
 		.CYCLES_PER_INSTR   (4),
 		.ATB_DUMP_PATH      ("overrun_recovery_tb.atb.bin"),

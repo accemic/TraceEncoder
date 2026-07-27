@@ -8,7 +8,7 @@
 /**
  * @author   Albert Schulz <aschulz@accemic.com>
  *
- * @brief    C-Trace timestamp unit.
+ * @brief    CEDARtools.TraceEncoder timestamp unit.
  *
  * @details
  *   Provides the selected timestamp value based on the trTsControl CSR.

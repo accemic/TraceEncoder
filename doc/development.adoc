@@ -6,7 +6,7 @@
 :toclevels: 3
 
 This page covers the build flow, the SystemRDL register flow, the
-contribution rules, and how to integrate C-Trace into an SoC.
+contribution rules, and how to integrate CEDARtools.TraceEncoder into an SoC.
 
 toc::[]
 
@@ -79,7 +79,7 @@ header are annotated in link:../REUSE.toml[`REUSE.toml`].
 
 == SoC integration
 
-To drop C-Trace (`ct_encoder`) into a design:
+To drop CEDARtools.TraceEncoder (`ct_encoder`) into a design:
 
 * **TIP** — connect the core's instruction-trace port to the
   `tip_if.slave` (in the `tip_clk` domain). Choose `SPLIT_DATA_ACCESS` to
