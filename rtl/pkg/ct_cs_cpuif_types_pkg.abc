@@ -6,7 +6,7 @@
 # register marked `ispresent = false` (used as a type anchor only).
 #
 # The committed ct_cs_cpuif_types_pkg.sv is the build-time source of
-# truth. Regeneration logic was stripped pending C-Trace path rewrites;
+# truth. Regeneration logic was stripped pending CEDARtools.TraceEncoder path rewrites;
 # run `make rdl` to refresh.
 
 import @rtl/pkg : ct_cs_cpuif_pkg

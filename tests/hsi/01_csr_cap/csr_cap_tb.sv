@@ -56,7 +56,7 @@ module csr_cap_tb;
 	import ct_cs_cpuif_pkg::*;
 	import ct_cs_cpuif_types_pkg::*;
 
-	ctrace_env #(
+	ct_env #(
 		.SPLIT_DATA_ACCESS   (0),
 		.CYCLES_PER_INSTR    (4),
 		.ENABLE_DECODERS     (1),

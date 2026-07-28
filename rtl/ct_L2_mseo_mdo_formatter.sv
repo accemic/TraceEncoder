@@ -8,7 +8,7 @@
 /**
  * @author   Alexander Weiss <aweiss@accemic.com>, Albert Schulz <aschulz@accemic.com>
  *
- * @brief    C-Trace L2 MSEO/MDO formatter (Nexus message -> ATB chunks)
+ * @brief    CEDARtools.TraceEncoder L2 MSEO/MDO formatter (Nexus message -> ATB chunks)
  *
  * @description
  *   The module accepts one `nexus_message_t` whenever `ready_out` is high,

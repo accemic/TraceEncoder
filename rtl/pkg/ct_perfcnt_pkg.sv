@@ -8,7 +8,7 @@
 /**
  * @author   Alexander Weiss <aweiss@accemic.com>, Albert Schulz <aschulz@accemic.com>, Alexander Lange <alange@accemic.com>
  *
- * @brief    Accemic C-Trace Performance Counter Package (for simulation)
+ * @brief    Accemic CEDARtools.TraceEncoder Performance Counter Package (for simulation)
  */
 
 package ct_perfcnt_pkg;

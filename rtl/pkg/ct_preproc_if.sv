@@ -8,7 +8,7 @@
 /**
  * @author   Alexander Weiss <aweiss@accemic.com>, Albert Schulz <aschulz@accemic.com>, Alexander Lange <alange@accemic.com>
  *
- * @brief    Accemic C-Trace Preprocessor Interfaces
+ * @brief    Accemic CEDARtools.TraceEncoder Preprocessor Interfaces
  */
 
 interface ct_sync_if ();

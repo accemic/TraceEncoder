@@ -11,7 +11,7 @@
  * @brief    Nexus message formatter (proc_clk): generic CF/DF/DAQ messages -> Nexus field lists.
  *
  * @details
- *   Converts C-Trace generic trace messages (CF/DF/DAQ) into a Nexus message
+ *   Converts CEDARtools.TraceEncoder generic trace messages (CF/DF/DAQ) into a Nexus message
  *   field list (`nexus_message_t`) — the field-oriented representation that the
  *   subsequent MDO/MSEO formatter packs into ATB chunks. A Nexus message is a
  *   sequence of fields and always starts with a TCODE field; understanding this
@@ -24,7 +24,7 @@
  *     `ready_out` to prevent upstream consumption.
  *
  *   Documentation reference:
- *   - See the C-Trace Reference Manual (Processing Stage chapter).
+ *   - See the CEDARtools.TraceEncoder Reference Manual (Processing Stage chapter).
  */
 
 `undef  MY_DEBUG

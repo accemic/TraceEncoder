@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # RTL sources
 
-SystemVerilog implementation of the C-Trace encoder, driven by
+SystemVerilog implementation of the CEDARtools.TraceEncoder, driven by
 [abc-flow](https://github.com/accemic/abc-flow) (paired `.sv` + `.abc` files).
 
 ## Layout

@@ -8,7 +8,7 @@
 /**
  * @author   Alexander Weiss <aweiss@accemic.com>, Albert Schulz <aschulz@accemic.com>, Alexander Lange <alange@accemic.com>
  *
- * @brief    C-Trace control/status register block (Wishbone CSR access + CDC).
+ * @brief    CEDARtools.TraceEncoder control/status register block (Wishbone CSR access + CDC).
  *
  * @details
  *   Distributes the control/status signals to the respective pipeline stages

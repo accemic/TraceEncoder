@@ -8,7 +8,7 @@
 /**
  * @author   Alexander Weiss <aweiss@accemic.com>, Albert Schulz <aschulz@accemic.com>, Alexander Lange <alange@accemic.com>
  *
- * @brief    C-Trace hardware-supported instrumentation processor (ACT-CAP / ACT-ST).
+ * @brief    CEDARtools.TraceEncoder hardware-supported instrumentation processor (ACT-CAP / ACT-ST).
  *
  * @details
  *   Merges ACT_CAP and ACT_ST commands; ACT_ST overrides ACT_CAP within the

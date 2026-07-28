@@ -8,7 +8,7 @@
 /**
  * @author   Alexander Weiss <aweiss@accemic.com>, Albert Schulz <aschulz@accemic.com>, Alexander Lange <alange@accemic.com>
  *
- * @brief    Accemic C-Trace CSR Access Protocol (ACT-CAP) Interface
+ * @brief    Accemic CEDARtools.TraceEncoder CSR Access Protocol (ACT-CAP) Interface
  */
 
 interface ct_act_cap_if ();

@@ -8,7 +8,7 @@
 /**
  * @author   Alexander Weiss <aweiss@accemic.com>, Albert Schulz <aschulz@accemic.com>
  *
- * @brief    C-Trace layer 2/3 eTIP composer.
+ * @brief    CEDARtools.TraceEncoder layer 2/3 eTIP composer.
  *
  * @details
  *   Composes the control-flow (CF), data-flow (DF) and data-acquisition (DAQ)

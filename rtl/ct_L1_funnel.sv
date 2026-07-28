@@ -9,7 +9,7 @@
  * @author   Alexander Weiss <aweiss@accemic.com>
  *
  * @file    ct_L1_funnel.sv
- * @brief   Packet-aware C-Trace L1 funnel for fixed-width ATB/Nexus streams
+ * @brief   Packet-aware CEDARtools.TraceEncoder L1 funnel for fixed-width ATB/Nexus streams
  *
  * @details
  *   - Merges N ATB input streams into one ATB output stream

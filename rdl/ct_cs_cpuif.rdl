@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
 
 // ----------------------------------------------------
-// C-Trace Address map
+// CEDARtools.TraceEncoder Address map
 // ----------------------------------------------------
 
 addrmap ct_cs_cpuif #(
@@ -18,20 +18,20 @@ addrmap ct_cs_cpuif #(
     longint MAX_J_FILTER                  =  8,
     longint CSC_COUNTER_DATA_RANGE_COUNT  =  2
 ) {
-    name = "C-Trace Encoder Control / Status Registers";
-    desc = "C-Trace Encoder Control / Status Registers.
+    name = "CEDARtools.TraceEncoder Control / Status Registers";
+    desc = "CEDARtools.TraceEncoder Control / Status Registers.
             The register map follows the RISC-V N-Trace Control Interface specification.
-            Registers, fields, and enum values marked [C-Trace] at the end of their description are Accemic C-Trace extensions; everything else is N-Trace compliant.
+            Registers, fields, and enum values marked [CEDARtools.TraceEncoder] at the end of their description are Accemic CEDARtools.TraceEncoder extensions; everything else is N-Trace compliant.
 
             Sub-components:
               0x0000-0x0FFF  te   - Trace Encoder               (N-Trace, CompType=0x1)
               0x1000-0x1FFF  atb  - Trace ATB Bridge             (N-Trace, CompType=0xE)
-              0x3000-0x3FFF  pc   - Performance Counters         [C-Trace, CompType=0x3 vendor]
-              0x4000-0x4FFF  wp   - Watchpoints (ACT-ST)         [C-Trace, CompType=0x4 vendor]
-              0x5000-0x7FFF  df   - DF Range Filter              [C-Trace, CompType=0x5 vendor]
+              0x3000-0x3FFF  pc   - Performance Counters         [CEDARtools.TraceEncoder, CompType=0x3 vendor]
+              0x4000-0x4FFF  wp   - Watchpoints (ACT-ST)         [CEDARtools.TraceEncoder, CompType=0x4 vendor]
+              0x5000-0x7FFF  df   - DF Range Filter              [CEDARtools.TraceEncoder, CompType=0x5 vendor]
 
             Each component has a trXxControl (Active bit) + trXxImpl (version/CompType) pair at
-            offsets 0x000 / 0x004 of its base, per N-Trace spec Section 4.3. [C-Trace container]";
+            offsets 0x000 / 0x004 of its base, per N-Trace spec Section 4.3. [CEDARtools.TraceEncoder container]";
     default regwidth = 32;
     default sw = r;
     default hw = r;
@@ -92,7 +92,7 @@ addrmap ct_cs_cpuif #(
     // --------------------------------------------------------------------
     reg {
         name = "ACT-CAP Command (type anchor, hidden)";
-        desc = "Type anchor only. Hidden via ispresent=false. [C-Trace]";
+        desc = "Type anchor only. Hidden via ispresent=false. [CEDARtools.TraceEncoder]";
 
         field { desc = "HSI command";            encode = trActCapStCmd_e;  sw=rw; } Cmd[5:0]         = 0;
         field { desc = "Sink";                   encode = trActCapStSink_e; sw=rw; } Sink[7:6]        = 0;
@@ -117,8 +117,8 @@ addrmap ct_cs_cpuif #(
     // trTeControl - Trace Encoder Control Register @ 0x000
     // ====================================================================
     reg {
-        name = "C-Trace Encoder Control Register";
-        desc = "Primary control register for the C-Trace Encoder";
+        name = "CEDARtools.TraceEncoder Control Register";
+        desc = "Primary control register for the CEDARtools.TraceEncoder";
 
         field {
             desc = "Primary enable/reset for the Trace Encoder";
@@ -136,7 +136,7 @@ addrmap ct_cs_cpuif #(
                     implicitly disables instruction (and data) tracing without rewriting
                     those bits; the resulting instruction-tracing-disabled edge generates
                     the trace-off Program Trace Correlation Message (see trTeInstTracing).
-                    [C-Trace: the implicit-disable gating is RTL, not an RDL auto-clear.]";
+                    [CEDARtools.TraceEncoder: the implicit-disable gating is RTL, not an RDL auto-clear.]";
             sw = rw;
         } Enable[1:1] = 0;
 
@@ -149,7 +149,7 @@ addrmap ct_cs_cpuif #(
                     count and branch history, so a decoder can resolve the final
                     instructions up to the trace-off point; the 0->1 edge emits a
                     TRACE_ENABLE synchronization message to re-anchor the decoder.
-                    [C-Trace]";
+                    [CEDARtools.TraceEncoder]";
             sw = rw; hwclr; hwset;
         } InstTracing[2:2] = 0;
 
@@ -162,7 +162,7 @@ addrmap ct_cs_cpuif #(
          // ITR_FULL             = 0 { desc = "Full Instruction trace is disabled, but trace may still emit some records"; };
          // ITR_BRANCH_RES0      = 1 { desc = "Reserved for subsets of Branch Trace (e.g. periodic PC sampling)"; };
          // ITR_BRANCH_RES1      = 2 { desc = "Reserved for subsets of Branch Trace (e.g. periodic PC sampling)"; };
-         // ITR_BRANCH           = 3 { desc = "Traditional Branch Trace Messages (BTM: Nexus DirectBranch/IndirectBranch). Intentionally NOT implemented in C-Trace -- per-branch messaging is bandwidth-inefficient versus ITR_BRANCH_HIST (Branch History Trace), which conveys the same control flow at far lower bandwidth. Reserved; do not program."; };
+         // ITR_BRANCH           = 3 { desc = "Traditional Branch Trace Messages (BTM: Nexus DirectBranch/IndirectBranch). Intentionally NOT implemented in CEDARtools.TraceEncoder -- per-branch messaging is bandwidth-inefficient versus ITR_BRANCH_HIST (Branch History Trace), which conveys the same control flow at far lower bandwidth. Reserved; do not program."; };
          // ITR_BRANCH_HIST_RES0 = 4 { desc = "Reserved for subset of Branch History Trace"; };
          // ITR_BRANCH_HIST_RES1 = 5 { desc = "Reserved for subset of Branch History Trace"; };
             ITR_BRANCH_HIST      = 6 { desc = "Generate instruction trace using Branch History Trace"; };
@@ -182,7 +182,7 @@ addrmap ct_cs_cpuif #(
         field {
             desc = "Send NEXUS_MSG_VENDOR_CONFIG message. Reserved: config-message
                     emission is not yet implemented, so this field is read-only and
-                    always reads CFG_NONE. [C-Trace]";
+                    always reads CFG_NONE. [CEDARtools.TraceEncoder]";
             encode = trTeSendConfigMode_e;
             sw = r;
         } SendConfig[8:7] = 0;
@@ -190,7 +190,7 @@ addrmap ct_cs_cpuif #(
         field {
             desc = "Send Ownership messages to indicate processor context.
                     Reserved: Ownership-message (TCODE 2) emission is not yet
-                    implemented, so this field is read-only and reads 0. [C-Trace]";
+                    implemented, so this field is read-only and reads 0. [CEDARtools.TraceEncoder]";
             sw = r;
         } Context[9:9] = 0;
 
@@ -212,7 +212,7 @@ addrmap ct_cs_cpuif #(
             ITR_SYNC_TRACE_BYTES  = 4 { desc = "Count trace bytes (extended) [NOT IMPLEMENTED]"; };
             ITR_SYNC_WALL_CLK     = 5 { desc = "Count wallclock cycles"; };
             ITR_SYNC_INSTRUCTIONS = 6 { desc = "Count instructions"; };
-            ITR_SYNC_ATB          = 7 { desc = "ATB synq requests [C-Trace]"; };
+            ITR_SYNC_ATB          = 7 { desc = "ATB synq requests [CEDARtools.TraceEncoder]"; };
         };
         field {
             desc = "Periodic instruction trace synchronization mode.
@@ -245,17 +245,17 @@ addrmap ct_cs_cpuif #(
         } Format[26:24] = 1;
 
         field {
-            desc = "Sync request (single pulse), non-standard [C-Trace]";
+            desc = "Sync request (single pulse), non-standard [CEDARtools.TraceEncoder]";
             hw = rw; sw = w1;
         } InstSyncReq[27:27] = 0;
     } trTeControl @ 0x000;
 
     // ====================================================================
-    // trTeImpl - C-Trace Encoder Implementation Register @ 0x004
+    // trTeImpl - CEDARtools.TraceEncoder Implementation Register @ 0x004
     // ====================================================================
     reg {
-        name = "C-Trace Encoder Implementation Register";
-        desc = "Contains version and protocol information for the C-Trace Encoder";
+        name = "CEDARtools.TraceEncoder Implementation Register";
+        desc = "Contains version and protocol information for the CEDARtools.TraceEncoder";
 
         field { desc = "Trace Encoder Component Major Version"; } VerMajor[3:0]        = 1;
         field { desc = "Trace Encoder Component Minor Version"; } VerMinor[7:4]        = 0;
@@ -265,11 +265,11 @@ addrmap ct_cs_cpuif #(
     } trTeImpl @ 0x004;
 
     // ====================================================================
-    // trTeInstFeatures - C-Trace Instruction Features Register @ 0x008
+    // trTeInstFeatures - CEDARtools.TraceEncoder Instruction Features Register @ 0x008
     // ====================================================================
     reg {
-        name = "C-Trace Instruction Features Register";
-        desc = "Defines the trace instruction features configuration for the C-Trace Encoder.
+        name = "CEDARtools.TraceEncoder Instruction Features Register";
+        desc = "Defines the trace instruction features configuration for the CEDARtools.TraceEncoder.
                 Only accessible on trTeControl. Enable=0";
 
 //      field { desc = "Do not send differential addresses when set"; }                                                  InstNoAddrDiff[0:0]         = 0;
@@ -303,11 +303,11 @@ Writable only while trTeControl.Enable=0."; sw = rw; } SrcBits[31:28] = 4;
     } trTeInstFeatures @ 0x008;
 
     // ====================================================================
-    // trTeInstFilters - C-Trace Instruction Filters Register @ 0x00C
+    // trTeInstFilters - CEDARtools.TraceEncoder Instruction Filters Register @ 0x00C
     // ====================================================================
     reg {
-        name = "C-Trace Instruction Filters Register ";
-        desc = "Defines filters for qualifying control flow C-Trace generation.
+        name = "CEDARtools.TraceEncoder Instruction Filters Register ";
+        desc = "Defines filters for qualifying control flow CEDARtools.TraceEncoder generation.
                 Only accessible on trTeControl. Enable=0";
 
         field {
@@ -319,10 +319,10 @@ Writable only while trTeControl.Enable=0.";
     } trTeInstFilters @ 0x00C;
 
     // ====================================================================
-    // trTeDataControl - C-Trace Data Trace Control Register @ 0x010
+    // trTeDataControl - CEDARtools.TraceEncoder Data Trace Control Register @ 0x010
     // ====================================================================
     reg {
-        name = "C-Trace Data Trace Control Register";
+        name = "CEDARtools.TraceEncoder Data Trace Control Register";
         desc = "Controls data trace behavior";
 
         field { desc = "Read as 1 if data trace is implemented"; } DataImplemented[0:0] = 1;
@@ -356,16 +356,16 @@ Writable only while trTeControl.Enable=0.";
 
         field {
             desc = "Read as 1 if split-load tracing is implemented (sdata/lresp/ldata path).
-                    Force to 1 in generated RTL when SPLIT_DATA_ACCESS parameter=1 (see ct_cs_cpuif.sv). [C-Trace]";
+                    Force to 1 in generated RTL when SPLIT_DATA_ACCESS parameter=1 (see ct_cs_cpuif.sv). [CEDARtools.TraceEncoder]";
             hw = w; sw = r;
         } DataSplitLoad[20:20] = 0;
     } trTeDataControl @ 0x010;
 
     // ====================================================================
-    // trTeDataFilters - C-Trace Trace Data Filters Register @ 0x01C
+    // trTeDataFilters - CEDARtools.TraceEncoder Trace Data Filters Register @ 0x01C
     // ====================================================================
     reg {
-        name = "C-Trace Trace Data Filters Register";
+        name = "CEDARtools.TraceEncoder Trace Data Filters Register";
         desc = "Defines filters for qualifying data trace generation.
                 Only accessible on trTeControl. Enable=0";
 
@@ -378,10 +378,10 @@ Writable only while trTeControl.Enable=0.";
     } trTeDataFilters @ 0x01C;
 
     // ====================================================================
-    // trTsControl - C-Trace Timestamp Control Register @ 0x040
+    // trTsControl - CEDARtools.TraceEncoder Timestamp Control Register @ 0x040
     // ====================================================================
     reg {
-        name = "C-Trace Timestamp Control Register";
+        name = "CEDARtools.TraceEncoder Timestamp Control Register";
         desc = "Controls the behavior of the timestamp unit";
 
         field {
@@ -472,7 +472,7 @@ Writable only while trTeControl.Enable=0.";
     // trTeFilter[] - Trace Encoder Filter regfile @ 0x0400 += 0x20
     // ====================================================================
     regfile {
-        name = "C-Trace Trace Encoder Filter";
+        name = "CEDARtools.TraceEncoder Filter";
         desc = "Single filter configuration. Only accessible on trTeControl. Enable=0";
 
         reg {
@@ -671,7 +671,7 @@ Writable only while trTeControl.Enable=0."; sw = rw; } Dsize[23:16] = 0;
     // trTeComp[] - Trace Encoder Comparator regfile @ 0x0600 += 0x20
     // ====================================================================
     regfile {
-        name = "C-Trace Trace Encoder Comparator";
+        name = "CEDARtools.TraceEncoder Comparator";
         desc = "Primary/Secondary comparator pair with control and match registers.
                 Only accessible on trTeControl. Enable=0";
 
@@ -806,13 +806,13 @@ Writable only while trTeControl.Enable=0.";
     } trTeComp[NUM_TRACE_COMPARATORS] @ 0x0600 += 0x20;
 
         // ====================================================================
-        // C-Trace extensions in TE vendor range (0xE00-0xFFF per N-Trace Table 3)
+        // CEDARtools.TraceEncoder extensions in TE vendor range (0xE00-0xFFF per N-Trace Table 3)
         // ====================================================================
 
         // trTeCsrControl - CSR TE Control Register @ te:0xE00 (was top-level 0x1300)
         reg {
             name = "CSR TE Control Register (access via CSR only)";
-            desc = "TE control via CSR. [C-Trace]";
+            desc = "TE control via CSR. [CEDARtools.TraceEncoder]";
 
             field { desc = "Do send Sync";        hw = rw; sw = r; } trTeCsrSendSync[0:0] = 0;
             field { desc = "Do send PC";          hw = rw; sw = r; } trTeCsrSendPC[1:1]   = 0;
@@ -823,7 +823,7 @@ Writable only while trTeControl.Enable=0.";
         // trTeTipFifoStatus - TIP FIFO Status Register @ te:0xE04 (was top-level 0x1400)
         reg {
             name = "TIP FIFO Status Register";
-            desc = "Provides TIP FIFO statistics. [C-Trace]";
+            desc = "Provides TIP FIFO statistics. [CEDARtools.TraceEncoder]";
 
             field {
                 desc = "Max fill level of internal buffering fifo since the last clear.
@@ -861,7 +861,7 @@ Writable only while trTeControl.Enable=0.";
             name = "Watchpoint Address (PC)";
             desc = "Address (PC) that arms this watchpoint entry. When the retired CPU PC
                     matches Addr, the Cmd at +0x4 of the same entry is dispatched through the
-                    C-Trace unit. [C-Trace]";
+                    CEDARtools.TraceEncoder unit. [CEDARtools.TraceEncoder]";
 
             field { sw = rw; } Value[31:0] = 0;
         } Addr @ 0x0;
@@ -871,7 +871,7 @@ Writable only while trTeControl.Enable=0.";
             desc = "Command dispatched when the entry's Addr matches the retired CPU PC.
                     Bit layout is shared with RISC-V CSR 0x0B10 (ACT-CAP protocol), which
                     the CPU can write directly to dispatch the same command immediately
-                    without going through the watchpoints memory. [C-Trace]";
+                    without going through the watchpoints memory. [CEDARtools.TraceEncoder]";
 
             field { desc = "HSI command"; encode = trActCapStCmd_e;  sw = rw; } Cmd[5:0]  = 0;
             field { desc = "Sink";        encode = trActCapStSink_e; sw = rw; } Sink[7:6] = 0;
@@ -894,7 +894,7 @@ Writable only while trTeControl.Enable=0.";
         reg {
             name = "DF Range Filter Key0 (low bound)";
             desc = "Lower 32-bit word of a 64-bit DF range-filter entry. Holds Key0, the
-                    inclusive low bound of the data-address range (Key0 <= daddr <= Key1). [C-Trace]";
+                    inclusive low bound of the data-address range (Key0 <= daddr <= Key1). [CEDARtools.TraceEncoder]";
 
             field { sw = rw; } Value[31:0] = 0;
         } Key0 @ 0x0;
@@ -902,20 +902,20 @@ Writable only while trTeControl.Enable=0.";
         reg {
             name = "DF Range Filter Key1 (high bound)";
             desc = "Upper 32-bit word of a 64-bit DF range-filter entry. Holds Key1, the
-                    inclusive high bound of the data-address range (Key0 <= daddr <= Key1). [C-Trace]";
+                    inclusive high bound of the data-address range (Key0 <= daddr <= Key1). [CEDARtools.TraceEncoder]";
 
             field { sw = rw; } Value[31:0] = 0;
         } Key1 @ 0x4;
     };
 
     // ====================================================================
-    // wp - Watchpoints component @ 0x4000 (C-Trace, vendor CompType=0x4)
+    // wp - Watchpoints component @ 0x4000 (CEDARtools.TraceEncoder, vendor CompType=0x4)
     // SystemRDL does not allow 'mem' instantiations inside a regfile, so the
     // stubs and the external memory live as siblings in the same 4 KB window.
     // ====================================================================
     reg {
         name = "Watchpoints Control Register";
-        desc = "Primary activate/reset for the Watchpoints component. [C-Trace]";
+        desc = "Primary activate/reset for the Watchpoints component. [CEDARtools.TraceEncoder]";
         field {
             desc = "Primary activate/reset bit.
                     [Not implemented yet: bit is SW-writable storage only; no effect on RTL.]";
@@ -925,7 +925,7 @@ Writable only while trTeControl.Enable=0.";
 
     reg {
         name = "Watchpoints Implementation Register";
-        desc = "Version and component type information for the Watchpoints component. [C-Trace]";
+        desc = "Version and component type information for the Watchpoints component. [CEDARtools.TraceEncoder]";
         field { desc = "Component Major Version"; } VerMajor[3:0]      = 1;
         field { desc = "Component Minor Version"; } VerMinor[7:4]      = 0;
         field { desc = "Component Type (vendor: 0x4)"; } CompType[11:8] = 0x4;
@@ -938,7 +938,7 @@ Writable only while trTeControl.Enable=0.";
     watchpoints->name = "Watchpoints Memory (ACT-ST)";
     watchpoints->sw = rw;
     watchpoints->desc = "Array of NUM_ACT_ST watchpoint entries. Each 64-bit entry is a
-                  {Cmd, Addr} pair that fires Cmd through the C-Trace unit whenever the
+                  {Cmd, Addr} pair that fires Cmd through the CEDARtools.TraceEncoder unit whenever the
                   retired CPU PC equals Addr.
 
                   Rules for programming the table:
@@ -962,10 +962,10 @@ Writable only while trTeControl.Enable=0.";
 
                   Cmd can also be dispatched directly by the CPU via RISC-V CSR 0x0B10
                   (ACT-CAP protocol). That path bypasses this table entirely and does
-                  not require any setup here. [C-Trace]";
+                  not require any setup here. [CEDARtools.TraceEncoder]";
 
     // ====================================================================
-    // df - DF range filter component @ 0x5000 (C-Trace, vendor CompType=0x5)
+    // df - DF range filter component @ 0x5000 (CEDARtools.TraceEncoder, vendor CompType=0x5)
     // SystemRDL does not allow 'mem' instantiations inside a regfile, so the
     // stubs and the external memory live as siblings. df logically spans
     // 0x5000-0x7FFF (stubs in the first 4 KB, mem starts at 0x6000; the
@@ -973,7 +973,7 @@ Writable only while trTeControl.Enable=0.";
     // ====================================================================
     reg {
         name = "DF RangeFilter Control Register";
-        desc = "Primary activate/reset for the DF RangeFilter component. [C-Trace]";
+        desc = "Primary activate/reset for the DF RangeFilter component. [CEDARtools.TraceEncoder]";
         field {
             desc = "Primary activate/reset bit.
                     [Not implemented yet: bit is SW-writable storage only; no effect on RTL.]";
@@ -983,7 +983,7 @@ Writable only while trTeControl.Enable=0.";
 
     reg {
         name = "DF RangeFilter Implementation Register";
-        desc = "Version and component type information for the DF RangeFilter component. [C-Trace]";
+        desc = "Version and component type information for the DF RangeFilter component. [CEDARtools.TraceEncoder]";
         field { desc = "Component Major Version"; } VerMajor[3:0]      = 1;
         field { desc = "Component Minor Version"; } VerMinor[7:4]      = 0;
         field { desc = "Component Type (vendor: 0x5)"; } CompType[11:8] = 0x5;
@@ -996,17 +996,17 @@ Writable only while trTeControl.Enable=0.";
                   pair with Key0 <= daddr <= Key1. Software writes/reads the lower 32-bit
                   Key0 word first, then the upper 32-bit Key1 word. Memory has NUM_DF_RANGE
                   entries (sized to match the hardware binary-search tree depth
-                  M1_DIM; 15 entries for the current M1_DIM=4 configuration). [C-Trace]";
+                  M1_DIM; 15 entries for the current M1_DIM=4 configuration). [CEDARtools.TraceEncoder]";
 
 
     // ====================================================================
     // pc - Performance Counter sub-component @ 0x3000 (vendor, 4 KB)
-    // C-Trace extension for per-region instruction/data access counters.
+    // CEDARtools.TraceEncoder extension for per-region instruction/data access counters.
     // CompType=0x3 (Accemic vendor-assigned). Paths hwif_*.pc.XxxYyy.
     // ====================================================================
     regfile {
         name = "Performance Counters";
-        desc = "Performance Counter sub-component (C-Trace, vendor CompType=0x3). [C-Trace]";
+        desc = "Performance Counter sub-component (CEDARtools.TraceEncoder, vendor CompType=0x3). [CEDARtools.TraceEncoder]";
         default regwidth = 32;
         default sw = r;
         default hw = r;
@@ -1014,7 +1014,7 @@ Writable only while trTeControl.Enable=0.";
         // Required stub: tr??Control
         reg {
             name = "PerfCounter Control Register";
-            desc = "Primary activate/reset for the Performance Counter component. [C-Trace]";
+            desc = "Primary activate/reset for the Performance Counter component. [CEDARtools.TraceEncoder]";
             field {
                 desc = "Primary activate/reset bit.
                     [Not implemented yet: bit is SW-writable storage only; no effect on RTL.]";
@@ -1025,18 +1025,18 @@ Writable only while trTeControl.Enable=0.";
         // Required stub: tr??Impl
         reg {
             name = "PerfCounter Implementation Register";
-            desc = "Version and component type information for the Performance Counter component. [C-Trace]";
+            desc = "Version and component type information for the Performance Counter component. [CEDARtools.TraceEncoder]";
             field { desc = "Component Major Version"; } VerMajor[3:0]      = 1;
             field { desc = "Component Minor Version"; } VerMinor[7:4]      = 0;
             field { desc = "Component Type (vendor: 0x3)"; } CompType[11:8] = 0x3;
         } trPcImpl @ 0x004;
 
         // ================================================================
-        // trTeConstants - C-Trace Implementation Parameters (was 0x2000)
+        // trTeConstants - CEDARtools.TraceEncoder Implementation Parameters (was 0x2000)
         // ================================================================
         reg {
-            name = "C-Trace Implementation Parameters";
-            desc = "Implementatopn parameters for synchronization with RDL implementation. (RDL has no direct access PeakRDL parameters.) [C-Trace]";
+            name = "CEDARtools.TraceEncoder Implementation Parameters";
+            desc = "Implementatopn parameters for synchronization with RDL implementation. (RDL has no direct access PeakRDL parameters.) [CEDARtools.TraceEncoder]";
 
             field { desc = "NUM_TRACE_FILTER";              } num_trace_filter              [ 4: 0] = NUM_TRACE_FILTER;
             field { desc = "NUM_TRACE_COMPARATORS";         } num_trace_comparators         [ 8: 5] = NUM_TRACE_COMPARATORS;
@@ -1051,7 +1051,7 @@ Writable only while trTeControl.Enable=0.";
         // ================================================================
         reg {
             name = "Encoder Perf Counter Ctrl Register";
-            desc = "Control register for the encoder's performance counter. [C-Trace]";
+            desc = "Control register for the encoder's performance counter. [CEDARtools.TraceEncoder]";
 
             field {
                 desc = "CPU cycles threshold for instruction fetch.
@@ -1072,7 +1072,7 @@ Writable only while trTeControl.Enable=0.";
         regfile {
             name = "Instruction Fetch Exceeding Threshold Ranges";
             desc = "Instruction address ranges for instruction fetch events exceeding CPU cycle threshold (trPcIFetchThreshold).
-                    Each entry contains the inclusive low and high address of the monitored range. [C-Trace]";
+                    Each entry contains the inclusive low and high address of the monitored range. [CEDARtools.TraceEncoder]";
 
             reg {
                 name = "IFetch Range Threshold Low register";
@@ -1097,7 +1097,7 @@ Writable only while trTeControl.Enable=0.";   sw = rw; } Value[31:0] = 0;
         regfile {
             name = "Data Read Accesses Exceeding Threshold Ranges";
             desc = "Data address ranges for data read accesses exceeding cycle threshold (trPcDataRdThreshold).
-                    Each entry specifies the low and high addresses bounding the monitored range. [C-Trace]";
+                    Each entry specifies the low and high addresses bounding the monitored range. [CEDARtools.TraceEncoder]";
 
             reg {
                 name = "Data Read Threshold Range Low register";
@@ -1122,7 +1122,7 @@ Writable only while trTeControl.Enable=0.";   sw = rw; } Value[31:0] = 0;
         regfile {
             name = "Data Read Count Ranges";
             desc = "Data address ranges for data read accesses to be counted.
-                    Each entry specifies the low and high addresses bounding the monitored range. [C-Trace]";
+                    Each entry specifies the low and high addresses bounding the monitored range. [CEDARtools.TraceEncoder]";
 
             reg {
                 name = "Data Read Count Range Low register";
@@ -1147,7 +1147,7 @@ Writable only while trTeControl.Enable=0.";   sw = rw; } Value[31:0] = 0;
         regfile {
             name = "Data Write Count Ranges";
             desc = "Data address ranges for data write accesses to be counted.
-                    Each entry specifies the low and high addresses bounding the monitored range. [C-Trace]";
+                    Each entry specifies the low and high addresses bounding the monitored range. [CEDARtools.TraceEncoder]";
 
             reg {
                 name = "Data Write Count Range Low register";

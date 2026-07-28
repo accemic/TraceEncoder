@@ -5,7 +5,7 @@
 # (e.g. plain-text version files, empty placeholders).
 
 version = 1
-SPDX-PackageName = "C-Trace"
+SPDX-PackageName = "CEDARtools.TraceEncoder"
 SPDX-PackageSupplier = "Accemic Technologies GmbH <info@accemic.com>"
 SPDX-PackageDownloadLocation = "https://github.com/accemic/C-Trace"
 
@@ -15,7 +15,7 @@ precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
 SPDX-License-Identifier = "ISC"
 
-# Vendored NexRv reference decoder binary. Built from the C-Trace port
+# Vendored NexRv reference decoder binary. Built from the CEDARtools.TraceEncoder port
 # at https://github.com/accemic/NexRv-for-C-Trace, derived from the IAR
 # Systems NexRv tool and licensed under ISC; Accemic's modifications are
 # likewise ISC. The binary carries no in-file SPDX header, so the

@@ -5,7 +5,7 @@
 #
 # The committed ct_cs_cpuif_pkg.sv is the source of truth at build time.
 # Regeneration logic (formerly inline here) was stripped pending the
-# C-Trace path rewrites and now lives in scripts/gen_rdl.sh — run
+# CEDARtools.TraceEncoder path rewrites and now lives in scripts/gen_rdl.sh — run
 # `make rdl` to refresh the generated SystemVerilog. See rdl/README.md.
 
 read_sv ct_cs_cpuif_pkg.sv

@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Maintainers
 
-This file lists the people who maintain C-Trace. Maintainers have
+This file lists the people who maintain CEDARtools.TraceEncoder. Maintainers have
 write access, review and merge PRs, and steer the project's
 direction. For machine-readable review routing, see
 [`.github/CODEOWNERS`](.github/CODEOWNERS).

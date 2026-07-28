@@ -32,12 +32,12 @@ compared.
 | `cpu_model` +
 link:../tests/lib/cpu_model.sv[`tests/lib/cpu_model.sv`]
 | Task-based scripted core (`run`, `branch_taken`, `load_data`, …) that
-is both the stimulus and the reference. The `ctrace_env` harness wires it
+is both the stimulus and the reference. The `ct_env` harness wires it
 to the DUT and the trace sinks.
 
 | `NexRv` +
 link:../bin/NexRv[`bin/NexRv`]
-| The RISC-V N-Trace reference decoder, independent of C-Trace. Vendored
+| The RISC-V N-Trace reference decoder, independent of CEDARtools.TraceEncoder. Vendored
 as a binary.
 
 | `decode_and_check.sh` +

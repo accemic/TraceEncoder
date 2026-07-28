@@ -8,7 +8,7 @@
 /**
  * @author   Alexander Weiss <aweiss@accemic.com>, Albert Schulz <aschulz@accemic.com>, Alexander Lange <alange@accemic.com>
  *
- * @brief  Dump C-Trace DAQ AXI Stream (AXIS) transactions
+ * @brief  Dump CEDARtools.TraceEncoder DAQ AXI Stream (AXIS) transactions
  *
  * @details
  * This module is meant for SIMULATION ONLY.
@@ -109,7 +109,7 @@ module ct_axis_dump #(
 		filepath_raw = mk_path("raw");
 
 		file_open(filepath_txt, "w", fd_txt);
-		$fwrite(fd_txt, "# C-Trace AXIS dump (txt)\n");
+		$fwrite(fd_txt, "# CEDARtools.TraceEncoder AXIS dump (txt)\n");
 		$fwrite(fd_txt, "# Columns: time tid cmd_name tstrb elem_valid[2:0] elem0 elem1 elem2 tdata_hex\n");
 		file_open(filepath_raw, "wb", fd_raw);
 

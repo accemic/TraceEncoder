@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Licensing
 
-C-Trace RISC-V Trace Encoder IP
+CEDARtools.TraceEncoder — RISC-V N-Trace Encoder IP
 Copyright (C) 2026 Accemic Technologies GmbH
 
 This repository is licensed **per artifact type**. Which license applies
@@ -61,7 +61,7 @@ may share and adapt them with attribution. Full text:
 
 ## Vendored — NexRv
 
-`bin/NexRv` is a reference decoder built from the C-Trace port at
+`bin/NexRv` is a reference decoder built from the CEDARtools.TraceEncoder port at
 [accemic/NexRv-for-C-Trace](https://github.com/accemic/NexRv-for-C-Trace),
 derived from the IAR Systems NexRv tool, copyright IAR Systems AB and
 Accemic Technologies GmbH, licensed under **ISC**. It is recorded in
