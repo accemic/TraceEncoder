@@ -10,8 +10,6 @@ SPDX-License-Identifier: CC-BY-4.0
 [![License: CERN-OHL-S-2.0 OR Accemic-Commercial](https://img.shields.io/badge/license-CERN--OHL--S--2.0%20OR%20Accemic--Commercial-blue.svg)](LICENSE.md)
 [![REUSE compliant](https://img.shields.io/badge/REUSE-compliant-brightgreen.svg)](https://reuse.software)
 
-## What is CEDARtools.TraceEncoder?
-
 CEDARtools.TraceEncoder (formerly *C-Trace*) is an open-source hardware implementation of a [**RISC-V N-Trace
 encoder**](https://docs.riscv.org/reference/nexus-trace/index.html). It
 ingests a core's [instruction-trace port (TIP / ITI)](https://docs.riscv.org/reference/nexus-trace/ntrace_ingress_port.html),
@@ -52,7 +50,7 @@ pipeline, the five clock domains, and the top-level IO.
   **Avalon-MM**, and **OBI** too — regenerate with a different `--cpuif`,
   or wrap the passthrough interface like the bundled Wishbone adapter.
 
-**CEDARtools.TraceEncoder Bonus (beyond N-Trace)**
+**Feature Bonus (beyond N-Trace)**
 
 - **Data trace** — read / write messages with address, size and data
   value (plus their sync variants). Unified or split load/store data via

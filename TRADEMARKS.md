@@ -5,8 +5,8 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Trademarks
 
-**CEDARtools** and **Accemic** are trademarks of Accemic Technologies
-GmbH. Their use in this project's name (CEDARtools.TraceEncoder) and
+**CEDARtools** is a registered trademark of Accemic Technologies GmbH.
+Its use in this project's name (CEDARtools.TraceEncoder) and
 documentation identifies the project's origin; it does not grant any
 trademark rights beyond what the licenses in [`LICENSE.md`](LICENSE.md)
 state.
