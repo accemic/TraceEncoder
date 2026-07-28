@@ -7,7 +7,7 @@
 version = 1
 SPDX-PackageName = "CEDARtools.TraceEncoder"
 SPDX-PackageSupplier = "Accemic Technologies GmbH <info@accemic.com>"
-SPDX-PackageDownloadLocation = "https://github.com/accemic/C-Trace"
+SPDX-PackageDownloadLocation = "https://github.com/accemic/TraceEncoder"
 
 [[annotations]]
 path = ["VERSION", "**/.gitkeep"]

@@ -9,7 +9,7 @@ type: software
 authors:
   - name: "Accemic Technologies GmbH"
     website: "https://www.accemic.com"
-repository-code: "https://github.com/accemic/C-Trace"
+repository-code: "https://github.com/accemic/TraceEncoder"
 url: "https://www.accemic.com"
 abstract: >-
   CEDARtools.TraceEncoder is an open-source SystemVerilog implementation of a RISC-V
@@ -26,5 +26,5 @@ keywords:
   - open hardware
   - FPGA
 license: CERN-OHL-S-2.0
-license-url: "https://github.com/accemic/C-Trace/blob/main/LICENSE.md"
+license-url: "https://github.com/accemic/TraceEncoder/blob/main/LICENSE.md"
 version: "0.1.0"
