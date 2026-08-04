@@ -80,3 +80,9 @@ jobs:
           verilator --version
           abc -h >/dev/null
           make sim
+
+      # The worked integrations under examples/ (TGC5B SoC + its KV260 devmem
+      # flow). Same toolchain as `make sim` — the program artifacts are
+      # committed, so no RISC-V toolchain is needed here.
+      - name: Run make sim-examples
+        run: make sim-examples

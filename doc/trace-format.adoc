@@ -247,8 +247,8 @@ The most significant gap:
 
 * **Ownership / Context message (TCODE 2)** — process/privilege
   correlation (`scontext`/`hcontext`, privilege mode). The control bit
-  (`trTeContext`) and the TIP context fields exist, but the message is not
-  generated. Needed for OS-aware and multi-hart decode.
+  (`trTeControl.Context`) and the TIP context fields exist, but the message
+  is not generated. Needed for OS-aware and multi-hart decode.
 
 Lower-priority optional messages and modes:
 

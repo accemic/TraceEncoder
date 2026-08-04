@@ -13,8 +13,10 @@ SPDX-License-Identifier: CC-BY-4.0
 - [ ] New files carry the SPDX header
 - [ ] `make lint` passes
 - [ ] `make sim` passes for any module touched
-- [ ] If `rdl/*.rdl` changed, `make rdl` was re-run and `rdl/gen/*.sv`
-      is committed in the same PR
+- [ ] If `rdl/ct_cs_cpuif.rdl` changed, `make rdl` was re-run and the
+      regenerated `rtl/pkg/ct_cs_cpuif*.sv` + `tests/lib/ct_cs_cpuif_wb_helper.sv`
+      are committed in the same PR (likewise `make rdl-soc` →
+      `examples/tgc5b_soc/pkg/ct_soc_regs*.sv`)
 - [ ] CLA agreed (see [CONTRIBUTING.md](../CONTRIBUTING.md))
 
 ## Notes for reviewers

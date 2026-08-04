@@ -1,0 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+import @rtl/external/wishbone         : wb_package
+import @examples/tgc5b_soc/rtl        : ct_soc_synth_wrap ct_axil_to_wb ct_soc_trace_buf ct_soc_axis_buf
+
+read_sv ct_soc_top.sv

@@ -1,0 +1,41 @@
+LicenseRef-MINRES-Commercial
+
+This identifier refers to the commercial licensing option for the MINRES
+TGC5B processor core, offered by MINRES Technologies GmbH.
+
+Scope
+-----
+
+It applies to the third-party core vendored in this repository:
+
+    examples/tgc5b_soc/cpu/TGC5B_AXI4L_H2E.sv
+    Copyright 2020-2022 MINRES Technologies GmbH
+    Core config TGC5B_AXI4L_H2E
+    Config hash ecababb8345510fc9133035ddf2a3116ca7a57bf
+
+MINRES Technologies GmbH has permitted publication of that file under
+
+    CERN-OHL-S-2.0 OR LicenseRef-MINRES-Commercial
+
+i.e. the same dual-license model this repository applies to its own
+hardware IP — but with MINRES, not Accemic, as the licensor of both
+arms. The permission covers the vendored file as published here; it does
+not extend to other TGC5B configurations, versions or deliverables.
+
+The file is the form in which MINRES makes the core available under
+CERN-OHL-S-2.0. The generator used to produce it is not part of the
+Covered Source.
+
+Commercial option
+-----------------
+
+A commercial license permits integration of the core without the
+reciprocal obligations of CERN-OHL-S-2.0, and is granted by MINRES
+Technologies GmbH only. Accemic Technologies GmbH redistributes the file
+under CERN-OHL-S-2.0 and cannot sublicense it: an Accemic commercial
+license for the CEDARtools.TraceEncoder IP
+(LicenseRef-Accemic-Commercial) conveys no rights to this core, and a
+MINRES commercial license conveys no rights to the encoder.
+
+For commercial licensing inquiries contact MINRES Technologies GmbH:
+https://www.minres.com

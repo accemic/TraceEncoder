@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+# Build manifest for the vendored MINRES TGC5B core. The core source itself
+# (TGC5B_AXI4L_H2E.sv, Copyright 2020-2022 MINRES Technologies GmbH) is
+# third-party IP licensed by MINRES under CERN-OHL-S-2.0 OR
+# LicenseRef-MINRES-Commercial; see README.md in this directory for its
+# provenance. Self-contained: no package dependencies.
+
+read_sv TGC5B_AXI4L_H2E.sv

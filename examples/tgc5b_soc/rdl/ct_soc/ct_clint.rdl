@@ -1,0 +1,35 @@
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// Core-local interruptor (CLINT): 64-bit machine timer + software interrupt.
+// A deliberately minimal teaching peripheral — enough to give the core a timer
+// and a software interrupt, not a full RISC-V CLINT. Instantiated by the
+// generated peripheral block (ct_soc_periph) and referenced by the system maps.
+regfile clint_rf {
+    name = "Core-local interruptor (timer + software interrupt)";
+
+    reg {
+        desc = "Machine software interrupt pending. Drives the core sw_irq (msip).";
+        field { sw = rw; hw = r; } Pending[0:0] = 0;
+    } msip @ 0x0000;
+
+    reg {
+        desc = "mtimecmp low word. tim_irq asserts while mtime >= {mtimecmphi,mtimecmplo}.";
+        field { sw = rw; hw = r; } Value[31:0] = 32'hFFFFFFFF;
+    } mtimecmplo @ 0x0004;
+
+    reg {
+        desc = "mtimecmp high word.";
+        field { sw = rw; hw = r; } Value[31:0] = 32'hFFFFFFFF;
+    } mtimecmphi @ 0x0008;
+
+    reg {
+        desc = "mtime low word (free-running counter, RTL driven, read-only to SW).";
+        field { sw = r; hw = w; } Value[31:0] = 0;
+    } mtimelo @ 0x000C;
+
+    reg {
+        desc = "mtime high word.";
+        field { sw = r; hw = w; } Value[31:0] = 0;
+    } mtimehi @ 0x0010;
+};

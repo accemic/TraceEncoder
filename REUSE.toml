@@ -42,3 +42,24 @@ path = ["doc/images/*.png", "doc/images/*.svg"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
 SPDX-License-Identifier = "CC-BY-4.0"
+
+# Kria app manifest (JSON cannot carry an in-file SPDX comment).
+[[annotations]]
+path = "examples/tgc5b_soc/fpga/kv260/shell.json"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
+SPDX-License-Identifier = "ISC"
+
+# Prebuilt program artifacts for the TGC5B example SoC. Generated from the
+# hardware-IP-licensed prog/src (crt0.S + main.c, via prog/src/build.sh);
+# these data files (readmemh image, NexRv pcinfo, disassembly) carry no in-file
+# header, so the license — inherited from the source — is recorded here.
+[[annotations]]
+path = [
+    "examples/tgc5b_soc/prog/hello_trace.hex",
+    "examples/tgc5b_soc/prog/hello_trace.pcinfo",
+    "examples/tgc5b_soc/prog/hello_trace.dis",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
+SPDX-License-Identifier = "CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial"

@@ -14,7 +14,7 @@ SHELL := /bin/bash
 ABC_COV ?=
 COV_DIR := bld/coverage
 
-.PHONY: help rdl sim sim-basic sim-interrupts sim-stress sim-periodic-sync sim-exceptions sim-data-basic sim-overrun-recovery sim-hsi-csr-cap sim-combined coverage lint clean
+.PHONY: help rdl rdl-soc rdl-html sim sim-basic sim-interrupts sim-stress sim-periodic-sync sim-exceptions sim-data-basic sim-overrun-recovery sim-hsi-csr-cap sim-combined sim-tgc5b-soc sim-tgc5b-ps sim-examples impl-tgc5b-soc coverage lint clean
 
 ## help: List available targets.
 help:
@@ -30,6 +30,19 @@ help:
 rdl:
 	@scripts/gen_rdl.sh
 
+## rdl-soc: Regenerate the example SoC peripheral regblock from its rdl/ct_soc.rdl
+##          (via scripts/gen_rdl_soc.sh) -> examples/tgc5b_soc/pkg/ct_soc_regs*.sv.
+##          Same pinned toolchain as `rdl`. Commit RDL + regenerated SV together.
+rdl-soc:
+	@scripts/gen_rdl_soc.sh
+
+## rdl-html: Render the browsable HTML register reference (via
+##          scripts/gen_rdl_html.sh) -> bld/rdl-html/: the KV260 example-SoC
+##          app map (absolute devmem addresses, encoder CSRs included) and the
+##          bare encoder CSR map. Same pinned toolchain as `rdl`.
+rdl-html:
+	@scripts/gen_rdl_html.sh
+
 ## sim:    Run all top-level testbenches and print a PASS/FAIL summary.
 ##          Every test runs even if an earlier one fails. Tests listed in
 ##          SIM_XFAIL are known-failing regression gates (for an unfixed
@@ -43,6 +56,9 @@ SIM_ALL   := basic interrupts stress periodic-sync exceptions data-basic overrun
 # investigation; remove from SIM_XFAIL once the encoder fix lands (an XPASS here
 # will flag that for you).
 SIM_XFAIL := overrun-recovery
+# The worked integrations under examples/ — run by `make sim-examples`, kept out
+# of SIM_ALL so `make sim` stays the encoder's own regression suite.
+SIM_EXAMPLES := tgc5b-soc tgc5b-ps
 
 sim:
 	@overall=0; declare -A st; xfail=" $(SIM_XFAIL) "; \
@@ -202,10 +218,61 @@ sim-combined: | bld
 	@cd bld && abc $(ABC_COV) -sim ../tests/combined/01_all/combined_tb.abc
 	@scripts/decode_and_check.sh --pc --data --sync 3 --disabled --tsmono combined_tb
 
+## sim-tgc5b-soc: examples/tgc5b_soc — full SoC (MINRES TGC5B core + CEDARtools.TraceEncoder
+##          + RAM + timer/INTC) running the committed hello_trace program.
+##          Confirms the real core drives the encoder and it emits a decodable
+##          N-Trace synchronization message (hard check). The exact golden PC
+##          cross-check is reported (--soft) — see examples/tgc5b_soc/README.md.
+sim-tgc5b-soc: | bld
+	@cp examples/tgc5b_soc/prog/hello_trace.hex    examples/tgc5b_soc/prog/prog.hex
+	@cp examples/tgc5b_soc/prog/hello_trace.pcinfo examples/tgc5b_soc/prog/prog.pcinfo
+	@cd bld && abc $(ABC_COV) -sim ../examples/tgc5b_soc/test/ct_soc_tb.abc
+	@scripts/decode_and_check.sh --sync 1 ct_soc_tb
+	@scripts/decode_and_check.sh --soft --pc ct_soc_tb || true
+
+## sim-tgc5b-ps: examples/tgc5b_soc/fpga/kv260 — devmem-flow simulation of the
+##          PS-controlled SoC (ct_soc_top). Drives the AXI4-Lite slave exactly as
+##          Linux devmem would: loads the program, configures + enables CEDARtools.TraceEncoder,
+##          starts the core, then reads the captured ATB back. Checks the
+##          read-back trace decodes (>=1 sync, >=1 branch-history message —
+##          guards against configs that degrade to sync-only traces).
+sim-tgc5b-ps: | bld
+	@cp examples/tgc5b_soc/prog/hello_trace.hex    examples/tgc5b_soc/prog/prog.hex
+	@cp examples/tgc5b_soc/prog/hello_trace.pcinfo examples/tgc5b_soc/prog/prog.pcinfo
+	@cd bld && abc $(ABC_COV) -sim ../examples/tgc5b_soc/fpga/kv260/test/ct_soc_ps_tb.abc
+	@scripts/decode_and_check.sh --sync 1 --hist 1 ct_soc_ps_tb
+
+## sim-examples: Run every worked integration under examples/ and print a
+##          PASS/FAIL summary — currently sim-tgc5b-soc + sim-tgc5b-ps. Needs
+##          only abc + a simulator (the program artifacts are committed, so no
+##          RISC-V toolchain), which is why CI runs this next to `make sim`.
+sim-examples:
+	@overall=0; declare -A st; \
+	for t in $(SIM_EXAMPLES); do \
+		printf '\n===================== examples: sim-%s =====================\n' "$$t"; \
+		if $(MAKE) --no-print-directory sim-$$t; then st[$$t]=PASS; else st[$$t]=FAIL; overall=1; fi; \
+	done; \
+	printf '\n=================== make sim-examples summary ==================\n'; \
+	for t in $(SIM_EXAMPLES); do printf '    %-5s sim-%s\n' "$${st[$$t]}" "$$t"; done; \
+	printf '===============================================================\n'; \
+	if [ $$overall -eq 0 ]; then \
+		printf '  RESULT: PASS\n\n'; \
+	else \
+		printf '  RESULT: FAIL — %s\n\n' "$$(for t in $(SIM_EXAMPLES); do if [ "$${st[$$t]}" = FAIL ]; then printf 'sim-%s ' "$$t"; fi; done)"; \
+		exit 1; \
+	fi
+
+## impl-tgc5b-soc: Out-of-context Vivado synthesis of the example SoC for a
+##          resource/timing estimate (Kria KV260 / xck26). Needs Vivado 2022.1
+##          on PATH and the vendored core; abc's part shortcuts do not include
+##          xck26, so select the part on the Vivado host (see the XDC header).
+impl-tgc5b-soc: | bld
+	@cd bld && abc --vivado-version 2022.1 -netlist ../examples/tgc5b_soc/rtl/ct_soc_synth_wrap_ooc.abc
+
 ## coverage: Re-run the whole suite under Verilator line coverage, merge every
 ##            test's data, and print one suite-wide line-coverage rate. Also
 ##            writes bld/coverage/: merged.info (lcov), an HTML report, and a
-##            shields endpoint JSON (coverage-badge.json) for the README badge.
+##            shields endpoint JSON (coverage-badge.json) ready for a badge.
 ##            The suite still runs even if a test FAILs, so the rate reflects
 ##            whatever data was produced (failures are reported, not swallowed).
 coverage:
@@ -216,7 +283,8 @@ coverage:
 bld:
 	@mkdir -p bld
 
-## lint:   Run verible-verilog-lint over rtl/ and tests/ (rules in .rules.verible_lint).
+## lint:   Run verible-verilog-lint over the repo's SystemVerilog — rtl/, tests/ and
+##          examples/ (except vendored cores; rules in .rules.verible_lint).
 lint:
 	@scripts/lint.sh
 

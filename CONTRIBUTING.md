@@ -15,7 +15,8 @@ expectations for changes to CEDARtools.TraceEncoder.
 - [ ] `make lint` passes.
 - [ ] `make sim` passes for any module you touched.
 - [ ] If you changed `rdl/ct_cs_cpuif.rdl`, you re-ran `make rdl` and
-      committed the regenerated SV in the same commit.
+      committed the regenerated SV in the same commit; likewise
+      `make rdl-soc` for `examples/tgc5b_soc/rdl/ct_soc.rdl`.
 - [ ] Commit messages explain *why*, not just *what*.
 - [ ] You've signed the CLA (see [License & CLA](#license--cla)).
 
@@ -55,6 +56,16 @@ an HTML comment; for SystemVerilog / AsciiDoc use `//` lines; for shell /
 Make use `#` lines. Files that cannot carry a header are recorded in
 [`REUSE.toml`](REUSE.toml).)
 
+**Third-party files are the exception.** Vendored third-party sources keep
+their upstream copyright and license, and are left byte-identical — their
+SPDX metadata goes into a REUSE `.license` sidecar instead of an in-file
+header. The one such file today is the MINRES TGC5B core,
+`examples/tgc5b_soc/cpu/TGC5B_AXI4L_H2E.sv` (see
+[`examples/tgc5b_soc/cpu/README.md`](examples/tgc5b_soc/cpu/README.md)).
+Do not modify it and do not submit patches against it — they belong
+upstream at MINRES. Adding new vendored third-party code needs a
+maintainer decision first.
+
 The `reuse` CI job will fail any PR that introduces a file without a
 valid SPDX header.
 
@@ -63,7 +74,8 @@ valid SPDX header.
 1. Push your branch to your fork (or the main repo if you have write
    access).
 2. Open a PR against `main`.
-3. CI must pass: lint, REUSE, and (eventually) simulation.
+3. CI must pass: lint, simulation (`make sim` and `make sim-examples` under
+   Verilator) and REUSE.
 4. At least one maintainer review is required before merge — see
    [`.github/CODEOWNERS`](.github/CODEOWNERS) for routing.
 5. Squash-merge is the default. Keep the squashed commit message

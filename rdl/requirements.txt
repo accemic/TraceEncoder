@@ -13,4 +13,5 @@
 
 peakrdl==1.5.0
 peakrdl-regblock==1.3.1
+peakrdl-html==2.12.2
 systemrdl-compiler==1.32.2

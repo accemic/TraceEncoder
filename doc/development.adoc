@@ -20,12 +20,19 @@ Every umbrella command is routed through the link:../Makefile[`Makefile`]:
 |===
 | Target | What it does
 
-| `make help`        | List available targets.
-| `make sim`         | Run all testbenches; print a PASS/FAIL summary.
-| `make sim-<name>`  | Run one testbench (e.g. `sim-basic`).
-| `make lint`        | `verible-verilog-lint` over `rtl/` and `tests/`.
-| `make clean`       | Remove the `bld/` directory.
-| `make rdl`         | Regenerate the PeakRDL-derived SV from `rdl/*.rdl`.
+| `make help`            | List available targets.
+| `make sim`             | Run all encoder testbenches; print a PASS/FAIL summary.
+| `make sim-<name>`      | Run one testbench (e.g. `sim-basic`) — see link:verification.adoc[Verification] for the scenarios.
+| `make sim-tgc5b-soc`   | Simulate the example SoC (`examples/tgc5b_soc`): real TGC5B core → encoder → NexRv decode.
+| `make sim-tgc5b-ps`    | Simulate the KV260 devmem flow around that SoC (`ct_soc_top`).
+| `make sim-examples`    | Run every worked integration under `examples/` (both of the above) with a PASS/FAIL summary — what CI runs next to `make sim`.
+| `make impl-tgc5b-soc`  | Out-of-context Vivado synthesis of the example SoC (resource / timing estimate).
+| `make coverage`        | Re-run the suite under Verilator line coverage and report one suite-wide rate.
+| `make lint`            | `verible-verilog-lint` over the repo's SystemVerilog.
+| `make clean`           | Remove the `bld/` directory.
+| `make rdl`             | Regenerate the PeakRDL-derived SV from `rdl/ct_cs_cpuif.rdl`.
+| `make rdl-soc`         | Regenerate the example SoC's peripheral regblock from `examples/tgc5b_soc/rdl/ct_soc.rdl`.
+| `make rdl-html`        | Render the browsable HTML register reference into `bld/rdl-html/`.
 |===
 
 === Running simulations
@@ -78,6 +85,13 @@ header are annotated in link:../REUSE.toml[`REUSE.toml`].
   CLA, and the PR workflow.
 
 == SoC integration
+
+A worked end-to-end example lives under `examples/tgc5b_soc/` (see its
+`README`): a MINRES TGC5B RV32I core wired to `ct_encoder` with RAM, a
+timer/interrupt controller (from the example's `rdl/ct_soc.rdl`), an AXI4-Lite
+→ Wishbone CSR bridge, and a system testbench that runs a real program and
+decodes the resulting trace with NexRv. It is a concrete template for the
+steps below.
 
 To drop CEDARtools.TraceEncoder (`ct_encoder`) into a design:
 

@@ -1,0 +1,19 @@
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// Minimal external interrupt controller (INTC): one software-triggerable source.
+// A teaching peripheral, not a full RISC-V PLIC. Instantiated by the generated
+// peripheral block (ct_soc_periph) and referenced by the system maps.
+regfile intc_rf {
+    name = "Minimal external interrupt controller";
+
+    reg {
+        desc = "SW-triggered external interrupt request. SW writes 1 to raise, 0 to clear.";
+        field { sw = rw; hw = r; } Set[0:0] = 0;
+    } trigger @ 0x0000;
+
+    reg {
+        desc = "External interrupt enable. ext_irq = trigger.Set & enable.Enable.";
+        field { sw = rw; hw = r; } Enable[0:0] = 0;
+    } enable @ 0x0004;
+};
