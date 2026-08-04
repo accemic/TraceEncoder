@@ -29,6 +29,12 @@
 #                 may share a timestamp, so the invariant is non-decreasing, not
 #                 strictly increasing.
 #   --sync N      at least N synchronization messages present
+#   --hist N      at least N branch-history messages (IndirectBranchHist,
+#                 TCODE 28) present — the messages that carry indirect
+#                 jumps/returns/interrupts. Guards against a configuration
+#                 that silently degrades to sync-only traces (e.g. a raw
+#                 trTeControl write clearing InstMode; the trace still
+#                 "decodes OK" but all control flow is gone).
 #   --disabled    a trace-off Program Trace Correlation Message
 #                 (TCODE 33, EVCODE=Program Trace Disabled) is present
 #   --overflow    a Nexus Error message (TCODE 8) with ETYPE=QueueOverrun (0x0)
@@ -42,11 +48,11 @@
 # If no check flag is given, --pc is assumed. Exit status is non-zero iff a
 # requested (non-soft) check fails.
 #
-# Usage:  decode_and_check.sh [--soft] [--pc] [--data] [--ctxp] [--tsmono] [--sync N] [--disabled] [--overflow] <test_name>
+# Usage:  decode_and_check.sh [--soft] [--pc] [--data] [--ctxp] [--tsmono] [--sync N] [--hist N] [--disabled] [--overflow] <test_name>
 
 set -euo pipefail
 
-soft=0; do_pc=0; do_data=0; do_ctxp=0; do_disabled=0; do_overflow=0; do_tsmono=0; sync_min=""
+soft=0; do_pc=0; do_data=0; do_ctxp=0; do_disabled=0; do_overflow=0; do_tsmono=0; sync_min=""; hist_min=""
 test_name=""
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -58,14 +64,15 @@ while [ $# -gt 0 ]; do
         --overflow) do_overflow=1; shift;;
         --tsmono)   do_tsmono=1;   shift;;
         --sync)     sync_min="${2:?--sync needs a count}"; shift 2;;
+        --hist)     hist_min="${2:?--hist needs a count}"; shift 2;;
         --*)        echo "[decode] ERROR: unknown option $1"; exit 2;;
         *)          test_name="$1"; shift;;
     esac
 done
-: "${test_name:?usage: $0 [--soft] [--pc] [--data] [--ctxp] [--tsmono] [--sync N] [--disabled] [--overflow] <test_name>}"
+: "${test_name:?usage: $0 [--soft] [--pc] [--data] [--ctxp] [--tsmono] [--sync N] [--hist N] [--disabled] [--overflow] <test_name>}"
 
 # Default to the PC check when none was requested.
-if [ "$do_pc" -eq 0 ] && [ "$do_data" -eq 0 ] && [ "$do_ctxp" -eq 0 ] && [ "$do_disabled" -eq 0 ] && [ "$do_overflow" -eq 0 ] && [ "$do_tsmono" -eq 0 ] && [ -z "$sync_min" ]; then
+if [ "$do_pc" -eq 0 ] && [ "$do_data" -eq 0 ] && [ "$do_ctxp" -eq 0 ] && [ "$do_disabled" -eq 0 ] && [ "$do_overflow" -eq 0 ] && [ "$do_tsmono" -eq 0 ] && [ -z "$sync_min" ] && [ -z "$hist_min" ]; then
     do_pc=1
 fi
 
@@ -264,6 +271,24 @@ if [ -n "$sync_min" ]; then
         fail=1
     else
         echo "[decode-sync] $test_name: PASS — $n_sync sync messages (>= $sync_min)"
+    fi
+fi
+
+# ------------------------------------------------------------------
+# --hist N : at least N branch-history messages (IndirectBranchHist,
+# TCODE 28) — the carriers of indirect jumps, returns and interrupts.
+# A sync-only trace decodes without errors but reconstructs no real
+# control flow, so require these explicitly where flow matters.
+# ------------------------------------------------------------------
+if [ -n "$hist_min" ]; then
+    n_hist=$(grep -cE 'TCODE\[6\]=28 ' "$log" || true)
+    echo "[decode-hist] $test_name: $n_hist branch-history message(s) decoded (need >= $hist_min)"
+    if [ "$n_hist" -lt "$hist_min" ]; then
+        echo "[decode-hist] $test_name: FAIL — fewer than $hist_min IndirectBranchHist messages"
+        grep -nE 'TCODE\[6\]=[0-9]+' "$log" | head -20 || true
+        fail=1
+    else
+        echo "[decode-hist] $test_name: PASS — $n_hist branch-history messages (>= $hist_min)"
     fi
 fi
 

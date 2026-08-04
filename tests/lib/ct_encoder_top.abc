@@ -6,7 +6,7 @@ import  @rtl/external/wishbone       : wb_package
 
 constraints impl ct_encoder_top.xdc
 
-import ../imp/ct_encoder
+import @rtl/ct_encoder
 
 read_sv ct_encoder_top.sv
 build   ct_encoder_top

@@ -24,6 +24,7 @@ The full text of every license used is in [`LICENSES/`](LICENSES/).
 | **Hardware IP** | RTL (`.sv`), register description (`.rdl`), timing/placement constraints (`.xdc`), and the SystemVerilog/`.abc` verification testbenches | **`CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial`** (dual) |
 | **Software** | Build, tooling and CI — shell/Python scripts, `Makefile`, GitHub workflows, config and metadata | **`ISC`** |
 | **Documentation** | Markdown, AsciiDoc, and documentation images | **`CC-BY-4.0`** |
+| **Third-party IP** | MINRES TGC5B core vendored for the example SoC (`examples/tgc5b_soc/cpu/`) | **`CERN-OHL-S-2.0 OR LicenseRef-MINRES-Commercial`** (dual — licensed by MINRES) |
 | **Vendored** | `bin/NexRv` reference decoder (derived from the IAR Systems NexRv tool) | **`ISC`** |
 
 ## Hardware IP — dual license
@@ -45,6 +46,38 @@ Choose whichever fits your use case. The SPDX expression on these files is:
 ```
 SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
 ```
+
+## Third-party IP — MINRES TGC5B core
+
+`examples/tgc5b_soc/cpu/TGC5B_AXI4L_H2E.sv` is **not** Accemic's work. It
+is the MINRES **TGC5B** RISC-V core, `Copyright 2020-2022 MINRES
+Technologies GmbH`, vendored so the integration example builds and
+simulates against a real core.
+
+MINRES has permitted its publication under the same dual-license model
+this repository uses for its own hardware IP:
+
+```
+SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-MINRES-Commercial
+```
+
+The licensor of **both** arms is MINRES, not Accemic
+([`LICENSES/LicenseRef-MINRES-Commercial.txt`](LICENSES/LicenseRef-MINRES-Commercial.txt)).
+Accemic conveys the file verbatim under CERN-OHL-S-2.0 and holds no right
+to sublicense it. Concretely:
+
+- Under **CERN-OHL-S-2.0** you may use, simulate, modify and redistribute
+  the core on the license's terms, exactly as for the encoder. The
+  file is left byte-identical to MINRES' delivery and its SPDX metadata
+  lives in a REUSE `.license` sidecar, so the upstream Notices stay intact.
+- A **commercial license for the core** comes from MINRES only. An Accemic
+  commercial license for the encoder conveys no rights to the core, and
+  vice versa — see [Commercial licensing](#commercial-licensing).
+
+The permission covers this specific delivered netlist (core config
+`TGC5B_AXI4L_H2E`), not other TGC5B configurations or versions. The
+encoder IP itself does not depend on the core: nothing under `rtl/`,
+`rdl/` or `tests/` references it.
 
 ## Software — ISC
 
@@ -72,6 +105,27 @@ Accemic Technologies GmbH, licensed under **ISC**. It is recorded in
 Organizations that cannot comply with the copyleft obligations of
 CERN-OHL-S-2.0 for the hardware IP may obtain a commercial license from
 Accemic Technologies GmbH. Inquiries: [sales@accemic.com](mailto:sales@accemic.com).
+
+That license covers the **CEDARtools.TraceEncoder IP** — everything in
+`rtl/`, `rdl/`, `tests/` and the Accemic-authored parts of `examples/`.
+It does **not** cover the vendored MINRES TGC5B core, which carries its
+own dual license from MINRES. The two are independent:
+
+| You want to ship | Encoder | TGC5B core | License(s) needed |
+|---|---|---|---|
+| An open-source design | CERN-OHL-S-2.0 | CERN-OHL-S-2.0 | none — both open arms apply |
+| A closed-source design **with your own core** | Accemic commercial | not used | Accemic only |
+| A closed-source design **containing the TGC5B** | Accemic commercial | MINRES commercial | both, negotiated separately |
+| Evaluation, simulation, internal development | either | either | none |
+
+The third row follows from CERN-OHL-S-2.0 itself: including Covered
+Source in a larger work makes the larger work modified Covered Source
+(§3.2), and conveying a Product built from it requires providing the
+Complete Source (§4). Keeping the TGC5B in a product therefore keeps the
+product under CERN-OHL-S-2.0 regardless of the encoder's license.
+
+Row two is the usual case — the example SoC is a worked integration, not
+part of the IP deliverable, and integrators bring their own core.
 
 ## Contributions
 

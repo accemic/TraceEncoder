@@ -1,0 +1,121 @@
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// -----------------------------------------------------------------------------
+// Register map for the TGC5B + CEDARtools.TraceEncoder example SoC.
+//
+// Structure (hierarchical; component definitions are pulled in with `include):
+//
+//   ct_cs_cpuif.rdl          ct_cs_cpuif    — the CEDARtools.TraceEncoder CSRs (from
+//                                             rdl/, resolved via -I)
+//   ct_soc/ct_clint.rdl      clint_rf       — CLINT (timer + software interrupt)
+//   ct_soc/ct_intc.rdl       intc_rf        — INTC  (one external interrupt source)
+//   ct_soc/ct_ps_ctrl.rdl    ct_ps_ctrl_rf  — ct_soc_top control/status registers
+//
+// Four address maps are described below:
+//
+//   ct_soc_periph  the CLINT + INTC block that `make rdl-soc` turns into RTL
+//                  (peakrdl regblock -t ct_soc_periph -> ct_soc_regs). This is
+//                  the ONLY generated block; everything else is authored RTL and
+//                  is described here for a complete, single-source register map.
+//   ct_soc         the SoC data-bus (dBus) view decoded by ct_soc_synth_wrap.
+//   ct_soc_top      the PS control-port view exposed by ct_soc_top (aperture-relative).
+//   ct_soc_kv260_top the KV260 devmem view: ct_soc_top placed at 0xA000_0000.
+//
+// The encoder CSRs are a real instance of the encoder's own addrmap
+// (ct_cs_cpuif, reached in hardware through the ct_axil_to_wb bridge), so every
+// encoder register appears here at its final address. Only the true memories —
+// the RAM (ct_soc_ram) and the capture BRAMs (ct_soc_trace_buf,
+// ct_soc_axis_buf) — stay `external mem`: they hold data, not registers, and
+// have no RDL description of their own. Their `mementries` mirror the RTL
+// depths (ct_soc_top parameters MEM_WORDS / TRACE_DEPTH / AXIS_DEPTH); keep the
+// two in sync when a depth changes.
+// -----------------------------------------------------------------------------
+
+`include "ct_cs_cpuif.rdl"
+`include "ct_soc/ct_clint.rdl"
+`include "ct_soc/ct_intc.rdl"
+`include "ct_soc/ct_ps_ctrl.rdl"
+
+// --- Generated peripheral block (CLINT + INTC), AXI4-Lite -------------------
+// `make rdl-soc` generates this one (-t ct_soc_periph) into ct_soc_regs, wrapped
+// by ct_soc_periph.sv. Instances/offsets here define the generated hwif; do not
+// rename `clint`/`intc` without updating ct_soc_periph.sv.
+addrmap ct_soc_periph {
+    name = "TGC5B example SoC peripheral block (CLINT + INTC)";
+    desc = "CLINT + INTC register block (AXI4-Lite), based at PERIPH (0x1000_0000).";
+
+    default regwidth = 32;
+
+    clint_rf clint @ 0x0000;
+    intc_rf  intc  @ 0x1000;
+};
+
+// --- SoC data-bus (dBus) memory map, decoded by ct_soc_synth_wrap ------------------
+addrmap ct_soc {
+    name = "TGC5B example SoC - CPU data-bus (dBus) memory map";
+    desc = "Address map the CPU's AXI4-Lite dBus sees, decoded by ct_soc_synth_wrap.";
+
+    default regwidth = 32;
+
+    // Program + data RAM (ct_soc_ram, dual-port BRAM).
+    external mem { mementries = 16384; memwidth = 32;
+        desc = "Program + data RAM (ct_soc_ram): 16384 words = 64 KiB
+                (MEM_WORDS)."; } ram @ 0x0000_0000;
+
+    // PERIPH: CLINT + INTC (same components as the ct_soc_periph block above).
+    clint_rf clint @ 0x1000_0000;
+    intc_rf  intc  @ 0x1000_1000;
+
+    // CEDARtools.TraceEncoder CSRs (rdl/ct_cs_cpuif.rdl), reached via ct_axil_to_wb ->
+    // Wishbone.
+    ct_cs_cpuif encoder @ 0x2000_0000;
+};
+
+// --- PS control-port map, exposed by ct_soc_top (aperture-relative) ----------
+addrmap ct_soc_top {
+    name = "TGC5B example SoC - PS control port";
+    desc = "The AXI4-Lite control port ct_soc_top presents to the Zynq PS.
+            Offsets are relative to the port aperture (the RTL decodes the low
+            22 address bits); see ct_soc_kv260_top for the absolute devmem
+            addresses on the KV260.";
+
+    default regwidth = 32;
+
+    // CONTROL / STATUS / TRACE_BEATS / TRACE_BYTES / AXIS_BEATS
+    ct_ps_ctrl_rf ctrl @ 0x0000_0000;
+
+    // Encoder CSRs (rdl/ct_cs_cpuif.rdl, via the AXI4-Lite->Wishbone bridge).
+    ct_cs_cpuif encoder @ 0x0001_0000;
+
+    // The three memories below are sized exactly as the RTL instantiates them
+    // (ct_soc_top parameters MEM_WORDS / TRACE_DEPTH / AXIS_DEPTH). Their
+    // windows are spaced 1 MiB apart because ct_soc_top selects the region from
+    // the aperture's top address bits, so each window is wider than the memory
+    // behind it and reads past the last entry alias back to entry 0.
+    external mem { mementries = 16384; memwidth = 32;
+        desc = "Program RAM load window (ct_soc_ram): 16384 words = 64 KiB
+                (MEM_WORDS). Accessible only while core_run = 0."; }
+                                                                 ram     @ 0x0010_0000;
+    external mem { mementries = 4096; memwidth = 32;
+        desc = "Captured ATB read-back (ct_soc_trace_buf): 4096 words = 16 KiB
+                (TRACE_DEPTH), one word per ATB beat. Read TRACE_BEATS words
+                and keep the first TRACE_BYTES bytes."; }         trace   @ 0x0020_0000;
+    external mem { mementries = 1024; memwidth = 32;
+        desc = "Captured AXIS instrumentation read-back (ct_soc_axis_buf): 256
+                DAQ beats of four words = 1024 words = 4 KiB (AXIS_DEPTH).
+                Read AXIS_BEATS * 4 words."; }                    axis    @ 0x0030_0000;
+};
+
+// --- KV260 app (devmem) map: the PS FPD window routes 0xA000_0000 to HPM0 ----
+// Mirrors the RTL hierarchy: ct_soc_kv260_top instantiates ct_soc_top behind
+// the PS. Generate the browsable register map from THIS map (`make rdl-html`,
+// peakrdl html -t ct_soc_kv260_top) so every register shows the absolute
+// address that `devmem` takes on the board.
+addrmap ct_soc_kv260_top {
+    name = "TGC5B example SoC - KV260 app (absolute devmem addresses)";
+    desc = "Physical-address view on the KV260: the Zynq PS FPD window places
+            the ct_soc_top control port at 0xA000_0000 (M_AXI_HPM0_FPD).";
+
+    ct_soc_top soc @ 0xA000_0000;
+};

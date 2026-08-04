@@ -120,9 +120,10 @@ answer key, and the decode-and-compare loop) is described in
 │   └── pkg/            generated CSR SystemVerilog (committed; `make rdl`)
 │   └── <module>/test/  per-module testbenches live next to the module
 ├── tests/              high-level / integration tests (multi-module)
-├── scripts/            developer helpers (RDL gen, lint, decode/check)
+├── examples/           worked integrations (e.g. tgc5b_soc: a RISC-V core + CEDARtools.TraceEncoder SoC)
+├── scripts/            developer helpers (RDL gen, lint, decode/check, AXIS parse)
 ├── bin/                NexRv reference decoder (CEDARtools.TraceEncoder port — see bin/README.md)
-├── .github/workflows/  CI: lint, sim, REUSE compliance
+├── .github/workflows/  CI: lint, sim (+ examples), REUSE compliance
 └── LICENSES/           full text of every license used by this repo
 ```
 
@@ -178,18 +179,28 @@ for the full statement:
   `CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial`.
 - **Software** (scripts, build, CI, config) is **ISC**.
 - **Documentation** (Markdown, AsciiDoc, images) is **CC-BY-4.0**.
+- **Third-party IP** — the MINRES TGC5B core vendored for the example SoC
+  (`examples/tgc5b_soc/cpu/`) is dual-licensed by **MINRES Technologies
+  GmbH** under the same open arm —
+  `CERN-OHL-S-2.0 OR LicenseRef-MINRES-Commercial`. A commercial license
+  for the core comes from MINRES, not Accemic.
 
 Each file declares its own `SPDX-License-Identifier`; the repository is
 [REUSE](https://reuse.software)-compliant. For commercial licensing
-inquiries: <sales@accemic.com>.
+inquiries: <sales@accemic.com> (encoder IP) — see
+[`LICENSE.md`](LICENSE.md#commercial-licensing) for which license covers
+what.
 
 ## Trademarks
 
-RISC-V is a trademark of RISC-V International; Arm, AMBA, AXI and
-CoreSight are trademarks of Arm Limited; Xilinx and Vivado are
-trademarks of AMD. These and any other third-party marks are used
-descriptively to identify the relevant specifications, interfaces, and
-tools, and do not imply endorsement. See [`TRADEMARKS.md`](TRADEMARKS.md).
+RISC-V is a trademark of RISC-V International; Arm, AMBA and CoreSight
+are trademarks of Arm Limited (or its subsidiaries or affiliates); Xilinx
+and Vivado are trademarks of AMD; MINRES is a registered trademark of
+MINRES Technologies GmbH. AXI, AXI-Stream and ATB are protocol names
+defined in the Arm AMBA specifications. These and any other third-party
+marks are used descriptively to identify the relevant specifications,
+interfaces, and tools, and do not imply endorsement. See
+[`TRADEMARKS.md`](TRADEMARKS.md).
 
 ## Contributing
 

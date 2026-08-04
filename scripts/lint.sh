@@ -11,6 +11,8 @@
 #
 # Excluded paths:
 #   - bld/, .git/          : build artefacts / VCS metadata
+#   - examples/*/cpu/       : vendored third-party CPU cores (e.g. the MINRES
+#                            TGC5B example core) keep their upstream style
 #
 # Everything else is linted, including the per-module testbenches under
 # `rtl/<subsystem>/test/` and `tests/lib/test/`, and the vendored sources
@@ -26,6 +28,7 @@ cd "$repo_root"
 EXCLUDE_DIRS=(
     "./bld"
     "./.git"
+    "./examples/*/cpu"
 )
 
 prune_expr=()

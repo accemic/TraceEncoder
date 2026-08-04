@@ -52,6 +52,12 @@ This runs [`../scripts/gen_rdl.sh`](../scripts/gen_rdl.sh), which:
 Commit the RDL change and the regenerated SV in the **same** commit. Bump
 the pins in `requirements.txt` deliberately and regenerate in that commit.
 
+`make rdl-html` (via [`../scripts/gen_rdl_html.sh`](../scripts/gen_rdl_html.sh),
+same toolchain) renders the browsable HTML register reference into
+`bld/rdl-html/`: the bare encoder map from `ct_cs_cpuif.rdl` and the example
+SoC's KV260 app map (absolute `devmem` addresses, encoder CSRs included) from
+`../examples/tgc5b_soc/rdl/ct_soc.rdl`.
+
 ## Conventions
 
 - Field enums describe command codes, action types, etc. Reuse them from

@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: ISC
+
+# Regeneratable build by-products (see src/build.sh). The committed artifacts
+# needed by the simulation are hello_trace.hex and hello_trace.pcinfo, plus
+# hello_trace.dis for human reference.
+hello_trace.elf
+hello_trace.objdump.txt
+
+# Active program slot: the image the testbench actually loads. Populated from
+# hello_trace.* by `make sim-tgc5b-soc`, or from an arbitrary ELF by sim.sh.
+prog.hex
+prog.pcinfo
+prog.dis
