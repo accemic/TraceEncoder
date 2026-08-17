@@ -3,6 +3,11 @@ SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
 SPDX-License-Identifier: CC-BY-4.0
 -->
 
+> [!IMPORTANT]
+> 📢 CTTE will soon be highly enhanced in functionality and integration examples.
+> Expect changes in the next few days.
+> [👁 Watch] the repository to get notified.
+
 # CEDARtools.TraceEncoder
 
 **RISC-V N-Trace encoder IP — SystemVerilog, dual-licensed.**
