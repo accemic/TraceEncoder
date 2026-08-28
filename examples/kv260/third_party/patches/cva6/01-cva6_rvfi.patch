@@ -1,0 +1,23 @@
+--- a/core/cva6_rvfi.sv
++++ b/core/cva6_rvfi.sv
+@@ -334,7 +334,19 @@
+   assign ex_commit_cause = instr.ex_commit_cause;
+   assign ex_commit_valid = instr.ex_commit_valid;
+ 
+-  assign valid_iti = instr.commit_ack;
++  // [Accemic Delta D1 -- CVA6_PIN.md] Trap visibility for the ITI: commit_ack
++  // does not fire on ex_commit_valid, so NO exception/interrupt event ever
++  // reached the ITI (gate C1 measurement 2026-07-24: 0 EXC/0 INT beats for
++  // ecall+illegal+timer IRQ). E-Trace ch. 4 requires the trap beat
++  // (itype 1/2). Port 0 is additionally driven valid while an exception is
++  // pending; itype_detector classifies it itself via ex_valid/cause MSB.
++  logic [CVA6Cfg.NrCommitPorts-1:0] valid_iti_c;
++  always_comb begin
++    valid_iti_c = instr.commit_ack;
++    if (instr.commit_instr_valid[0] && instr.ex_commit_valid && !instr.commit_drop[0])
++      valid_iti_c[0] = 1'b1;
++  end
++  assign valid_iti = valid_iti_c;
+   assign pc_iti = instr.commit_instr_pc;
+   assign op_iti = instr.commit_instr_op;
+   assign branch_valid_iti = instr.branch_valid;

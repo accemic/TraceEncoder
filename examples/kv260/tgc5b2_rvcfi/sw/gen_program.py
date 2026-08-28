@@ -1,0 +1,464 @@
+#!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: ISC
+"""gen_program.py -- generate the two RISC-V demo programs and the site manifest.
+
+WHY GENERATED AND NOT HAND-WRITTEN
+----------------------------------
+The demo needs 1000 distinct memory-access instructions per core, because an
+ACT-ST watchpoint is a trigger on ONE retired program counter and the table
+holds 1023 of them. A hand-written critical section has perhaps twenty. So
+the transactions are generated: 100 functions of exactly ten instrumented
+sites each, all following one of two readable shapes.
+
+The point is not the number. It is that every site is a DIFFERENT place in
+the program, so the analysis can say *where* something went wrong rather than
+just *that* it did.
+
+WHAT THIS SCRIPT EMITS
+----------------------
+  src/rv_funcs_core0.c  transactions for core 0 (producer)
+  src/rv_funcs_core1.c  transactions for core 1 (consumer)
+  src/rv_funcs.h        the dispatch tables
+  sites_meta_core0.json the site manifest: id -> kind/object/access/lock
+  sites_meta_core1.json    (gen_sites.py turns this + the built symbol map
+                            into the watchpoint table and sites.csv)
+
+THE SITE MANIFEST IS THE CONTRACT
+---------------------------------
+The manifest records what each site MEANS; the build records where each site
+IS. Neither alone is enough, and keeping them apart is deliberate: the
+meaning is decided here, in one place, and the address is measured from the
+disassembly rather than assumed. `check_consistency.py` then verifies that
+every site in the manifest exists in the binary AND that the instruction at
+that address is the kind of instruction the manifest claims.
+"""
+
+import argparse
+import json
+import os
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+SRC = os.path.join(HERE, "src")
+
+# ---------------------------------------------------------------------------
+# Site bookkeeping
+# ---------------------------------------------------------------------------
+
+KIND_DATA, KIND_SYNC, KIND_MARKER, KIND_VALUE = 0, 1, 2, 3
+RW_READ, RW_WRITE = 0, 1
+
+OBJ = {
+    "balance": 1, "count": 2, "checksum": 3, "seq": 4,
+    "ring_head": 5, "ring_tail": 6, "ring_slot": 7,
+    "lockvar": 8, "private": 9,
+}
+
+SYNC_OP = {"acq_try": 0, "acq_ok": 1, "release": 2, "fence": 3}
+MARK_ID = {"enter": 1, "leave": 2, "dispatch": 3, "phase": 4}
+
+
+class Sites:
+    """Assigns global site ids and per-kind indices, and records the meaning."""
+
+    def __init__(self):
+        self.entries = []          # manifest rows
+        self.next_global = 0
+        self.per_kind = {KIND_DATA: 0, KIND_SYNC: 0, KIND_MARKER: 0, KIND_VALUE: 0}
+
+    def _take(self, kind):
+        gid = self.next_global
+        self.next_global += 1
+        idx = self.per_kind[kind]
+        self.per_kind[kind] += 1
+        return gid, idx
+
+    def data(self, obj, rw, func, note):
+        gid, idx = self._take(KIND_DATA)
+        self.entries.append(dict(id=gid, kind="data", kind_idx=idx, src="actst",
+                                 obj=obj, obj_id=OBJ[obj], rw=("w" if rw else "r"),
+                                 rw_id=rw, size_log=2, func=func, note=note,
+                                 expect="mem"))
+        return gid, idx
+
+    def sync(self, op, lock_id, func, note):
+        """The lock id is NUMERIC and static.
+
+        An ACT-ST tag is fixed when the table is loaded, so it can only carry
+        a lock identity the program decides at BUILD time. That is why the
+        wrong-lock scenario, whose lock is chosen at run time, cannot be seen
+        by the lockset monitor from watchpoints alone -- and why the runtime
+        payload of ACT-CAP exists."""
+        gid, idx = self._take(KIND_SYNC)
+        self.entries.append(dict(id=gid, kind="sync", kind_idx=idx, src="actst",
+                                 op=op, op_id=SYNC_OP[op], lock=lock_id,
+                                 lock_id=lock_id, func=func, note=note,
+                                 expect=("mem" if op != "acq_ok" else "nop")))
+        return gid, idx
+
+    def marker(self, mid, func, note):
+        gid, idx = self._take(KIND_MARKER)
+        self.entries.append(dict(id=gid, kind="marker", kind_idx=idx, src="actst",
+                                 mark=mid, mark_id=MARK_ID[mid],
+                                 func=func, note=note, expect="nop"))
+        return gid, idx
+
+    def actcap(self, func, note):
+        gid, idx = self._take(KIND_VALUE)
+        self.entries.append(dict(id=gid, kind="value", kind_idx=idx, src="actcap",
+                                 func=func, note=note, expect="mem"))
+        return gid, idx
+
+
+# ---------------------------------------------------------------------------
+# Code emission
+# ---------------------------------------------------------------------------
+
+HEADER = """/* SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+ * SPDX-License-Identifier: ISC
+ *
+ * GENERATED by gen_program.py -- do not edit by hand.
+ * Regenerate with:  py gen_program.py
+ *
+ * Every function below has EXACTLY ten instrumented sites, so 100 functions
+ * fill 1000 of the encoder's 1023 watchpoint slots. Two shapes:
+ *
+ *   account  takes a lock (or does not, depending on the mode) and does a
+ *            read-modify-write on the shared account -- this is where the
+ *            races live
+ *   ring     single-producer/single-consumer queue traffic -- correct by
+ *            construction, and therefore the CONTRAST: a detector that
+ *            reports a race here is wrong
+ *
+ * The mode is read from shared memory at run time, so ONE binary and ONE
+ * watchpoint table serve all five scenarios. That is what makes comparing
+ * them honest: nothing else changed between the runs.
+ */
+
+#include "rv_shared.h"
+#include "rv_tags.h"
+#include "rv_site.h"
+#include "rv_funcs.h"
+
+#define SH RV_SHARED
+"""
+
+LOCK_HELPERS = """
+/* Peterson's algorithm, inlined per call site so every transaction gets its
+ * OWN acquire/release program counters -- a shared out-of-line lock function
+ * would give all 100 transactions the same three addresses, and the analysis
+ * could no longer say WHICH transaction took the lock.
+ *
+ * The spin loop itself is deliberately NOT instrumented (see rv_site.h): it
+ * hits the same two addresses as fast as the core can issue, and under
+ * contention it would drown every other event in the stream.
+ */
+#define RV_ACQUIRE(lk, me, other, s_try, s_ok)                              \\
+	do {                                                                    \\
+		RV_ST(&SH->lock[lk].flag[me], 1u, s_try);                           \\
+		SH->lock[lk].turn = (other);                                        \\
+		while (SH->lock[lk].flag[other] && SH->lock[lk].turn == (other)) {   \\
+			/* uninstrumented on purpose */                                 \\
+		}                                                                   \\
+		RV_MARK(s_ok);                                                      \\
+		/* Runtime truth through ACT-CAP: the lock id the program is        \\
+		 * ACTUALLY using, computed at run time. The ACT-ST tag of this     \\
+		 * same event was fixed when the table was loaded and cannot know   \\
+		 * a lock the mode chose at run time -- which is exactly the        \\
+		 * wrong-lock scenario. The monitors prefer runtime sync events     \\
+		 * whenever any are present in the stream. */                       \\
+		RV_ACTCAP(RV_ACT_CMD_DAQ_PC_CURR, RV_ACT_SINK_AXIS,                 \\
+		          RV_TAG_SYNC(1u, RV_SYNC_ACQ_OK, (lk), (s_ok)));           \\
+	} while (0)
+
+#define RV_RELEASE(lk, me, s_rel)                                           \\
+	do {                                                                    \\
+		RV_ST(&SH->lock[lk].flag[me], 0u, s_rel);                           \\
+		RV_ACTCAP(RV_ACT_CMD_DAQ_PC_CURR, RV_ACT_SINK_AXIS,                 \\
+		          RV_TAG_SYNC(1u, RV_SYNC_RELEASE, (lk), (s_rel)));         \\
+	} while (0)
+"""
+
+
+def emit_account(f, sites, core, fidx):
+    """One account transaction: ten sites, of which five touch shared data."""
+    name = "rv_t%03d" % fidx
+    me, other = core, 1 - core
+    s_enter, _ = sites.marker("enter", name, "transaction entry")
+    s_try, _ = sites.sync("acq_try", 0, name, "Peterson: announce intent")
+    s_ok, _ = sites.sync("acq_ok", 0, name, "Peterson: critical section entered")
+    s_rdb, _ = sites.data("balance", RW_READ, name, "read-modify-write, read half")
+    s_wrb, _ = sites.data("balance", RW_WRITE, name, "read-modify-write, write half")
+    s_rdc, _ = sites.data("count", RW_READ, name, "transaction counter, read")
+    s_wrc, _ = sites.data("count", RW_WRITE, name, "transaction counter, write")
+    s_chk, _ = sites.data("checksum", RW_WRITE, name, "checksum update")
+    s_rel, _ = sites.sync("release", 0, name, "Peterson: leave critical section")
+    s_leave, _ = sites.marker("leave", name, "transaction exit")
+
+    delta = 1 + (fidx % 7)
+    f.write("""
+void %s(void)
+{
+	unsigned v, c, lk;
+	unsigned use_lock = (SH->mode != RV_MODE_RACE_OPEN);
+	/* RV_MODE_RACE_WRONG_LOCK: each core takes a DIFFERENT lock, so both
+	 * believe they are protected and neither excludes the other. */
+	lk = (SH->mode == RV_MODE_RACE_WRONG_LOCK) ? %du : 0u;
+
+	RV_MARK(%d);
+	if (use_lock) {
+		RV_ACQUIRE(lk, %du, %du, %d, %d);
+	}
+	RV_LD(v, &SH->balance, %d);
+	v += %du;
+	RV_ST(&SH->balance, v, %d);
+	RV_LD(c, &SH->count, %d);
+	RV_ST(&SH->count, c + 1u, %d);
+	RV_ST(&SH->checksum, (c ^ v) + %du, %d);
+	if (use_lock) {
+		RV_RELEASE(lk, %du, %d);
+	}
+	RV_MARK(%d);
+	rv_local_sum += %du;
+}
+""" % (name, core, s_enter, me, other, s_try, s_ok, s_rdb, delta, s_wrb,
+       s_rdc, s_wrc, fidx, s_chk, me, s_rel, s_leave, delta))
+    return name
+
+
+def emit_ring(f, sites, core, fidx):
+    """One ring transaction: ten sites, none of them contended by construction."""
+    name = "rv_t%03d" % fidx
+    s_enter, _ = sites.marker("enter", name, "transaction entry")
+    s_rdh, _ = sites.data("ring_head", RW_READ, name, "producer head / consumer view")
+    s_rdt, _ = sites.data("ring_tail", RW_READ, name, "consumer tail / producer view")
+    s_slot, _ = sites.data("ring_slot", RW_WRITE if core == 0 else RW_READ, name,
+                           "slot payload")
+    s_upd, _ = sites.data("ring_head" if core == 0 else "ring_tail", RW_WRITE, name,
+                          "own index advance")
+    s_rdp, _ = sites.data("private", RW_READ, name, "core-local scratch")
+    s_wrp, _ = sites.data("private", RW_WRITE, name, "core-local scratch")
+    s_phase, _ = sites.marker("phase", name, "ring phase marker")
+    s_seq, _ = sites.data("seq", RW_WRITE, name, "sequence stamp")
+    s_leave, _ = sites.marker("leave", name, "transaction exit")
+
+    if core == 0:
+        body = """	RV_LD(h, &SH->ring_head, %d);
+	RV_LD(t, &SH->ring_tail, %d);
+	RV_MARK(%d);
+	if (((h + 1u) %% RV_RING_SLOTS) != t) {
+		RV_ST(&SH->ring[h %% RV_RING_SLOTS], h + %du, %d);
+		RV_ST(&SH->ring_head, (h + 1u) %% RV_RING_SLOTS, %d);
+	} else {
+		SH->ring_drops++;
+	}
+""" % (s_rdh, s_rdt, s_phase, fidx, s_slot, s_upd)
+    else:
+        body = """	RV_LD(h, &SH->ring_head, %d);
+	RV_LD(t, &SH->ring_tail, %d);
+	RV_MARK(%d);
+	if (h != t) {
+		RV_LD(v, &SH->ring[t %% RV_RING_SLOTS], %d);
+		rv_local_sum += v;
+		RV_ST(&SH->ring_tail, (t + 1u) %% RV_RING_SLOTS, %d);
+	}
+""" % (s_rdh, s_rdt, s_phase, s_slot, s_upd)
+
+    # The consumer needs a payload variable, the producer does not -- and the
+    # build runs with -Werror, so an unused declaration is a build failure
+    # rather than a warning nobody reads.
+    decls = "unsigned h, t, v, p;" if core == 1 else "unsigned h, t, p;"
+    f.write("""
+void %s(void)
+{
+	%s
+
+	RV_MARK(%d);
+%s	RV_LD(p, &rv_private, %d);
+	RV_ST(&rv_private, p + 1u, %d);
+	RV_ST(&SH->seq, p, %d);
+	RV_MARK(%d);
+}
+""" % (name, decls, s_enter, body, s_rdp, s_wrp, s_seq, s_leave))
+    return name
+
+
+def emit_lockorder(f, sites, core):
+    """The lock-order scenario, INSTRUMENTED -- four sites, static lock ids.
+
+    The first version wrote the two lock flags directly from `main`, with no
+    labelled sites at all. The result was a mode that produced no sync
+    records, an order graph with no edges, and a verdict of CLEAN for a
+    defect that was definitely there. A monitor cannot find what the trace
+    does not contain, and nothing in the run says so -- which is why this
+    function exists and why it is the only place the two extra locks are
+    touched.
+
+    The lock ids ARE static here (core 0 takes 2 then 3, core 1 takes 3 then
+    2), so an ACT-ST tag can carry them. That is the difference to the
+    wrong-lock scenario, where the lock is a run-time choice and the tag
+    cannot know it.
+    """
+    name = "rv_lock_order"
+    a = 2 if core == 0 else 3
+    b = 3 if core == 0 else 2
+    # acq_ok, not acq_try: the monitors track HELD locks on acq_ok, and a
+    # flag write IS the successful take here (there is no separate spin).
+    s_a_try, _ = sites.sync("acq_ok", a, name, "outer lock, taken")
+    s_b_try, _ = sites.sync("acq_ok", b, name, "inner lock, taken")
+    s_b_rel, _ = sites.sync("release", b, name, "inner lock, release")
+    s_a_rel, _ = sites.sync("release", a, name, "outer lock, release")
+    f.write("""
+/* Lock-order scenario: the two cores take locks %d and %d in OPPOSITE order.
+ * No deadlock is provoked -- the point is that the order graph is cyclic,
+ * which a monitor can see in a run that happened to go well. The runtime
+ * (ACT-CAP) sync tags are emitted alongside the static ones, so this
+ * scenario stays visible under the monitors' runtime-preference rule. */
+void rv_lock_order(void)
+{
+	RV_ST(&SH->lock[%du].flag[%du], 1u, %d);
+	RV_ACTCAP(RV_ACT_CMD_DAQ_PC_CURR, RV_ACT_SINK_AXIS,
+	          RV_TAG_SYNC(1u, RV_SYNC_ACQ_OK, %du, 0u));
+	RV_ST(&SH->lock[%du].flag[%du], 1u, %d);
+	RV_ACTCAP(RV_ACT_CMD_DAQ_PC_CURR, RV_ACT_SINK_AXIS,
+	          RV_TAG_SYNC(1u, RV_SYNC_ACQ_OK, %du, 0u));
+	RV_ST(&SH->lock[%du].flag[%du], 0u, %d);
+	RV_ACTCAP(RV_ACT_CMD_DAQ_PC_CURR, RV_ACT_SINK_AXIS,
+	          RV_TAG_SYNC(1u, RV_SYNC_RELEASE, %du, 0u));
+	RV_ST(&SH->lock[%du].flag[%du], 0u, %d);
+	RV_ACTCAP(RV_ACT_CMD_DAQ_PC_CURR, RV_ACT_SINK_AXIS,
+	          RV_TAG_SYNC(1u, RV_SYNC_RELEASE, %du, 0u));
+}
+""" % (a, b,
+       a, core, s_a_try, a,
+       b, core, s_b_try, b,
+       b, core, s_b_rel, b,
+       a, core, s_a_rel, a))
+
+
+def emit_actcap_block(f, sites, core, fidx, name):
+    """Software instrumentation with a RUNTIME payload -- what ACT-ST cannot do.
+
+    Placed in every fourth function so the 50 sites spread across the run
+    instead of clustering at the start."""
+    s_idx, _ = sites.actcap(name, "ring index at run time")
+    s_val, _ = sites.actcap(name, "account value at run time")
+    f.write("""
+void %s_cap(void)
+{
+	unsigned w;
+	/* The tag is COMPUTED here -- an ACT-ST trigger could only ever carry
+	 * the constant its table entry was loaded with. */
+	w = RV_ACT_WORD(RV_ACT_CMD_DAQ_PC_CURR, RV_ACT_SINK_AXIS,
+	                RV_TAG_VALUE(SH->ring_head & RV_VALUE_MASK));
+	RV_ACTCAP_AT(%d, w);
+	w = RV_ACT_WORD(RV_ACT_CMD_DAQ_PC_CURR, RV_ACT_SINK_AXIS,
+	                RV_TAG_VALUE(SH->balance & RV_VALUE_MASK));
+	RV_ACTCAP_AT(%d, w);
+	rv_actcap_issued += 2u;
+}
+""" % (name, s_idx, s_val))
+    return name + "_cap"
+
+
+def generate(core, n_funcs, ring_share, actcap_every, outdir):
+    sites = Sites()
+    names = []
+    cap_names = []
+    path = os.path.join(outdir, "rv_funcs_core%d.c" % core)
+    with open(path, "w", newline="\n") as f:
+        f.write(HEADER)
+        f.write(LOCK_HELPERS)
+        f.write("\nunsigned rv_local_sum;\nunsigned rv_private;\n"
+                "unsigned rv_actcap_issued;\n")
+        for i in range(n_funcs):
+            if (i % 10) < ring_share:
+                names.append(emit_ring(f, sites, core, i))
+            else:
+                names.append(emit_account(f, sites, core, i))
+            if (i % actcap_every) == 0:
+                cap_names.append(emit_actcap_block(f, sites, core, i, names[-1]))
+        emit_lockorder(f, sites, core)
+
+        f.write("\n/* Dispatch table -- the transactions are reached through an\n"
+                " * INDIRECT call, which is what makes RV_MODE_CFI_SKIP a real\n"
+                " * forward-edge CFI violation rather than a mislabelled branch. */\n")
+        f.write("rv_fn_t const rv_table[RV_N_FUNCS] = {\n")
+        for n in names:
+            f.write("\t%s,\n" % n)
+        f.write("};\n")
+        f.write("\nrv_fn_t const rv_cap_table[RV_N_CAP] = {\n")
+        for n in cap_names:
+            f.write("\t%s,\n" % n)
+        f.write("};\n")
+
+    meta = dict(core=core, n_funcs=n_funcs,
+                n_actst=sum(1 for e in sites.entries if e["src"] == "actst"),
+                n_actcap=sum(1 for e in sites.entries if e["src"] == "actcap"),
+                sites=sites.entries)
+    mpath = os.path.join(outdir, "..", "sites_meta_core%d.json" % core)
+    with open(os.path.normpath(mpath), "w", newline="\n") as f:
+        json.dump(meta, f, indent=1)
+    return meta, names, cap_names
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--funcs", type=int, default=100,
+                    help="transaction functions per core (10 sites each)")
+    ap.add_argument("--ring-share", type=int, default=3,
+                    help="how many out of every ten functions are ring transactions")
+    ap.add_argument("--actcap-every", type=int, default=4,
+                    help="emit an ACT-CAP block every Nth function (2 sites each)")
+    args = ap.parse_args()
+
+    os.makedirs(SRC, exist_ok=True)
+    metas = []
+    for core in (0, 1):
+        meta, names, caps = generate(core, args.funcs, args.ring_share,
+                                     args.actcap_every, SRC)
+        metas.append(meta)
+        print("core %d: %d functions, %d ACT-ST sites, %d ACT-CAP sites"
+              % (core, args.funcs, meta["n_actst"], meta["n_actcap"]))
+
+    with open(os.path.join(SRC, "rv_funcs.h"), "w", newline="\n") as f:
+        f.write("""/* SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+ * SPDX-License-Identifier: ISC
+ * GENERATED by gen_program.py -- do not edit by hand.
+ */
+#ifndef RV_FUNCS_H
+#define RV_FUNCS_H
+
+#define RV_N_FUNCS %d
+#define RV_N_CAP   %d
+
+typedef void (*rv_fn_t)(void);
+extern rv_fn_t const rv_table[RV_N_FUNCS];
+extern rv_fn_t const rv_cap_table[RV_N_CAP];
+void rv_lock_order(void);
+extern unsigned rv_local_sum;
+extern unsigned rv_private;
+extern unsigned rv_actcap_issued;
+
+#endif /* RV_FUNCS_H */
+""" % (args.funcs, (args.funcs + args.actcap_every - 1) // args.actcap_every))
+
+    n_st = metas[0]["n_actst"]
+    expect = args.funcs * 10 + 4          # + the four lock-order sites
+    if n_st != expect:
+        print("ERROR: expected %d ACT-ST sites, got %d -- the shapes must stay "
+              "at exactly ten sites (plus the four lock-order sites) or the "
+              "1023-slot budget stops adding up" % (expect, n_st), file=sys.stderr)
+        return 1
+    if n_st > 1023:
+        print("ERROR: %d sites exceed the 1023 watchpoint slots" % n_st,
+              file=sys.stderr)
+        return 1
+    print("GEN_OK: %d ACT-ST + %d ACT-CAP sites per core"
+          % (n_st, metas[0]["n_actcap"]))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,39 @@
+# gate    : byte_neutrality_P8
+# package : P8 (audit fix round)
+# command : bash scripts/p8_off_neutrality.sh on <wt> ; bash scripts/p8_off_neutrality.sh off <wt>
+# HEAD    : 9a41049
+# when    : 2026-08-05 18:19:05 WEDT
+# superseded-by : verification/evidence/P8/reverify_at_294bf6d.log
+#           : byte neutrality both directions + the compiled-out negative, re-run at 294bf6d.
+#           : This tree (9a41049) was rebased away; the verdicts below
+#           : were never demonstrated on the branch (checked by
+#           : scripts/check_evidence_stamp.py).
+# note    : the family is SELECTED, not inherited -- scripts/ref_family.py
+#           computes the CAPS word of the build and the log names file, CAPS
+#           and mint HEAD (audit B-1). Re-run in this round because the RDL
+#           idiom change (sw = w; singlepulse;) alters the hwif_in structure
+#           and the pacing moved into its own module (audit B-2/B-4).
+#           Read the ON leg for what it is: none of the eleven reference
+#           testbenches writes bit 27, so it shows the feature is DORMANT, not
+#           that it works. The activity proof is the req/reqnop pair in
+#           sim_gates.log (audit B-7).
+# ----------------------------------------------------------------
+[17:16:50] reference family: REF_FINAL_caps23_20260805-1037_a04b37b.txt (CAPS 0x7fffbf, minted 20260805-1037 at HEAD a04b37b)
+[17:16:50] this build emits CAPS 0x7fffbf -- CT_EN_INST_SYNC_REQ carries no CAPS bit, so on and off select the same family
+[17:16:51] reference: <worktree>/verification/ref_final/REF_FINAL_caps23_20260805-1037_a04b37b.txt (md5 b27c462dcf6103592f9ddeaf83ebcfba)
+[17:16:51] generated CSR + RDL: identical to the commit (no profile surgery)
+[17:44:24] NO_TSTAMP leg: ok (4a8ed3e8bf5bf24b5d457d47be5d17e7)
+[17:44:32] on manifest: 31 artefacts
+[17:44:33] BYTE NEUTRALITY (on): IDENTICAL (31 of 31 artefacts)
+[17:44:33] cli failures: 0
+[17:44:33] OVERALL: PASS
+--- off ---
+[17:45:21] reference family: REF_FINAL_caps23_20260805-1037_a04b37b.txt (CAPS 0x7fffbf, minted 20260805-1037 at HEAD a04b37b)
+[17:45:21] this build emits CAPS 0x7fffbf -- CT_EN_INST_SYNC_REQ carries no CAPS bit, so on and off select the same family
+[17:45:21] reference: <worktree>/verification/ref_final/REF_FINAL_caps23_20260805-1037_a04b37b.txt (md5 b27c462dcf6103592f9ddeaf83ebcfba)
+[17:45:21] generated CSR + RDL: identical to the commit (no profile surgery)
+[18:16:31] NO_TSTAMP leg: ok (4a8ed3e8bf5bf24b5d457d47be5d17e7)
+[18:16:37] off manifest: 31 artefacts
+[18:16:38] BYTE NEUTRALITY (off): IDENTICAL (31 of 31 artefacts)
+[18:16:38] cli failures: 0
+[18:16:38] OVERALL: PASS

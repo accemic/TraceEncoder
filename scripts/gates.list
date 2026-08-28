@@ -1,0 +1,85 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: ISC
+#
+# The simulation gate battery: one gate per line, each naming a
+# scripts/cli_<gate>_test.sh. This file is the LIST; scripts/run_gates.sh is
+# the runner. They are separate because two different readers need the list:
+# the runner, and scripts/check_orphan_gates.py, which proves that every
+# cli_*_test.sh in the tree is actually reachable from here. A gate script
+# that no list names is dead code that still looks like coverage.
+#
+# Blank lines and `#` comments are ignored. Adding a gate script WITHOUT
+# adding it here is what check_orphan_gates.py fails on.
+#
+# Needs Vivado XSIM -- this battery is not runnable on a stock CI runner; see
+# the "Continuous integration" section of CONTRIBUTING.md.
+
+# --- overflow / robustness gates -------------------------------------------
+natovf
+jtcovf
+irovf
+bphws
+suiteisync
+boardreplay
+bpsyncbr
+bpovfanchor
+replayovf
+pausedge
+trapanchor
+jtcstopdrain
+ovfwindow
+flushclobber
+
+# --- compression byte-identity legs ----------------------------------------
+bp
+ir
+jtc
+rh
+rb
+
+# --- E-Trace resync regression (P10 S-1/S-2 guard) -------------------------
+resyncir
+
+# --- feature gates ---------------------------------------------------------
+syncquota
+synccadence
+dfcompress
+dfworkload
+status
+trigregs
+dfdrop
+tesyncreq
+microcsr
+syncreqrst
+preprocsync
+
+# --- width / parameter gates -----------------------------------------------
+addr64
+corexlen
+ctxwidth
+
+# --- structural / integration gates ----------------------------------------
+blocktip
+featurematrix
+status_pair
+fifohist
+ibhs
+rpti
+dbg
+cfg
+btm
+robust
+axists
+i20
+funneldual
+dualsrc
+adapters
+
+# --- E-Trace back end ------------------------------------------------------
+# Written 2026-08-07 and never run in a stage until 2026-08-19: the E-Trace
+# back end was claimed in the documentation and proven only by hand. `etrace`
+# drives thirteen scenarios through XSIM and prefix-compares the decoded PC
+# sequence against the cpu_model oracle; `etrace_ctxp` checks the CTXP export
+# of the same path.
+etrace
+etrace_ctxp

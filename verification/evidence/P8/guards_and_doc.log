@@ -1,0 +1,25 @@
+# gate    : guards_and_doc_P8
+# package : P8 (audit fix round)
+# command : the five Python guards + make doc-check
+# HEAD    : 9a41049
+# when    : 2026-08-05 18:19:32 WEDT
+# superseded-by : verification/evidence/P8/reverify_at_294bf6d.log
+#           : guards + doc-check, re-run at 294bf6d (21 profile scripts, not the 20 of this tree).
+#           : This tree (9a41049) was rebased away; the verdicts below
+#           : were never demonstrated on the branch (checked by
+#           : scripts/check_evidence_stamp.py).
+# note    : verdict only.
+# ----------------------------------------------------------------
+[check_feature_flags] OK: 33 CT_EN_* switches, 147 RDL fields (1 type anchor(s), 2 external memory(ies)), CAPS width 23, ENAB 23 bits, 48 matrix + 8 compression-table rows checked
+[check_protocol_discovery] OK: 2 discovery fields hw-driven (RDL sw=r/hw=w, wb shim from EN_ETRACE, generated block read-only from hwif_in, micro-CSR twin identical)
+[check_profile_deps] OK: 3 elaboration dependency(ies) (CT_EN_DF_ADDR_COMPRESS->CT_EN_DATA_TRACE, CT_EN_DF_DROP->CT_EN_DATA_TRACE, CT_EN_WATCHPOINT_MSG->CT_EN_ACT) honoured in 20 profile script(s); 3 expected pair(s) present
+[check_xsim_guard] OK: 35 script(s) drive xsim, all through ct_xsim/ct_xsim_ok; no bare xsim call outside scripts/ct_env.sh
+[check_negative_legs] OK: 24 profile switch(es); 2 with a compiled-out negative leg, 22 waived with a reason
+--- make doc-check ---
+  [PASS] doc/architecture.adoc
+  [PASS] doc/development.adoc
+  [PASS] doc/enhanced-features.adoc
+  [PASS] doc/integration.adoc
+  [PASS] doc/release-notes.adoc
+  [PASS] doc/trace-format.adoc
+  [PASS] doc/verification.adoc

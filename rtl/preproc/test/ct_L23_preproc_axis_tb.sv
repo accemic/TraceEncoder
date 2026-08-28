@@ -1,10 +1,13 @@
-// -*- indent-tabs-mode:t; tab-width:4 -*-
-// vim: tabstop=4:noexpandtab
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
+// -*- indent-tabs-mode: t; tab-width: 4 -*-
 
 /**
  * @file    ct_L23_preproc_axis_tb.sv
  * @brief   Directed AXIS output testbench for ct_L23_preproc.
- * @description Exercises the AXIS DAQ path by sending repeated ACT_CAP
+ * @details Exercises the AXIS DAQ path by sending repeated ACT_CAP
  *   command writes into the preprocessor and checking the emitted AXIS
  *   payload.
  * @environment Instantiates the full preprocessor with tip, AXIS, ETIP, ATB,
@@ -95,12 +98,16 @@ module ct_L23_preproc_axis_tb;
 		.tip_rst,
 		.wall_clk,
 		.wall_clk_rst,
+		.proc_clk,
+		.proc_rst,
 		.tip,
 		.axis,
 		.etip_q,
 		.next_iaddr_q,
 		.atb_afvalid (0), .atb_syncreq (0),
 		.synq_req_trace_byte_count,
+		.synq_req_trace_msg_count (1'b0),
+		.quota_cnt_clr            (),
 		.cs_tip,
 		.wext_clk (wb_clk),
 		.act_st_wext,
@@ -191,6 +198,7 @@ module ct_L23_preproc_axis_tb;
 		wall_clk = 0;
 
 		synq_req_trace_byte_count <= 0;
+		cs_tip.trTeInstSyncReq    <= 0; // no explicit sync request (P8)
 
 		act_st_wext.ce      <= '0;
 		act_st_wext.we      <= '0;

@@ -1,0 +1,17 @@
+--- a/vendor/pulp-platform/axi/src/axi_burst_splitter.sv
++++ b/vendor/pulp-platform/axi/src/axi_burst_splitter.sv
+@@ -317,7 +317,14 @@
+   // --------------------------------------------------
+   `ifndef VERILATOR
+   // pragma translate_off
++  // D6 (Accemic): XSIM does not support "default disable iff". Upstream
++  // already has exactly this guard in common_cells/src/rr_arb_tree.sv
++  // (l. 114) -- it is only missing here. Same form adopted. Consequence (as
++  // with rr_arb_tree): under XSIM these assertions also run during reset --
++  // there the inputs are 0/valid-free anyway via the drivers' reset branch.
++  `ifndef XSIM
+   default disable iff (!rst_ni);
++  `endif
+   // Inputs
+   assume property (@(posedge clk_i) slv_req_i.aw_valid |->
+       txn_supported(slv_req_i.aw.atop, slv_req_i.aw.burst, slv_req_i.aw.cache, slv_req_i.aw.len)

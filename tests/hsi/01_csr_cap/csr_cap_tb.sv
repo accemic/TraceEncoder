@@ -25,7 +25,7 @@
  *       load/store feeds DAQ_DATA/DADDR/DATA_DADDR; the threshold/counter
  *       commands read per-region perf counters (region 0).
  *     - ACT_CAP_ST_CF_SYNC, routed to the Nexus sink only: emits an
- *       instruction synchronization message (NEXUS_SYNC_REQ_CSR), NOT a DAQ
+ *       instruction synchronization message (NEXUS_SYNC_REQ, vendor 14), NOT a DAQ
  *       message and no AXIS beat. Issued early, right after the startup sync,
  *       so the two are the first messages in the stream. (This subsumes the
  *       former standalone 02_csr_sync test.)
@@ -46,8 +46,15 @@
  *
  *   Configuration: instruction trace ON (so the encoder runs in normal trace
  *   mode alongside the instrumentation), data trace OFF (the DAQ context is
- *   captured from the TIP retire stream regardless), periodic sync OFF,
- *   timestamps OFF.
+ *   captured from the TIP retire stream regardless), periodic sync OFF.
+ *   Timestamp unit RUNNING but wire TSTAMP fields OFF (C0a): the counter is
+ *   started (trTsControl.Type = TR_TS_SYSTEM, Active/Count = 1) so the AXIS
+ *   timestamp element carries live values, while trTsControl.Enable = 0
+ *   keeps the ATB byte stream TSTAMP-free as before -- exactly the split
+ *   CT_EN_AXIS_TS documents. The DAQ_PC_CURR beats are checked both ways:
+ *   with CT_EN_AXIS_TS=1 element 2 must be valid and strictly monotonic
+ *   over >= 2 beats; compiled out (the cli_axists_test.sh ro leg) element 2
+ *   must be invalid and the strobe the historical 8'hFF.
  */
 
 module csr_cap_tb;
@@ -96,10 +103,19 @@ module csr_cap_tb;
 	// Watch the env's in-sim AXIS decoder. Each accepted beat advances
 	// dec_axis_msg.id; count beats and latch a match against the
 	// DAQ_DIRECT_DATA command + payload (no queue, to stay verilator-friendly).
+	// C0a: PC_CURR beats additionally carry the timestamp element checks --
+	// with CT_EN_AXIS_TS element 2 must be valid and STRICTLY monotonic
+	// (TR_TS_SYSTEM counter, prescale 0), compiled out it must be invalid
+	// and the strobe the historical 8'hFF.
 	// ------------------------------------------------------------------
-	int  last_axis_id  = -1;
-	int  axis_beats    = 0;
-	bit  found_axis    = 0;
+	int          last_axis_id      = -1;
+	int          axis_beats        = 0;
+	bit          found_axis        = 0;
+	int          pc_curr_beats     = 0;
+	logic [31:0] pc_curr_last_ts   = '0;
+	bit          ts_elem_missing   = 0;
+	bit          ts_not_monotonic  = 0;
+	bit          ts_ro_violation   = 0;
 
 	always_ff @(posedge env.wb_clk) begin
 		if (!env.wb_rst && env.dec_axis_valid
@@ -113,6 +129,25 @@ module csr_cap_tb;
 			    && env.dec_axis_msg.elem_valid[0]
 			    && (env.dec_axis_msg.elem[0] == {8'h0, DIRECT_DATA}))
 				found_axis <= 1;
+			if (env.dec_axis_msg.raw_tid[5:0] == CMD_PC_CURR) begin
+				pc_curr_beats <= pc_curr_beats + 1;
+				if (ct_pkg::CT_EN_AXIS_TS) begin
+					$display("[csr_cap_tb] %0t: PC_CURR beat %0d ts_elem=0x%0h valid=%b",
+					         $time, pc_curr_beats, env.dec_axis_msg.elem[2],
+					         env.dec_axis_msg.elem_valid[2]);
+					if (!env.dec_axis_msg.elem_valid[2])
+						ts_elem_missing <= 1;
+					if ((pc_curr_beats > 0)
+					    && !(env.dec_axis_msg.elem[2] > pc_curr_last_ts))
+						ts_not_monotonic <= 1;
+					pc_curr_last_ts <= env.dec_axis_msg.elem[2];
+				end
+				else begin
+					if (env.dec_axis_msg.elem_valid[2]
+					    || (env.dec_axis_msg.raw_tstrb != 12'h0FF))
+						ts_ro_violation <= 1;
+				end
+			end
 		end
 	end
 
@@ -122,11 +157,40 @@ module csr_cap_tb;
 		$display("[csr_cap_tb] %0t: reset released", $time);
 
 		env.csr.clear();
+
+		// A3/BTM regression guard (InstMode WARL; updated for CT_EN_BTM,
+		// seq 24): legal values are 6 (ITR_BRANCH_HIST) and -- only when
+		// BTM is compiled in -- 3 (ITR_BRANCH). A write of 3 while Enable=0
+		// must read back 3 with CT_EN_BTM=1 (both modes settable, Table 8)
+		// and be legalized to 6 with CT_EN_BTM=0 (honest "BTM unsupported").
+		// Reintroducing a raw-storage InstMode makes this $fatal.
+		begin
+			logic [31:0] warl_rd;
+			logic [2:0]  warl_expect;
+			warl_expect = ct_pkg::CT_EN_BTM ? 3'd3 : 3'd6;
+			env.csr.Set_te_trTeControl_InstMode(3'd3);
+			env.csr.Read_te_trTeControl(warl_rd);
+			if (warl_rd[6:4] !== warl_expect)
+				$fatal(1, "[csr_cap_tb] InstMode WARL violated: wrote 3, read back %0d (expect %0d, CT_EN_BTM=%0d)",
+					warl_rd[6:4], warl_expect, ct_pkg::CT_EN_BTM);
+			$display("[csr_cap_tb] InstMode WARL guard: wrote 3, read back %0d -- PASS", warl_expect);
+			// Restore HTM for the rest of the test.
+			env.csr.Set_te_trTeControl_InstMode(3'd6);
+		end
+
+		// C0a: start the timestamp counter for the AXIS timestamp element.
+		// Type is Enable-locked (swwel), so select TR_TS_SYSTEM while
+		// trTeControl.Enable is still 0. trTsControl.Enable (the WIRE
+		// TSTAMP gate) is cleared instead: the ATB stream stays
+		// TSTAMP-free as before -- ts_value feeds ONLY AXIS element 2.
+		env.csr.Set_te_trTsControl_Type   (3'd2);   // TR_TS_SYSTEM
+		env.csr.Set_te_trTsControl_Count  (1'b1);
+		env.csr.Set_te_trTsControl_Active (1'b1);
+		env.csr.Set_te_trTsControl_Enable (1'b0);   // no TSTAMP on the wire
 		env.csr.Set_te_trTeControl_Enable      (1'b1);
 		env.csr.Set_te_trTeControl_InstTracing (1'b1);
-		env.csr.Set_te_trTsControl_Active      (1'b0);   // timestamps OFF
 		env.csr.Set_te_trTeControl_Active      (1'b1);
-		env.wait_cycles(20);
+		env.cpu.idle(20);
 		$display("[csr_cap_tb] %0t: starting scenario", $time);
 
 		// Data tracing is OFF: the load/store below only feed the DAQ
@@ -145,6 +209,19 @@ module csr_cap_tb;
 		// ------------------------------------------------------------
 		env.cpu.act_cap_cmd(.cmd(CMD_CF_SYNC), .sink(SINK_NEXUS), .direct_data(24'h0));
 		env.cpu.run(8);
+
+		// A2 regression guard (SyncReqSource, AW E2 2026-07-19): the CF_SYNC
+		// command above is an explicit CSR sync request. On-wire it goes out
+		// as the single vendor SYNC code 14 (the offline NexRv sync-count
+		// gate sees it); the RO diagnosis field must report source=CSR (1).
+		begin
+			logic [31:0] sync_rd;
+			env.cpu.idle(50); // let the tip->wb CDC snapshot settle
+			env.csr.Read_te_trTeSyncStatus(sync_rd);
+			if (sync_rd[2:0] !== 3'd1)
+				$fatal(1, "[csr_cap_tb] SyncReqSource: expected 1 (CSR), got %0d", sync_rd[2:0]);
+			$display("[csr_cap_tb] SyncReqSource == CSR(1) -- PASS");
+		end
 
 		// ------------------------------------------------------------
 		// Every DAQ_* command, routed to AXIS + ATB. A load and a store
@@ -167,6 +244,14 @@ module csr_cap_tb;
 		env.cpu.act_cap_cmd(.cmd(CMD_IFETCH_TH),    .sink(SINK_AXIS_NEXUS), .direct_data(24'h0));
 		env.cpu.act_cap_cmd(.cmd(CMD_DATA_RD_TH),   .sink(SINK_AXIS_NEXUS), .direct_data(24'h0));
 
+		// C0a: two more PC_CURR samples, spaced by a few retires, so the
+		// AXIS timestamp element can be checked for STRICT monotony over
+		// three beats (the TR_TS_SYSTEM counter runs on tip_clk).
+		env.cpu.run(8);
+		env.cpu.act_cap_cmd(.cmd(CMD_PC_CURR),      .sink(SINK_AXIS_NEXUS), .direct_data(24'h66_6666));
+		env.cpu.run(8);
+		env.cpu.act_cap_cmd(.cmd(CMD_PC_CURR),      .sink(SINK_AXIS_NEXUS), .direct_data(24'h77_7777));
+
 		env.cpu.run(8);
 		env.cpu.exit_trace();
 
@@ -176,15 +261,15 @@ module csr_cap_tb;
 		// data; atb_force_flush pushes the last ATB bytes to the sink. A short
 		// drain first lets the trace tail propagate through the pipeline-delayed
 		// composer while instruction tracing is still effectively on.
-		env.wait_cycles(50);
+		env.cpu.idle(50);
 		env.csr.Set_te_trTeControl_InstTracing (1'b0);
-		env.wait_cycles(200);
+		env.cpu.idle(200);
 		env.csr.Set_te_trTeControl_Enable      (1'b0);
 		env.atb_force_flush = 1'b1;
-		env.wait_cycles(4000);
+		env.cpu.idle(4000);
 		env.atb_force_flush = 1'b0;
 		env.csr.Set_te_trTeControl_Active(1'b0);
-		env.wait_cycles(10000);
+		env.cpu.idle(10000);
 
 		// ============================================================
 		// In-sim check: the DAQ_DIRECT_DATA command must appear on AXIS;
@@ -195,6 +280,37 @@ module csr_cap_tb;
 			$error("[csr_cap_tb] FAIL: no AXIS DAQ beat with tid=%0d elem0=0x%0h",
 			       CMD_DIRECT_DATA, DIRECT_DATA);
 			$fatal(1);
+		end
+
+		// ------------------------------------------------------------
+		// C0a: the AXIS timestamp element, in whichever build position
+		// this tree carries (the compiled-out side is the ro leg of
+		// scripts/cli_axists_test.sh -- same TB, switch at 0).
+		// ------------------------------------------------------------
+		$display("[csr_cap_tb] PC_CURR beats seen: %0d", pc_curr_beats);
+		if (pc_curr_beats < 2) begin
+			$error("[csr_cap_tb] FAIL: fewer than 2 PC_CURR beats (%0d) -- TS monotony not provable",
+			       pc_curr_beats);
+			$fatal(1);
+		end
+		if (ct_pkg::CT_EN_AXIS_TS) begin
+			if (ts_elem_missing) begin
+				$error("[csr_cap_tb] FAIL: PC_CURR beat without valid element 2 (CT_EN_AXIS_TS=1)");
+				$fatal(1);
+			end
+			if (ts_not_monotonic) begin
+				$error("[csr_cap_tb] FAIL: AXIS timestamp element not strictly monotonic");
+				$fatal(1);
+			end
+			$display("[csr_cap_tb] AXIS TS element: %0d PC_CURR beats, elem2 valid + strictly monotonic -- PASS",
+			         pc_curr_beats);
+		end
+		else begin
+			if (ts_ro_violation) begin
+				$error("[csr_cap_tb] FAIL: element 2 valid or strobe != 8'hFF although CT_EN_AXIS_TS=0");
+				$fatal(1);
+			end
+			$display("[csr_cap_tb] AXIS TS compiled out: elem2 invalid + Strb 0xff -- PASS");
 		end
 
 		$display("[csr_cap_tb] PASS: ACT-CAP DAQ commands observed on AXIS sink");

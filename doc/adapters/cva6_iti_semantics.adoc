@@ -1,0 +1,277 @@
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CC-BY-4.0
+
+= CVA6 ITI truth table (Gate C1)
+:toc: macro
+:toclevels: 2
+
+Migrated 2026-08 from an internal predecessor repository; see
+link:../../rtl/adapters/README.md[`rtl/adapters/README.md`] for the
+package-level provenance. This is the specification level of
+link:../../rtl/adapters/cva6/[the CVA6 adapter] --
+`cva6_iti_to_ctte_tip.sv`'s trap-iretire clamp and idle-cycle contract,
+and `cva6_riscv_itype_refine.sv`'s CALL/RETURN/SWAP reconstruction, both
+trace back to findings in this document.
+
+**Measured against** cv32a60x / cv32a6_ima_sv32_fpga /
+cv64a6_imac_sv39_ctrace, CVA6 pin `a3dc2c5e` + deltas D1/D2 (D6 config);
+measurements dated 2026-07-24, last updated 2026-08-09.
+**Status:** C1 GREEN (RV32 68/68 + guard rerun 2026-08-03; Sv32 104/104;
+RV64 106/106 beats 1:1, R2.1a), B1/B2 clean.
+
+toc::[]
+
+**Measurement setup:** `sim/cva6/tb_cva6_iti_char.sv` (cva6_trace_wrap
+@cv32a60x, `block_mode=0`, NrCommitPorts=1) + `sw/cva6_char/char_test.S`
+(RV32IMA, no C-ext, M-mode; ALU/branches/JAL/JALR/ecall/illegal/timer IRQ) +
+checker `tools/cva6_iti_check.py` against the RVFI golden reference. XSIM
+2026.1, 512 cycles, exit code 1. **Version:** vendored pin `a3dc2c5e` **+
+deltas D1/D2** (link:../../examples/kv260/third_party/CVA6_PIN.md[`examples/kv260/third_party/CVA6_PIN.md`]) -- without
+the deltas the ITI is trap-blind (D1) resp. classifies interrupts as EXC (D2).
+
+== Beat semantics (single-retirement, block_mode=0)
+
+One ITI beat per event; `iretire` is constant 1 (an **instruction flag, not
+a halfword count** -- the halfword count lives in `ilastsize`; exactly the
+CTTE contract: ICNT += `1 << ilastsize` per `iretire=1` beat). Idle cycles:
+`valid=0` (no beats).
+
+== Event -> beat (measured)
+
+[cols="3,2,2,1,1,1,1", options="header"]
+|===
+| Event (`char_test`) | itype | iaddr | iretire (ITI) | cause | tval | Count
+
+| ALU/load/store/JAL/csrw/... | 0 STANDARD | PC of the instr | 1 | 0 | 0 | 52
+| `mret` | 3 ERET | PC of the mret | 1 | 0 | 0 | 3
+| branch non-taken | 4 NON_TAKEN_BR | PC of the branch | 1 | 0 | 0 | 5
+| branch taken | 5 TAKEN_BR | PC of the branch | 1 | 0 | 0 | 5
+| `jalr` (call/return) | 6 UNINF_JMP | PC of the jalr | 1 | 0 | 0 | 3
+| `ecall` (M) | 1 EXC | PC of the ecall | **1 (!)** | 11 | 0 | 1
+| illegal 32-bit instr | 1 EXC | PC of the instr | **1 (!)** | 2 | **0 (!)** | 1
+| timer IRQ | 2 INT | PC of the interrupted instr | **1 (!)** | 7 | 0 | 1
+|===
+
+**Findings/consequences:**
+
+1. **JAL is STANDARD (0), not a call:** `itype_detector` only marks `jalr`
+   as `updiscon`. Correctly decodable for N-Trace HTM (a decoder follows
+   direct jumps statically); implicit-return compression is not possible
+   in principle with the 3-bit profile -- **since I1 (2026-08-09) the shim
+   lifts this limit by reconstruction from the instruction word, see
+   "itype refinement in the shim (I1)" below.**
+2. **Trap/IRQ beats carry iretire=1** (single_retirement sets it constant
+   1) -- at odds with E-Trace/CTTE (the faulting instr does not retire).
+   The shim `cva6_iti_to_ctte_tip` **forces iretire=0 on EXC/INT**
+   (otherwise the composer would count the faulting instr in ICNT ->
+   decoder shift).
+3. **tval on illegal = 0** (the probe delivers no tval here). Irrelevant
+   for N-Trace (tval never goes on the wire).
+4. **ilastsize:** 1 on all beats (32-bit code; RVC HW present, software without C).
+5. **The upstream #3010 bug classes here:** B1 (iretire counting) clean --
+   68 beats == 68 retires; B2 (a hanging valid) not observed. The bugs
+   named in #3010 partly affect `block_mode` paths, which we do not use.
+
+== Extension, Linux class: `cv32a6_ima_sv32_fpga` with Sv32 + S-mode (Gate L1)
+
+Measured 2026-07-26 with `sv32_test.S` (Sv32 identity mapping, S-mode, page
+faults), run `run_char.ps1 -Target cv32a6_ima_sv32_fpga -Prog sv32_test
+-Profile sv32`. **RVFI 104 retires <-> ITI 104 retire beats, 1:1**; B1/B2 clean.
+
+[cols="3,2,2,1,1,1", options="header"]
+|===
+| Event (`sv32_test`) | itype | iaddr | iretire (ITI) | cause | tval
+
+| `sfence.vma` | 0 STANDARD | PC of the instr | 1 | 0 | 0
+| `csrw satp` | 0 STANDARD | PC of the instr | 1 | 0 | 0
+| `mret` after S-mode | 3 ERET | PC of the mret | 1 | 0 | 0
+| `ecall` **from S-mode** | 1 EXC | PC of the ecall | **1 (!)** | **9** | 0
+| **load page fault** | 1 EXC | PC of the `lw` | **1 (!)** | **13** | faulting VA
+| **store page fault** | 1 EXC | PC of the `sw` | **1 (!)** | **15** | faulting VA
+| **instruction page fault** | 1 EXC | **target VA** (not the `jalr`!) | **1 (!)** | **12** | faulting VA
+|===
+
+**New findings:**
+
+6. **The instruction-page-fault beat carries the TARGET address** (here
+   0x30000000), not the address of the jump that triggered it. That is the
+   right information for the trace (execution would have continued there),
+   but a decoder that reads `iaddr` as "PC of the retiring instruction"
+   must know this case. Our shim forces `iretire = 0`, so the
+   never-executed instruction never enters the ICNT -- the same rule as
+   for any trap.
+7. **`tval` carries the faulting virtual address on page faults** (13/15/12
+   each the VA). It does not go on the N-Trace wire; in the E-Trace 3.1
+   format it **is visible** -- the most valuable addition for a kernel trace.
+8. **The privilege change M->S is visible in the beat** (`priv` switches
+   from 3 to 1); the ITI delivers it from the RVFI probes, the shim passes
+   it through. Only the **context/ASID** is still missing for process
+   attribution (gap X3).
+9. **`sfence.vma` produces no control-flow event** -- correct, but worth
+   mentioning: a decoder needs no special rule for the `satp` change in our
+   setup, since the address spaces do not actually differ anyway (identity
+   mapping, per the CVA6-trio plan's design decision D8).
+
+Two **elaboration/configuration defects** surfaced during this gate, both
+previously invisible because `cv32a60x` generates the MMU away and has no
+execute-region rules: **D4** (`cva6_mmu.sv`, a direction-reversed subrange
+at XLEN=32 -- worth an upstream fix) and **D5** (the FPGA configuration's
+address regions point at the Genesys2 board, our memory was therefore not
+executable). Details:
+link:../../examples/kv260/third_party/CVA6_PIN.md[`examples/kv260/third_party/CVA6_PIN.md`].
+
+== Extension RV64: `cv64a6_imac_sv39_ctrace` (delta D6) -- R2.1a, encoder-free
+
+Measured 2026-08-03 22:44 WEDT with `char_test64.S` (RV64IMA, `-mabi=lp64`,
+no C-ext, M-mode; the same event classes as `char_test.S` plus 64-bit
+constant construction LUI/ADDIW/SLLI, W-ops, ld/sd, 64-bit branch
+discriminators, a jalr target from 64-bit arithmetic), run
+`run_char.ps1 -Target cv64a6_imac_sv39_ctrace -Prog char_test64 -Profile char
+-WorkName r21a_cv64_char`. XSIM 2026.1, **635 cycles**, exit code 1. **RVFI
+106 retires <-> ITI 106 retire beats, 1:1**; B1/B2 clean. **Holds for:
+NrCommitPorts=1, block_mode=0, M-mode, no C-ext code** (the config's HW RVC
+support unused; `ilastsize` constant 1).
+
+[cols="3,2,2,1,1,1,1", options="header"]
+|===
+| Event (`char_test64`) | itype | iaddr | iretire (ITI) | cause | tval | Count
+
+| ALU/64-bit const./W-ops/ld/sd/JAL/csrw/... | 0 STANDARD | PC of the instr | 1 | 0 | 0 | 82
+| `mret` | 3 ERET | PC of the mret | 1 | 0 | 0 | 3
+| branch non-taken (incl. 64-bit `bltu` discr.) | 4 NON_TAKEN_BR | PC of the branch | 1 | 0 | 0 | 6
+| branch taken (incl. `bnez` with low32==0) | 5 TAKEN_BR | PC of the branch | 1 | 0 | 0 | 10
+| `jalr`/`ret` (incl. a target from 64-bit arith.) | 6 UNINF_JMP | PC of the jalr | 1 | 0 | 0 | 5
+| `ecall` (M) | 1 EXC | PC of the ecall | **1 (!)** | 11 | 0 | 1
+| illegal 32-bit instr | 1 EXC | PC of the instr | **1 (!)** | 2 | **0x0000_0000_FFFF_FFFF (!)** | 1
+| timer IRQ | 2 INT | PC of the interrupted instr (spin `beqz`) | **1 (!)** | 7 | 0 | 1
+|===
+
+**RV64 findings:**
+
+10. **Beat semantics identical to RV32** -- one beat per retire, `iretire`
+    constant 1 (also on trap/IRQ, finding 2 still holds), idle cycles
+    `valid=0`. JAL stays STANDARD (finding 1 still holds). The upstream
+    #3010 classes B1/B2 stayed clean (106 beats == 106 retires, no hanging valid).
+11. **`iaddr`/`tval` arrive as full 64-bit values** (`iti_types.svh` is
+    XLEN-parametric); PCs in the 0x64 window appear zero-extended. **Not
+    exercised:** PCs with bit 31/63 set -- not representable in the
+    192-MiB window (0x6400_0000+0x0C00_0000); the ITI's sign-extension
+    behavior above 2^31 remains open.
+12. **`tval` on an illegal instruction carries the instruction word on
+    RV64** (0xFFFFFFFF zero-extended) -- on RV32 (finding 3) the probe
+    delivered 0. Irrelevant for N-Trace (tval never goes on the wire),
+    visible in the E-Trace path; decoders must not carry an RV32 "tval=0"
+    assumption over.
+13. **64-bit discriminators correct:** `bnez` on a register with low32==0
+    (a full value != 0) is TAKEN, `bltu` against 1 with a huge unsigned
+    value is NON_TAKEN -- a 32-bit-truncated comparison view would have
+    inverted both outcomes. Classification 1:1 against the RVFI
+    `pc_wdata` golden reference.
+14. **The timer-IRQ chain works unchanged under RV64** (mcause MSB = bit
+    63; the INT beat carries cause=7, iaddr = the interrupted spin instr).
+
+**Open RV64 legs:** S/U-mode + Sv39 (page-fault causes 12/13/15 analogous
+to Gate L1), C-ext code (stage-1 exclusion), PCs >= 2^31,
+NrCommitPorts=2/block_mode=1 (only in a later phase). Encoder/decoder
+connection (TIP at 64 bit) is NOT part of this measurement.
+
+== itype refinement in the shim (I1) -- CALL/RETURN/SWAP for the folding path
+
+Finding 1 above describes the **ITI**, not a limit of the adapter: since I1
+(2026-08-09) the shim `cva6_iti_to_ctte_tip` (module
+`cva6_riscv_itype_refine`) reconstructs the missing 4-bit codes from the
+instruction word that `cva6_trace_wrap.rvfi_insn_o` delivers cycle-exact
+with the ITI beat -- `cva6_rvfi.sv` registers `insn` and
+`rvfi_to_iti_o.*` in the same `always_ff` from the same `mem_q` entry.
+**No delta in the vendored CVA6 tree** (there is no D7).
+
+* **Switch:** `ITI_ITYPE_REFINE` (default **0** = the previous state,
+  bit-identical zero extension; backward compatibility: RV32 Gate C3
+  re-run PASS 1136/1136 after the change, no existing instantiation sets
+  the parameter).
+* **Port:** `iti_insn_i` (default `'0`; a runtime assertion against an
+  unconnected port at REFINE=1 -- `'0` is not a legal RISC-V encoding, a
+  forgotten connection would otherwise be the most expensive silent
+  failure: folding would simply keep doing nothing).
+* **Classification** (E-Trace v2.0.2 ch. 4, JALR table; the rule table is
+  identical to `mbv_riscv_itype_decoder.sv`, no second source of truth);
+  only ITI code 0 (where `jal` hides, finding 1) and 6 (the catch-all for
+  every `jalr`) are refined:
+  `jal rd in Link` -> IC(9) - `jalr rd in Link, rs1 not in Link` -> UC(8) -
+  both Link, `rd==rs1` -> UC(8) - both Link, `rd!=rs1` -> SWAP(12) -
+  `rd=x0, rs1 in Link` -> RET(13) - otherwise unchanged.
+* **`ITI_LINK_REG_MASK`** (default {x1,x5} = `32'h22`): the reference
+  decoder CTTD only knows x1 as the return base (converter source
+  `NexRvConv.c:225` -- the file name predates the CTTD rename and is
+  quoted as-is) -- 8 `jr t0` divergences were measured across the
+  whole OpenSBI+Linux image (handoff I1, finding B-I1-1). Clamped to
+  `32'h2` = provably decoder-conformant, until the decoder learns x5.
+* **PCINFO pitfall (B-I1-2):** a `.dis` with ABI register names makes
+  CTTD's converter read EVERY return as a call (`GnuRdNum` only accepts
+  `xNN`;
+  measured: 17 C / 0 R on `call_test64.dis`). Always generate listings for
+  IR decode with `-M no-aliases,numeric`.
+* **Operating-point pitfall (B-I1-4):** `InstSyncMax=0` (the reset
+  default) forces a full ProgTraceSync every 16 instructions and chokes
+  call-dense runs (67/108 `NEXUS_MSG_ERROR`, never terminates); IR
+  measurements run at `InstSyncMax=6` (sync every 1024).
+
+**Gates (2026-08-09):** the unit testbench checked 180 vectors against an
+independent assembler/objdump oracle, 0 deviations (incl. `jalr rd=x0`/
+`rs1=x0`, an x5 link, `rd==rs1`, a co-routine swap, RVC neighbor encodings);
+mutants m1 (link set) / m2 (rd bits) / m3 (RVC swap) all turned red. E2E
+`call_test64` (cv64a6, RV64IMA, 24413 instr. in the window, 3200 calls +
+3200 returns, `InstSyncMax=6`, no range filter/watchpoint):
+
+[cols="3,1,1,1,2", options="header"]
+|===
+| Leg | ATB | Messages | bit/instr | `-cs 0`
+
+| A `refine=0`, IR on (baseline) | 27560 B | 3433 | 9.031 | byte-identical (nothing folded)
+| B `refine=1`, IR on | **2092 B** | **248** | **0.686** | **fails** (folding confirmed)
+| C `refine=1`, IR off | 27560 B | 3433 | 9.031 | byte-identical
+|===
+
+The PC sequence is **identical** across all three legs (md5-equal, 24414
+PCs); `max_ret_sp` 0/9/9. **A == C down to the byte** -- refinement alone
+does not change the stream, only refinement+IR produces the drop:
+**25468 B saved (92.4 %) on this deliberately call-dense program** (every
+7.6th instruction is a call/return -- not a general ratio; on the
+883577-instr. board window, re-encoded from a reference decoder, it is
+5.25 %, handoff I1 §6). The E2E mutants m4 (the shim assumes REFINE=1 but
+does not refine) and m5 (the RETURN branch removed) must turn red at gate 4.
+
+== Upstream defects (deltas, upstream-worthy)
+
+[cols="1,3,4", options="header"]
+|===
+| Delta | File | Defect
+
+| D1 | `core/cva6_rvfi.sv` | `valid_iti = commit_ack` -> exceptions/interrupts NEVER reach the ITI (0 EXC/INT beats)
+| D2 | `ITI/cva6_iti/itype_detector.sv` | `exception` checked before `interrupt`, `ex_valid` is also 1 on IRQs -> every IRQ classified as EXC
+|===
+
+== Reproduction
+
+WARNING: **Not reproducible from this repository.** The characterization
+flow that produced the measurements above is not part of this repository:
+it needs an ELF-to-hex image converter, a simulation driver (compile +
+simulate + check against the RVFI golden reference) and the vendored CVA6
+core. There is no `sim/` counterpart here. Only the stimulus build step is
+quoted below; the driver tools are described, not pathed, because naming a
+path that does not exist here would only mislead.
+
+----
+sw/cva6_char:  riscv64-unknown-elf-gcc -march=rv32ima -mabi=ilp32 -nostdlib \
+               -nostartfiles -Ttext=0x64000000 -o char_test.elf char_test.S
+               objcopy -O binary, then convert to a 64-bit hex image
+----
+
+NOTE: The link address was `0x7C000000` in the original characterization run
+and is quoted here as `0x64000000`, the CVA6 window of address plan v4. The
+old address lies outside the `reserved-memory` window the board actually
+reserves, so quoting it verbatim would invite a write into host memory.
+
+Whoever needs to re-run the characterization has to supply the vendored
+CVA6 core (see link:../../examples/kv260/third_party/[`examples/kv260/third_party/`])
+plus their own image converter and simulation driver.

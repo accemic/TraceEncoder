@@ -1,0 +1,190 @@
+/dts-v1/;
+
+/*
+ * SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+ * SPDX-License-Identifier: ISC
+ *
+ * cva6_2_kv260_core0.dts -- devicetree of the guest on CORE 0 of the
+ * dual-CVA6 SoC (AMP). Twin: cva6_2_kv260_core1.dts.
+ *
+ * ADDITIVE variant alongside cva6_kv260_rv64.dts (in
+ * ../../cva6_linux64/sw/); the single-core version stays unchanged (it
+ * carries the board-proven boot path from 2026-07-27).
+ *
+ * =========================================================================
+ * TWO GUESTS, NOT ONE KERNEL ON TWO HARTS
+ * =========================================================================
+ * The dual CVA6 is AMP: the two cores are incoherent (no L1 coherence path
+ * in this CVA6 tree), each has its own cached memory window and its own PS
+ * port. An SMP kernel on it would not run reliably, but by chance, and the
+ * failure mode would be silent data corruption. Hence two images, two
+ * device trees, one shared UNCACHED mailbox.
+ *
+ * --- THE POINT WHERE THIS DT LOOKS DIFFERENT FROM WHAT YOU'D EXPECT -----
+ * **Both harts sit in the cpus node, the foreign one with status =
+ * "disabled".** The obvious choice would be to list only the own one.
+ * That is the trap:
+ *
+ *   The CLINT registers sit per hart at msip = base + 4*hartid and
+ *   mtimecmp = base + 0x4000 + 8*hartid -- the SoC side decodes by the
+ *   ABSOLUTE hart number (rtl/cva6_2_periph.sv, delta 1). Firmware-side,
+ *   the indexing is not uniform, though: some implementations compute
+ *   RELATIVE to the smallest hart listed in the DT (`hartid -
+ *   first_hartid`). If this DT lists only cpu@1, first_hartid = 1, index 0
+ *   -- and the guest on core 1 would program mtimecmp of CORE 0. Two
+ *   guests derailing each other's timer: no error, no message, only a
+ *   time drift nobody can explain.
+ *
+ *   With BOTH harts in the node, first_hartid = 0, and both computation
+ *   paths -- absolute and relative -- deliver the SAME register. The
+ *   disabled hart costs nothing: OpenSBI and Linux skip status =
+ *   "disabled", do not start it and do not count it.
+ *
+ * This is a precaution against an assumption, not the fix of a measured
+ * defect -- this SoC has not run on the board yet. It costs four lines and
+ * makes the question moot.
+ *
+ * --- MEMORY ---------------------------------------------------------------
+ * The CORE-SIDE view is IDENTICAL for both guests (0x6400_0000 +32 MiB);
+ * the separation happens in the hardware's address translation (core 0 ->
+ * PS 0x6400_0000, core 1 -> PS 0x6600_0000). This DT sees none of that,
+ * and that is intentional: the same guest image runs on both cores.
+ *
+ * Correspondence rule (third_party/cva6_ref/CVA6_PIN.md, D5 addendum):
+ *   memory size == DRAM_SIZE in cva6_2_soc_top == 32 MiB.
+ * Cacheability: the core configuration allows caching up to 0x6800_0000
+ * (64 MiB from 0x6400_0000, board-proven conservative state). The mailbox
+ * sits EXACTLY behind that and is thereby uncached -- coherent by
+ * construction, without the guest having to do anything.
+ *
+ * --- WHAT IS DELIBERATELY MISSING ------------------------------------------
+ *   - PLIC. There is none; the console is pure polling.
+ *   - Anything with F/D: the toolchain builds rv64imac without an FPU.
+ *   - A separate console node per guest. Both guests write into the SAME
+ *     8250 ring; the output interleaves. Same picture as the two-hart
+ *     Rocket, and not a defect.
+ *
+ * "no4lvl" forces Sv39 (rationale spelled out at length in
+ * cva6_kv260_rv64.dts).
+ */
+
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+	compatible = "accemic,cva6-2-kv260";
+	model = "Accemic Dual-CVA6 RV64 CTTE Demonstrator, core 0 (KV260 PL)";
+
+	chosen {
+		bootargs = "earlycon=uart8250,mmio32,0x10000000 keep_bootcon console=ttyS0 no4lvl rdinit=/sbin/init";
+		stdout-path = "/soc/serial@10000000";
+	};
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		/* cva6_2_soc_top divides CLK_HZ down to TICK_HZ = 1 MHz */
+		timebase-frequency = <1000000>;
+
+		/* reg == mhartid. cva6_2_soc_synth_wrap fixes hart_id_i to 0
+		 * resp. 1. A wrong hart ID here is not a cosmetic bug: on the
+		 * single-core build, OpenSBI jumped with the inherited ID 2
+		 * directly into _start_hang, without a single console
+		 * character (board finding 2026-07-27, found EXCLUSIVELY in
+		 * the C-Trace capture). */
+		cpu0: cpu@0 {
+			device_type = "cpu";
+			reg = <0>;
+			status = "okay";
+			compatible = "riscv";
+			riscv,isa = "rv64imac_zicsr_zifencei";
+			riscv,isa-base = "rv64i";
+			riscv,isa-extensions = "i", "m", "a", "c", "zicsr", "zifencei";
+			mmu-type = "riscv,sv39";
+			clock-frequency = <75000000>;
+
+			cpu0_intc: interrupt-controller {
+				#interrupt-cells = <1>;
+				compatible = "riscv,cpu-intc";
+				interrupt-controller;
+			};
+		};
+
+		/* The FOREIGN hart -- listed, but disabled. Reason in the
+		 * file header: only this way is first_hartid = 0 and the
+		 * CLINT indexing the same whether computed absolute or
+		 * relative. */
+		cpu1: cpu@1 {
+			device_type = "cpu";
+			reg = <1>;
+			status = "disabled";
+			compatible = "riscv";
+			riscv,isa = "rv64imac_zicsr_zifencei";
+			riscv,isa-base = "rv64i";
+			riscv,isa-extensions = "i", "m", "a", "c", "zicsr", "zifencei";
+			mmu-type = "riscv,sv39";
+			clock-frequency = <75000000>;
+
+			cpu1_intc: interrupt-controller {
+				#interrupt-cells = <1>;
+				compatible = "riscv,cpu-intc";
+				interrupt-controller;
+			};
+		};
+	};
+
+	memory@64000000 {
+		device_type = "memory";
+		/* 32 MiB, cached. Core-side view identical for both guests;
+		 * the hardware translates core 0 to PS 0x6400_0000 and
+		 * core 1 to PS 0x6600_0000. */
+		reg = <0x64000000 0x02000000>;
+	};
+
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		/* The shared mailbox. It lies OUTSIDE the cached region
+		 * (which ends at 0x6800_0000) and is therefore uncached on
+		 * both cores -- exactly why it is coherent without anything
+		 * needing to be invalidated anywhere. Entered as
+		 * reserved-memory so the guest allocator does not run into
+		 * it; usage goes through a dedicated driver or /dev/mem.
+		 *
+		 * LR/SC across this window works: the atomics instance
+		 * behind it is the SAME for both cores, and AMOs bypass the
+		 * cache regardless in this WT-cache build
+		 * (wt_dcache_missunit.sv:323). */
+		mailbox@68000000 {
+			compatible = "accemic,cva6-2-mailbox";
+			reg = <0x68000000 0x01000000>;
+			no-map;
+		};
+	};
+
+	soc {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "simple-bus";
+		ranges;
+
+		clint@2000000 {
+			compatible = "sifive,clint0", "riscv,clint0";
+			reg = <0x02000000 0x00010000>;
+			/* BOTH harts, in hart order -- see the file header. */
+			interrupts-extended = <&cpu0_intc 3>, <&cpu0_intc 7>,
+			                      <&cpu1_intc 3>, <&cpu1_intc 7>;
+		};
+
+		serial@10000000 {
+			compatible = "ns16550a";
+			reg = <0x10000000 0x00000100>;
+			reg-shift = <2>;
+			reg-io-width = <4>;
+			clock-frequency = <75000000>;
+			current-speed = <115200>;
+			/* no "interrupts": there is no interrupt controller */
+		};
+	};
+};

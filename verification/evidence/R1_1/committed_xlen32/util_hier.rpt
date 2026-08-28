@@ -1,0 +1,144 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2022.1.2 (win64) Build 3605665 Fri Aug  5 22:53:37 MDT 2022
+| Date         : Sat Aug  8 10:33:11 2026
+| Host         : <host> running 64-bit major release  (build 9200)
+| Command      : report_utilization -hierarchical -hierarchical_depth 3 -file <worktree>/bld/synth_ooc/util_hier.rpt
+| Design       : ct_encoder
+| Device       : xck26-sfvc784-2LV-c
+| Speed File   : -2LV
+| Design State : Synthesized
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Utilization Design Information
+
+Table of Contents
+-----------------
+1. Utilization by Hierarchy
+
+1. Utilization by Hierarchy
+---------------------------
+
++----------------------------------------------------------------+-------------------------------------------+------------+------------+---------+------+-------+--------+--------+------+------------+
+|                            Instance                            |                   Module                  | Total LUTs | Logic LUTs | LUTRAMs | SRLs |  FFs  | RAMB36 | RAMB18 | URAM | DSP Blocks |
++----------------------------------------------------------------+-------------------------------------------+------------+------------+---------+------+-------+--------+--------+------+------------+
+| ct_encoder                                                     |                                     (top) |      26283 |      25077 |     724 |  482 | 20713 |      8 |      3 |    0 |         16 |
+|   (ct_encoder)                                                 |                                     (top) |          0 |          0 |       0 |    0 |     0 |      0 |      0 |    0 |          0 |
+|   ct_cs_cpuif_wb_inst                                          |                            ct_cs_cpuif_wb |       8951 |       8951 |       0 |    0 |  8450 |      0 |      0 |    0 |          0 |
+|     (ct_cs_cpuif_wb_inst)                                      |                            ct_cs_cpuif_wb |        923 |        923 |       0 |    0 |  2201 |      0 |      0 |    0 |          0 |
+|     genCsrCdc.cdc_trTeTipFifoMaxFill                           |               vector_cdc2__parameterized2 |          6 |          6 |       0 |    0 |    24 |      0 |      0 |    0 |          0 |
+|     genCsrCdc.cdc_trTeTipFifoNumOverflows                      |            vector_cdc2__parameterized2_43 |          8 |          8 |       0 |    0 |    38 |      0 |      0 |    0 |          0 |
+|     genCsrCdc.genDfDropEnaCdc.signal_cdc_trTeDataDropEna       |                             signal_cdc_44 |          0 |          0 |       0 |    0 |     2 |      0 |      0 |    0 |          0 |
+|     genCsrCdc.genSeqSyncEnCdc.signal_cdc_trTeInstSeqSyncEnable |                             signal_cdc_45 |          0 |          0 |       0 |    0 |     2 |      0 |      0 |    0 |          0 |
+|     genCsrCdc.genSyncReqCdc.signal_cdc_trTeInstSyncReq         |                             signal_cdc_46 |          1 |          1 |       0 |    0 |     2 |      0 |      0 |    0 |          0 |
+|     genCsrCdc.genSyncReqCdc.signal_cdc_trTeInstSyncReqAck      |                             signal_cdc_47 |          0 |          0 |       0 |    0 |     2 |      0 |      0 |    0 |          0 |
+|     genCsrCdc.genSyncStatusCdc.cdc_trTeSyncReqSource           |               vector_cdc2__parameterized0 |          5 |          5 |       0 |    0 |    14 |      0 |      0 |    0 |          0 |
+|     genCsrCdc.genTrigActCdc.cdc_trTeTrigExtInAction0           |               vector_cdc2__parameterized1 |          6 |          6 |       0 |    0 |    16 |      0 |      0 |    0 |          0 |
+|     genCsrCdc.genTrigEnCdc.signal_cdc_trTeInstTrigEnable       |                             signal_cdc_48 |          0 |          0 |       0 |    0 |     2 |      0 |      0 |    0 |          0 |
+|     genCsrCdc.genTsCdc.signal_cdc_trTsActive                   |                             signal_cdc_49 |          1 |          1 |       0 |    0 |     2 |      0 |      0 |    0 |          0 |
+|     genCsrCdc.genTsCdc.signal_cdc_trTsCount                    |                             signal_cdc_50 |          0 |          0 |       0 |    0 |     2 |      0 |      0 |    0 |          0 |
+|     genCsrCdc.genTsCdc.signal_cdc_trTsEnable                   |                             signal_cdc_51 |          0 |          0 |       0 |    0 |     2 |      0 |      0 |    0 |          0 |
+|     genCsrCdc.genTsReadbackCdc.cdc_trTeTs                      |                               vector_cdc2 |          6 |          6 |       0 |    0 |   136 |      0 |      0 |    0 |          0 |
+|     genCsrCdc.signal_cdc_trTeEnable                            |                             signal_cdc_52 |          2 |          2 |       0 |    0 |     2 |      0 |      0 |    0 |          0 |
+|     genCsrCdc.signal_cdc_trTeTipFifoMaxFillClear               |                             signal_cdc_53 |          1 |          1 |       0 |    0 |     2 |      0 |      0 |    0 |          0 |
+|     genCsrCdc.signal_cdc_trTeTipFifoNumOverflowsClear          |                             signal_cdc_54 |          1 |          1 |       0 |    0 |     2 |      0 |      0 |    0 |          0 |
+|     genCsrCdc.strobe_cdc_trTeDataDropEvent                     |                                strobe_cdc |          2 |          2 |       0 |    0 |     4 |      0 |      0 |    0 |          0 |
+|       (genCsrCdc.strobe_cdc_trTeDataDropEvent)                 |                                strobe_cdc |          0 |          0 |       0 |    0 |     2 |      0 |      0 |    0 |          0 |
+|       sync_edge                                                |                             signal_cdc_68 |          2 |          2 |       0 |    0 |     2 |      0 |      0 |    0 |          0 |
+|     genCsrCdc.strobe_cdc_trTeInstOverflowEvent                 |                             strobe_cdc_55 |          1 |          1 |       0 |    0 |     4 |      0 |      0 |    0 |          0 |
+|       (genCsrCdc.strobe_cdc_trTeInstOverflowEvent)             |                             strobe_cdc_55 |          0 |          0 |       0 |    0 |     2 |      0 |      0 |    0 |          0 |
+|       sync_edge                                                |                             signal_cdc_67 |          1 |          1 |       0 |    0 |     2 |      0 |      0 |    0 |          0 |
+|     genCsrCdc.trTeDataTracing_cdc                              |                    ct_hwif_ext_signal_cdc |          3 |          3 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       hwclr_cdc_inst                                           |                             strobe_cdc_62 |          2 |          2 |       0 |    0 |     4 |      0 |      0 |    0 |          0 |
+|       hwset_cdc_inst                                           |                             strobe_cdc_63 |          1 |          1 |       0 |    0 |     4 |      0 |      0 |    0 |          0 |
+|       value_cdc                                                |                             signal_cdc_64 |          0 |          0 |       0 |    0 |     2 |      0 |      0 |    0 |          0 |
+|     genCsrCdc.trTeInstTracing_cdc                              |                 ct_hwif_ext_signal_cdc_56 |          5 |          5 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       hwclr_cdc_inst                                           |                             strobe_cdc_57 |          2 |          2 |       0 |    0 |     4 |      0 |      0 |    0 |          0 |
+|       hwset_cdc_inst                                           |                             strobe_cdc_58 |          1 |          1 |       0 |    0 |     4 |      0 |      0 |    0 |          0 |
+|       value_cdc                                                |                             signal_cdc_59 |          2 |          2 |       0 |    0 |     2 |      0 |      0 |    0 |          0 |
+|     genInstSyncReq.sync_req_pacer                              |                         ct_sync_req_pacer |          1 |          1 |       0 |    0 |     2 |      0 |      0 |    0 |          0 |
+|     genRdlCsr.ct_cs_cpuif_inst                                 |                               ct_cs_cpuif |       7979 |       7979 |       0 |    0 |  5969 |      0 |      0 |    0 |          0 |
+|   genNtrace.genNexusFormat.ct_L2_mseo_mdo_formatter_inst       |                  ct_L2_mseo_mdo_formatter |       4184 |       4164 |      20 |    0 |  2731 |      0 |      0 |    0 |          0 |
+|     (genNtrace.genNexusFormat.ct_L2_mseo_mdo_formatter_inst)   |                  ct_L2_mseo_mdo_formatter |          6 |          6 |       0 |    0 |    29 |      0 |      0 |    0 |          0 |
+|     genAtbFifo2clk.atb_cdc_fifo                                |                             fifo2clk_fwft |         69 |         49 |      20 |    0 |    67 |      0 |      0 |    0 |          0 |
+|     u_atb_flush_detect                                         | ct_L2_mseo_mdo_formatter_atb_flush_detect |          1 |          1 |       0 |    0 |     5 |      0 |      0 |    0 |          0 |
+|     u_buf                                                      |       ct_L2_mseo_mdo_formatter_msg_buffer |         11 |         11 |       0 |    0 |  1180 |      0 |      0 |    0 |          0 |
+|     u_chunk_packer                                             | ct_L2_mseo_mdo_formatter_atb_chunk_packer |         82 |         82 |       0 |    0 |    41 |      0 |      0 |    0 |          0 |
+|     u_mseo                                                     |  ct_L2_mseo_mdo_formatter_mseo_controller |          0 |          0 |       0 |    0 |     1 |      0 |      0 |    0 |          0 |
+|     u_slicer                                                   |       ct_L2_mseo_mdo_formatter_bit_slicer |       4015 |       4015 |       0 |    0 |  1408 |      0 |      0 |    0 |          0 |
+|       genMdo6.u_slicer                                         |  ct_L2_mseo_mdo_formatter_bit_slicer_mdo6 |       4015 |       4015 |       0 |    0 |  1408 |      0 |      0 |    0 |          0 |
+|   genNtrace.genNexusFormat.nexus_formatter_inst                |                     ct_L2_nexus_formatter |        162 |        162 |       0 |    0 |  1304 |      0 |      0 |    0 |          0 |
+|   genNtrace.msg_gen_inst                                       |                             ct_L2_msg_gen |       3420 |       3036 |     384 |    0 |   762 |      0 |      0 |    0 |          0 |
+|   preproc_inst                                                 |                            ct_L23_preproc |       9576 |       8774 |     320 |  482 |  7466 |      8 |      3 |    0 |         16 |
+|     (preproc_inst)                                             |                            ct_L23_preproc |          4 |          2 |       0 |    2 |     9 |      0 |      0 |    0 |          0 |
+|     atb_syncreq_diag_cdc_inst                                  |                                signal_cdc |          0 |          0 |       0 |    0 |     2 |      0 |      0 |    0 |          0 |
+|     cf_inst                                                    |                         ct_L23_preproc_cf |          0 |          0 |       0 |    0 |     1 |      0 |      0 |    0 |          0 |
+|     composer_axis_inst                                         |              ct_L23_preproc_composer_axis |          0 |          0 |       0 |    0 |   104 |      0 |      0 |    0 |          0 |
+|     composer_etip_inst                                         |              ct_L23_preproc_composer_etip |       4235 |       4235 |       0 |    0 |  4227 |      8 |      3 |    0 |         16 |
+|       (composer_etip_inst)                                     |              ct_L23_preproc_composer_etip |        990 |        990 |       0 |    0 |  2796 |      0 |      0 |    0 |         16 |
+|       atb_afvalid_ack_lock_fsm                                 |                    signal_ack_lock_fsm_41 |          9 |          9 |       0 |    0 |     5 |      0 |      0 |    0 |          0 |
+|       genEtipSerial.etip_cvs_cdc_fifo                          |                             cvs_cdc_fifo2 |       1384 |       1384 |       0 |    0 |  1279 |      8 |      2 |    0 |          0 |
+|       genEtipSerial.etip_ovf_injector                          |                              ovf_injector |       1598 |       1598 |       0 |    0 |    38 |      0 |      0 |    0 |          0 |
+|       genNextIaddrFifo2clk.next_iaddr_fifo                     |             fifo2clk_fwft__parameterized0 |        254 |        254 |       0 |    0 |   109 |      0 |      1 |    0 |          0 |
+|     df_inst                                                    |                         ct_L23_preproc_df |          0 |          0 |       0 |    0 |     2 |      0 |      0 |    0 |          0 |
+|     genAct.act_cap_inst                                        |                    ct_L23_preproc_act_cap |         55 |         22 |       0 |   33 |    66 |      0 |      0 |    0 |          0 |
+|     genAct.act_proc_inst                                       |                   ct_L23_preproc_act_proc |       1113 |       1113 |       0 |    0 |    51 |      0 |      0 |    0 |          0 |
+|     genAct.act_st_inst                                         |                     ct_L23_preproc_act_st |        721 |        369 |     160 |  192 |  1084 |      0 |      0 |    0 |          0 |
+|       (genAct.act_st_inst)                                     |                     ct_L23_preproc_act_st |         55 |         55 |       0 |    0 |    33 |      0 |      0 |    0 |          0 |
+|       vector_binary_search_inst                                |                 vector_binary_search_2clk |        666 |        314 |     160 |  192 |  1051 |      0 |      0 |    0 |          0 |
+|     genCompFilters.comp_filters_inst                           |               ct_L23_preproc_comp_filters |       1141 |       1139 |       0 |    2 |   494 |      0 |      0 |    0 |          0 |
+|       (genCompFilters.comp_filters_inst)                       |               ct_L23_preproc_comp_filters |         94 |         92 |       0 |    2 |   174 |      0 |      0 |    0 |          0 |
+|       genblk1[0].cnt_ecause_inst                               |                   counter__parameterized0 |         34 |         34 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[0].cnt_intr_inst                                 |                   counter__parameterized1 |         33 |         33 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[10].cnt_ecause_inst                              |                 counter__parameterized0_6 |         34 |         34 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[10].cnt_intr_inst                                |                 counter__parameterized1_7 |         32 |         32 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[11].cnt_ecause_inst                              |                 counter__parameterized0_8 |         34 |         34 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[11].cnt_intr_inst                                |                 counter__parameterized1_9 |         32 |         32 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[12].cnt_ecause_inst                              |                counter__parameterized0_10 |         33 |         33 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[12].cnt_intr_inst                                |                counter__parameterized1_11 |         32 |         32 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[13].cnt_ecause_inst                              |                counter__parameterized0_12 |         33 |         33 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[13].cnt_intr_inst                                |                counter__parameterized1_13 |         32 |         32 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[14].cnt_ecause_inst                              |                counter__parameterized0_14 |         33 |         33 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[14].cnt_intr_inst                                |                counter__parameterized1_15 |         32 |         32 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[15].cnt_ecause_inst                              |                counter__parameterized0_16 |         33 |         33 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[15].cnt_intr_inst                                |                counter__parameterized1_17 |         32 |         32 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[1].cnt_ecause_inst                               |                counter__parameterized0_18 |         33 |         33 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[1].cnt_intr_inst                                 |                counter__parameterized1_19 |         32 |         32 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[2].cnt_ecause_inst                               |                counter__parameterized0_20 |         33 |         33 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[2].cnt_intr_inst                                 |                counter__parameterized1_21 |         32 |         32 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[3].cnt_ecause_inst                               |                counter__parameterized0_22 |         34 |         34 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[3].cnt_intr_inst                                 |                counter__parameterized1_23 |         32 |         32 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[4].cnt_ecause_inst                               |                counter__parameterized0_24 |         34 |         34 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[4].cnt_intr_inst                                 |                counter__parameterized1_25 |         32 |         32 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[5].cnt_ecause_inst                               |                counter__parameterized0_26 |         33 |         33 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[5].cnt_intr_inst                                 |                counter__parameterized1_27 |         32 |         32 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[6].cnt_ecause_inst                               |                counter__parameterized0_28 |         33 |         33 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[6].cnt_intr_inst                                 |                counter__parameterized1_29 |         32 |         32 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[7].cnt_ecause_inst                               |                counter__parameterized0_30 |         34 |         34 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[7].cnt_intr_inst                                 |                counter__parameterized1_31 |         32 |         32 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[8].cnt_ecause_inst                               |                counter__parameterized0_32 |         33 |         33 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[8].cnt_intr_inst                                 |                counter__parameterized1_33 |         32 |         32 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[9].cnt_ecause_inst                               |                counter__parameterized0_34 |         33 |         33 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genblk1[9].cnt_intr_inst                                 |                counter__parameterized1_35 |         32 |         32 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|     genDfRange.df_range_inst                                   |                   ct_L23_preproc_df_range |        495 |        239 |     160 |   96 |   797 |      0 |      0 |    0 |          0 |
+|       (genDfRange.df_range_inst)                               |                   ct_L23_preproc_df_range |          0 |          0 |       0 |    0 |     2 |      0 |      0 |    0 |          0 |
+|       vbs_inst                                                 | vector_binary_search_2clk__parameterized0 |        495 |        239 |     160 |   96 |   795 |      0 |      0 |    0 |          0 |
+|     genTs.ts_inst                                              |                         ct_L23_preproc_ts |          7 |          7 |       0 |    0 |    70 |      0 |      0 |    0 |          0 |
+|       (genTs.ts_inst)                                          |                         ct_L23_preproc_ts |          4 |          4 |       0 |    0 |     6 |      0 |      0 |    0 |          0 |
+|       cnt_ts_inst                                              |                                   counter |          3 |          3 |       0 |    0 |    64 |      0 |      0 |    0 |          0 |
+|     sync_inst                                                  |                       ct_L23_preproc_sync |        164 |        164 |       0 |    0 |   224 |      0 |      0 |    0 |          0 |
+|       (sync_inst)                                              |                       ct_L23_preproc_sync |         25 |         25 |       0 |    0 |    81 |      0 |      0 |    0 |          0 |
+|       cnt_tipcycles_inst                                       |                   counter__parameterized2 |         27 |         27 |       0 |    0 |    22 |      0 |      0 |    0 |          0 |
+|       cnt_tiphalfword_inst                                     |                   counter__parameterized4 |         27 |         27 |       0 |    0 |    22 |      0 |      0 |    0 |          0 |
+|       cnt_tipinstructions_inst                                 |                   counter__parameterized3 |         26 |         26 |       0 |    0 |    22 |      0 |      0 |    0 |          0 |
+|       cnt_wall_clk_clr_cdc_inst                                |               vector_cdc2__parameterized3 |          5 |          5 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       cnt_wall_clk_overflow_cdc_inst                           |             vector_cdc2__parameterized3_0 |          4 |          4 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       counter_wallclk_inst                                     |                   counter__parameterized5 |         25 |         25 |       0 |    0 |    22 |      0 |      0 |    0 |          0 |
+|       do_sync_ack_lock_fsm                                     |                       signal_ack_lock_fsm |          9 |          9 |       0 |    0 |     5 |      0 |      0 |    0 |          0 |
+|       genQuotaCdc.quota_byte_ovf_cdc_inst                      |             vector_cdc2__parameterized3_1 |          5 |          5 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genQuotaCdc.quota_cnt_clr_cdc_inst                       |             vector_cdc2__parameterized3_2 |          4 |          4 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|       genQuotaCdc.quota_msg_ovf_cdc_inst                       |             vector_cdc2__parameterized3_3 |          7 |          7 |       0 |    0 |    10 |      0 |      0 |    0 |          0 |
+|     tip_delay_inst                                             |                  ct_L23_preproc_tip_delay |       1641 |       1484 |       0 |  157 |   335 |      0 |      0 |    0 |          0 |
++----------------------------------------------------------------+-------------------------------------------+------------+------------+---------+------+-------+--------+--------+------+------------+
+
+

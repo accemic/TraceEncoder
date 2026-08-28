@@ -1,0 +1,1052 @@
+{
+ "scenario": "tgc5b2_axis_wp",
+ "scale": 2.4,
+ "blocks": [
+  {
+   "id": "cpu0",
+   "x": 39.36,
+   "y": 39.36,
+   "w": 162.61,
+   "h": 118.11,
+   "cls": "blk k-core cpu",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "TGC5B core 0",
+     "px": 9.41481,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "sub",
+     "text": "RV32IMC · 75 MHz design · 64 KiB @ 0xA010_0000",
+     "px": 9.41481,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "stat",
+     "text": "core0_run",
+     "px": 9.41481,
+     "weight": "400",
+     "color": "rgb(228, 233, 241)",
+     "family": "Consolas"
+    }
+   ]
+  },
+  {
+   "id": "tip0",
+   "x": 224.23,
+   "y": 78.73,
+   "w": 78.73,
+   "h": 39.36,
+   "cls": "blk k-ingress",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "H2E->TIP",
+     "px": 9.41481,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "preproc0",
+   "x": 340.64,
+   "y": 78.73,
+   "w": 71.89,
+   "h": 39.36,
+   "cls": "blk k-ntrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "Preproc",
+     "px": 9.41481,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "fifo0",
+   "x": 429.66,
+   "y": 71.89,
+   "w": 71.89,
+   "h": 53.06,
+   "cls": "blk k-ntrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "FIFO",
+     "px": 9.41481,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "cnt",
+     "text": "max 0 ovf 0",
+     "px": 8.55892,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Consolas"
+    }
+   ]
+  },
+  {
+   "id": "msggen0",
+   "x": 518.66,
+   "y": 78.73,
+   "w": 71.89,
+   "h": 39.36,
+   "cls": "blk k-ntrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "MsgGen",
+     "px": 9.41481,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "nexusfmt0",
+   "x": 607.67,
+   "y": 78.73,
+   "w": 78.73,
+   "h": 39.36,
+   "cls": "blk k-ntrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "Nexus Fmt",
+     "px": 9.41481,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "cnt",
+     "text": "SRC off",
+     "px": 8.55892,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Consolas"
+    }
+   ]
+  },
+  {
+   "id": "mseomdo0",
+   "x": 703.53,
+   "y": 78.73,
+   "w": 85.58,
+   "h": 39.36,
+   "cls": "blk k-ntrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "MSEO/MDO",
+     "px": 9.41481,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "wpshim0",
+   "x": 340.64,
+   "y": 146.34,
+   "w": 130.09,
+   "h": 53.06,
+   "cls": "blk k-side",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "WP shim",
+     "px": 9.41481,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "cnt",
+     "text": "drop – ovf –",
+     "px": 8.55892,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Consolas"
+    }
+   ]
+  },
+  {
+   "id": "wpfifo0",
+   "x": 535.78,
+   "y": 146.34,
+   "w": 99.28,
+   "h": 53.06,
+   "cls": "blk k-side",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "WP FIFO",
+     "px": 9.41481,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "cnt",
+     "text": "1024 records rec/s –",
+     "px": 8.55892,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Consolas"
+    }
+   ]
+  },
+  {
+   "id": "kriaps0",
+   "x": 698.41,
+   "y": 146.34,
+   "w": 94.14,
+   "h": 53.06,
+   "cls": "blk k-side",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "Kria PS",
+     "px": 9.41481,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "cpu1",
+   "x": 39.36,
+   "y": 222.52,
+   "w": 162.61,
+   "h": 118.11,
+   "cls": "blk k-core cpu",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "TGC5B core 1",
+     "px": 9.41481,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "sub",
+     "text": "RV32IMC · 75 MHz design · 64 KiB @ 0xA008_0000",
+     "px": 9.41481,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "stat",
+     "text": "core1_run",
+     "px": 9.41481,
+     "weight": "400",
+     "color": "rgb(228, 233, 241)",
+     "family": "Consolas"
+    },
+    {
+     "sel": "hint",
+     "text": "Own run bit core1_run — CONTROL b0 releases all cores at once",
+     "px": 9.5,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "tip1",
+   "x": 224.23,
+   "y": 261.89,
+   "w": 78.73,
+   "h": 39.36,
+   "cls": "blk k-ingress",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "H2E->TIP",
+     "px": 9.41481,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "preproc1",
+   "x": 340.64,
+   "y": 261.89,
+   "w": 71.89,
+   "h": 39.36,
+   "cls": "blk k-ntrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "Preproc",
+     "px": 9.41481,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "fifo1",
+   "x": 429.66,
+   "y": 255.05,
+   "w": 71.89,
+   "h": 53.06,
+   "cls": "blk k-ntrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "FIFO",
+     "px": 9.41481,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "cnt",
+     "text": "max 0 ovf 0",
+     "px": 8.55892,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Consolas"
+    }
+   ]
+  },
+  {
+   "id": "msggen1",
+   "x": 518.66,
+   "y": 261.89,
+   "w": 71.89,
+   "h": 39.36,
+   "cls": "blk k-ntrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "MsgGen",
+     "px": 9.41481,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "nexusfmt1",
+   "x": 607.67,
+   "y": 261.89,
+   "w": 78.73,
+   "h": 39.36,
+   "cls": "blk k-ntrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "Nexus Fmt",
+     "px": 9.41481,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "cnt",
+     "text": "SRC 0",
+     "px": 8.55892,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Consolas"
+    }
+   ]
+  },
+  {
+   "id": "mseomdo1",
+   "x": 703.53,
+   "y": 261.89,
+   "w": 85.58,
+   "h": 39.36,
+   "cls": "blk k-ntrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "MSEO/MDO",
+     "px": 9.41481,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "wpshim1",
+   "x": 340.64,
+   "y": 329.52,
+   "w": 130.09,
+   "h": 53.06,
+   "cls": "blk k-side",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "WP shim",
+     "px": 9.41481,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "cnt",
+     "text": "drop – ovf –",
+     "px": 8.55892,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Consolas"
+    }
+   ]
+  },
+  {
+   "id": "wpfifo1",
+   "x": 535.78,
+   "y": 329.52,
+   "w": 99.28,
+   "h": 53.06,
+   "cls": "blk k-side",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "WP FIFO",
+     "px": 9.41481,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "cnt",
+     "text": "1024 records rec/s –",
+     "px": 8.55892,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Consolas"
+    }
+   ]
+  },
+  {
+   "id": "kriaps1",
+   "x": 698.41,
+   "y": 329.52,
+   "w": 94.14,
+   "h": 53.06,
+   "cls": "blk k-side",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "Kria PS",
+     "px": 9.41481,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "funnel",
+   "x": 826.78,
+   "y": 57.34,
+   "w": 66.75,
+   "h": 265.31,
+   "cls": "blk k-merge",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "Trace Funnel",
+     "px": 9.41481,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "sub",
+     "text": "prio-arb · msg-atomic MDO=6",
+     "px": 9.41481,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "cnt",
+     "text": "prio —",
+     "px": 8.55892,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Consolas"
+    }
+   ]
+  },
+  {
+   "id": "ddr",
+   "x": 939.77,
+   "y": 103.56,
+   "w": 95.86,
+   "h": 46.2,
+   "cls": "blk k-sink",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "DDR4",
+     "px": 9.41481,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "cnt",
+     "text": "0 B disabled · drops 0",
+     "px": 8.55892,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Consolas"
+    }
+   ]
+  },
+  {
+   "id": "uram",
+   "x": 939.77,
+   "y": 166.89,
+   "w": 95.86,
+   "h": 46.2,
+   "cls": "blk k-sink",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "URAM",
+     "px": 9.41481,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "cnt",
+     "text": "0/1024 KiB ring",
+     "px": 8.55892,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Consolas"
+    }
+   ]
+  },
+  {
+   "id": "pib",
+   "x": 939.77,
+   "y": 230.22,
+   "w": 95.86,
+   "h": 46.2,
+   "cls": "blk k-sink",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "PIB",
+     "px": 9.41481,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "cnt",
+     "text": "disabled drops —",
+     "px": 8.55892,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Consolas"
+    }
+   ]
+  }
+ ],
+ "containers": [
+  {
+   "id": "ct0",
+   "x": 323.52,
+   "y": 57.34,
+   "w": 482.72,
+   "h": 82.16,
+   "text": "CEDARtools.TraceEncoder (CTTE) · ENC0 · TGC5B core 0",
+   "px": 10.2707
+  },
+  {
+   "id": "ct1",
+   "x": 323.52,
+   "y": 240.5,
+   "w": 482.72,
+   "h": 82.16,
+   "text": "CEDARtools.TraceEncoder (CTTE) · ENC1 · TGC5B core 1",
+   "px": 10.2707
+  }
+ ],
+ "edges": [
+  {
+   "s": "cpu0",
+   "t": "tip0",
+   "d": "M220,99 L236.4,99",
+   "pts": [
+    [
+     220,
+     99
+    ],
+    [
+     236.4,
+     99
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "tip0",
+   "t": "preproc0",
+   "d": "M338,99 L372.4,99",
+   "pts": [
+    [
+     338,
+     99
+    ],
+    [
+     372.4,
+     99
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "preproc0",
+   "t": "fifo0",
+   "d": "M466,99 L476.4,99",
+   "pts": [
+    [
+     466,
+     99
+    ],
+    [
+     476.4,
+     99
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "fifo0",
+   "t": "msggen0",
+   "d": "M570,99 L580.4,99",
+   "pts": [
+    [
+     570,
+     99
+    ],
+    [
+     580.4,
+     99
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "msggen0",
+   "t": "nexusfmt0",
+   "d": "M674,99 L684.4,99",
+   "pts": [
+    [
+     674,
+     99
+    ],
+    [
+     684.4,
+     99
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "nexusfmt0",
+   "t": "mseomdo0",
+   "d": "M786,99 L796.4,99",
+   "pts": [
+    [
+     786,
+     99
+    ],
+    [
+     796.4,
+     99
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "preproc0",
+   "t": "wpshim0",
+   "d": "M424,122 L424,145.4",
+   "pts": [
+    [
+     424,
+     122
+    ],
+    [
+     424,
+     145.4
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "wpshim0",
+   "t": "wpfifo0",
+   "d": "M534,186 L600.4,186",
+   "pts": [
+    [
+     534,
+     186
+    ],
+    [
+     600.4,
+     186
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "wpfifo0",
+   "t": "kriaps0",
+   "d": "M726,186 L790.4,186",
+   "pts": [
+    [
+     726,
+     186
+    ],
+    [
+     790.4,
+     186
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "cpu1",
+   "t": "tip1",
+   "d": "M220,313 L236.4,313",
+   "pts": [
+    [
+     220,
+     313
+    ],
+    [
+     236.4,
+     313
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "tip1",
+   "t": "preproc1",
+   "d": "M338,313 L372.4,313",
+   "pts": [
+    [
+     338,
+     313
+    ],
+    [
+     372.4,
+     313
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "preproc1",
+   "t": "fifo1",
+   "d": "M466,313 L476.4,313",
+   "pts": [
+    [
+     466,
+     313
+    ],
+    [
+     476.4,
+     313
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "fifo1",
+   "t": "msggen1",
+   "d": "M570,313 L580.4,313",
+   "pts": [
+    [
+     570,
+     313
+    ],
+    [
+     580.4,
+     313
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "msggen1",
+   "t": "nexusfmt1",
+   "d": "M674,313 L684.4,313",
+   "pts": [
+    [
+     674,
+     313
+    ],
+    [
+     684.4,
+     313
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "nexusfmt1",
+   "t": "mseomdo1",
+   "d": "M786,313 L796.4,313",
+   "pts": [
+    [
+     786,
+     313
+    ],
+    [
+     796.4,
+     313
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "preproc1",
+   "t": "wpshim1",
+   "d": "M424,336 L424,359.4",
+   "pts": [
+    [
+     424,
+     336
+    ],
+    [
+     424,
+     359.4
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "wpshim1",
+   "t": "wpfifo1",
+   "d": "M534,400 L600.4,400",
+   "pts": [
+    [
+     534,
+     400
+    ],
+    [
+     600.4,
+     400
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "wpfifo1",
+   "t": "kriaps1",
+   "d": "M726,400 L790.4,400",
+   "pts": [
+    [
+     726,
+     400
+    ],
+    [
+     790.4,
+     400
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "mseomdo0",
+   "t": "funnel",
+   "d": "M906,99 L940.4,99",
+   "pts": [
+    [
+     906,
+     99
+    ],
+    [
+     940.4,
+     99
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "mseomdo1",
+   "t": "funnel",
+   "d": "M906,313 L940.4,313",
+   "pts": [
+    [
+     906,
+     313
+    ],
+    [
+     940.4,
+     313
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "funnel",
+   "t": "ddr",
+   "d": "M1028,206 L1055,206 L1055,132 L1072.4,132",
+   "pts": [
+    [
+     1028,
+     206
+    ],
+    [
+     1055,
+     206
+    ],
+    [
+     1055,
+     132
+    ],
+    [
+     1072.4,
+     132
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "funnel",
+   "t": "uram",
+   "d": "M1028,206 L1072.4,206",
+   "pts": [
+    [
+     1028,
+     206
+    ],
+    [
+     1072.4,
+     206
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "funnel",
+   "t": "pib",
+   "d": "M1028,206 L1055,206 L1055,280 L1072.4,280",
+   "pts": [
+    [
+     1028,
+     206
+    ],
+    [
+     1055,
+     206
+    ],
+    [
+     1055,
+     280
+    ],
+    [
+     1072.4,
+     280
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  }
+ ],
+ "page": {
+  "innerHeight": 1005,
+  "scrollHeight": 1012,
+  "innerWidth": 1670,
+  "scrollWidth": 1655,
+  "overflowX": -15,
+  "overflow": 7,
+  "bodyH": 1012,
+  "main": {
+   "top": 52,
+   "bottom": 1012,
+   "h": 960
+  },
+  "con": {
+   "top": 0,
+   "bottom": 0,
+   "h": 0
+  },
+  "conwrap": {
+   "top": 0,
+   "bottom": 0,
+   "h": 0
+  },
+  "panel": {
+   "top": 52,
+   "bottom": 1012,
+   "h": 960,
+   "scrollH": 960,
+   "innerOverflow": 0
+  },
+  "pipe": {
+   "top": 152,
+   "bottom": 574,
+   "h": 422
+  },
+  "conStyleH": "246.578px"
+ },
+ "stage": {
+  "w": 1075,
+  "h": 422
+ }
+}

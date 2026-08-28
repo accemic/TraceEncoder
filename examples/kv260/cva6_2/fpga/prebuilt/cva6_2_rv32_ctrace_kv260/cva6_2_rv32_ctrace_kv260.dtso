@@ -1,0 +1,24 @@
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+//
+// Device-tree overlay TEMPLATE for the KV260 example apps. cva6_2_rv32_ctrace_kv260 is filled
+// in by package_kv260_app.py; the result loads with `xmutil loadapp <app>`
+// and programs the PL with the bitstream named below. Every example SoC is
+// controlled purely through physical-address reads/writes (devmem) at
+// 0xA000_0000, so no kernel driver / device node is required here.
+//
+// IMPORTANT for the Linux-payload examples (cva6_linux*, rocket*): the
+// reserved-memory window does NOT come from this overlay but from the BOOT
+// devicetree (ctrace_resmem.dtso next to this file). A runtime xmutil
+// overlay cannot reserve kernel RAM -- the kernel would long have handed
+// the region out, and the soft core would boot into foreign memory.
+//
+// Compile (on the board; dtc lives there, not on the workstation):
+//   dtc -@ -I dts -O dtb -o cva6_2_rv32_ctrace_kv260.dtbo cva6_2_rv32_ctrace_kv260.dtso
+
+/dts-v1/;
+/plugin/;
+
+&fpga_full {
+	firmware-name = "cva6_2_rv32_ctrace_kv260.bit.bin";
+};

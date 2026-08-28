@@ -1,0 +1,34 @@
+# REF_FINAL manifest -- minted 2026-08-13 17:17:18, HEAD c2a0bdfb13
+# reason     : M0 merge 22ee86a3 (aweiss/axis-wp-c0b -> gold-standard): C0b deepens the ACT alignment pipes (PREPROC_DELAY_MAX 20->44, 1023-slot indirect WP table) -- 6 of 31 artefacts drift benignly vs the a04b37b family (5x wait_cycles tail truncation, 1x ENAB.4 composition-time sampling; both mechanisms proven, ctrace_mbv docs/evidence/C0b_merge); P0-02 InstSyncMax reset 0->6 (period 16 -> 1024) rides along at the merge HEAD. No CAPS bit moves (word stays 0x7fffbf, width 23).
+# supersedes : <none -- first mint>
+# caps-value : 0x7fffbf (width 24) -- a build emitting a DIFFERENT CAPS word can never reproduce this family
+# previous   : bld/r2_final_manifest.prev.txt / bld/r2_final_mint.prev.log
+c98ea7ff1dbfb0ef3f5c97c663b23366  branch_predict_tb/atb_off.bin
+743c0ace31130aab9c56fa87983ac17a  branch_predict_tb/atb_on.bin
+6b99594d8bfbe6124411bca56e621fb0  config_msg_tb/atb_bp.bin
+7f1732cb6507d26f72d728954a5eccc0  config_msg_tb/atb_bpneg.bin
+4a50f19697d9d61593cb20b97615cd5a  config_msg_tb/atb_none.bin
+6b496dcce4e07acf7fe4a93e8bac74e5  config_msg_tb/atb_once.bin
+f7ed0d5c4bdc4db6be34a2cd2377cb08  config_msg_tb/atb_onsync.bin
+c2c3953a14d5a0bd32229cacf46f880c  debug_events_tb/atb_dbg.bin
+6b768b50f72bd079e27443bd14dbce52  ibhs_tb/atb_off.bin
+719f16ca21e73d2cabfb2a874263c683  ibhs_tb/atb_on.bin
+2ae2a6d556cc742e842bbbd1ceb28001  implicit_return_tb/atb_nots.bin
+f8d0ed5ac0b547cbf142bd075ff70562  implicit_return_tb/atb_off.bin
+a992c06cde932bbb1bdf945c42fe1a81  implicit_return_tb/atb_on.bin
+f10545f8f87019713d6cdc0c33e0399f  jtc_tb/atb_off.bin
+b6cf912a02847e18d535a754bd09717d  jtc_tb/atb_on.bin
+c7c7c28167561d4a92b97ab990acef3e  repeat_branch_tb/atb_off.bin
+5ce07cfaff7c9895225e0ac657c967b5  repeat_branch_tb/atb_on.bin
+bf99dcea66e9fdfa09b52fb0b6eb25ac  repeat_instr_tb/atb_off.bin
+0dfb2f2c10289c9d83345811cd751aed  repeat_instr_tb/atb_on.bin
+66d3767cd1fb56e61447fa48bdb913f5  repeat_instr_tb/atb_rh.bin
+6d50d417d7593669588488abd4d7cb79  repeated_history_tb/atb_off.bin
+db1bc76f783a4f71db5cbcbc55bf78b5  robustness_tb/atb_all.bin
+b0cb9ca8668a4a7605bcd5c85c5aecc2  robustness_tb/atb_bpf.bin
+0bd2af552985bc482a8a8634f97f6ab0  robustness_tb/atb_hist.bin
+315cd1e433843365bd935970a5e4eee9  robustness_tb/atb_off.bin
+c3029e68538a6729ea302645138a9c68  trig_seq_own_tb/atb_off.bin
+76b23a6117729f4add53b2747618595f  trig_seq_own_tb/atb_own.bin
+f7b265fae16e8bbe4dcc413052dcfa3d  trig_seq_own_tb/atb_seq.bin
+70ec63a956fd995ab83928e9646193d3  trig_seq_own_tb/atb_trig.bin

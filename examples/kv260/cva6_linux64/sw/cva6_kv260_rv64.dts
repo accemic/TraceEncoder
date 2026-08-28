@@ -1,0 +1,150 @@
+/dts-v1/;
+
+/*
+ * SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+ * SPDX-License-Identifier: ISC
+ *
+ * cva6_kv260_rv64.dts -- devicetree of the RV64 CVA6 Linux machine in the
+ * KV260's PL. ADDITIVE variant alongside cva6_kv260.dts (in
+ * ../../cva6_linux/sw/); the RV32 version stays unchanged.
+ *
+ * Describes EXACTLY what cva6_linux64_soc_top implements with the target
+ * core cv64a6_imac_sv39_ctrace -- nothing more:
+ *   1 hart (rv64imac_zicsr_zifencei, Sv39), CLINT @0x0200_0000,
+ *   8250 console @0x1000_0000 (reg-shift 2, 32 bit), RAM @0x6400_0000 +192 MiB.
+ *
+ * Deltas against cva6_kv260.dts -- each derived from delta D6
+ * (third_party/cva6_ref/core/include/cv64a6_imac_sv39_ctrace_config_pkg.sv):
+ *   - riscv,isa "rv64imac_zicsr_zifencei" instead of "rv32ima_zicsr_zifencei":
+ *     XLEN 64, C present, F/D absent.
+ *   - mmu-type "riscv,sv39" instead of "riscv,sv32" (MmuPresent = 1,
+ *     configuration name ..._sv39_...).
+ *   - bootargs extended with "no4lvl" (see below).
+ *
+ * Deliberately carried over UNCHANGED (no delta without a reason):
+ *   - #address-cells/#size-cells = <1>. Every address of this SoC is below
+ *     4 GiB; the DT parsers of OpenSBI and Linux read the cell count
+ *     generically. The 1-cell form is board-proven (boot 2026-07-27) -- a
+ *     switch to 2/2 would be pure cosmetics with a real risk of a silent
+ *     boot death.
+ *   - memory size 192 MiB, addresses, clock values, console path.
+ *
+ * Deliberately NOT included:
+ *   - PLIC. There is none. The console is pure polling (the peripheral
+ *     reports THRE/TEMT permanently, the PS reads out the ring). The
+ *     serial node therefore also carries no "interrupts" property.
+ *   - Anything with F/D. The toolchain builds rv64imac without an FPU; a
+ *     wrong isa string here would not fix that, only hide it.
+ *   - Zcb/Zicond/Svnapot/Zicntr/Zihpm, even though the core has them. The
+ *     kernel enables alternatives based on riscv,isa-extensions; what is
+ *     not listed does not get patched in. Using less than the core can do
+ *     is always safe, more never is.
+ *
+ * "no4lvl" in the bootargs forces Sv39: Linux 6.12 no longer has a Kconfig
+ * switch for this, but probes Sv57 -> Sv48 -> Sv39 at runtime
+ * (arch/riscv/mm/init.c, set_satp_mode) -- the probe writes satp with an
+ * unimplemented mode number and reads it back. "no4lvl" is read directly
+ * from this DTB BEFORE any paging
+ * (__pi_set_satp_mode_from_cmdline, arch/riscv/kernel/pi/cmdline_early.c:43),
+ * disables L5 and L4 and returns immediately -- the read-back attempt is
+ * thereby skipped entirely. This is not an optimization detail: the core
+ * implements only Sv39, and a WARL behavior of satp that does not exactly
+ * match the probe's expectation would end the boot without console output.
+ *
+ * The console runs via earlycon (uart8250,mmio32) instead of the regular
+ * 8250 driver: earlycon writes directly into THR and polls LSR bit 5 --
+ * exactly the feature set our peripheral has. The regular driver would run
+ * an 8250 autoconfiguration (loopback via MCR, FIFO detection via FCR/IIR)
+ * that our minimal peripheral does not serve. keep_bootcon keeps earlycon
+ * active in case no regular port gets registered -- otherwise the boot
+ * would go silent exactly when it gets interesting.
+ */
+
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+	compatible = "accemic,cva6-kv260";
+	model = "Accemic CVA6 RV64 CTTE Demonstrator (KV260 PL)";
+
+	chosen {
+		bootargs = "earlycon=uart8250,mmio32,0x10000000 keep_bootcon console=ttyS0 no4lvl rdinit=/sbin/init";
+		stdout-path = "/soc/serial@10000000";
+	};
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		/* CLINT clock: cva6_linux64_soc_top divides CLK_HZ down to TICK_HZ = 1 MHz */
+		timebase-frequency = <1000000>;
+
+		/* reg == mhartid. The single-core SoC sets HART_ID=0 in
+		 * cva6_soc64_synth_wrap. This is not a cosmetic detail: with the
+		 * hart ID 2 inherited from a three-core bring-up, OpenSBI only
+		 * ever jumped into _start_hang (wfi, no console character at
+		 * all), and even with a matching reg=<2> it then failed at
+		 * sbi_hsm_hart_start_finish ("hart is in invalid state"). Both
+		 * diagnosed on the board -- the first finding came EXCLUSIVELY
+		 * from the C-Trace capture, because the console stayed silent
+		 * (2026-07-27). */
+		cpu@0 {
+			device_type = "cpu";
+			reg = <0>;
+			status = "okay";
+			compatible = "riscv";
+			riscv,isa = "rv64imac_zicsr_zifencei";
+			riscv,isa-base = "rv64i";
+			riscv,isa-extensions = "i", "m", "a", "c", "zicsr", "zifencei";
+			mmu-type = "riscv,sv39";
+			clock-frequency = <75000000>;
+
+			cpu0_intc: interrupt-controller {
+				#interrupt-cells = <1>;
+				compatible = "riscv,cpu-intc";
+				interrupt-controller;
+			};
+		};
+	};
+
+	memory@64000000 {
+		device_type = "memory";
+		/* 0x6400_0000 + 192 MiB -- second half of the reserved PL window
+		 * v3; the first 64 MiB starting at 0x6000_0000 belong to the
+		 * trace sink.
+		 *
+		 * Correspondence rule (third_party/cva6_ref/CVA6_PIN.md, D5
+		 * addendum): this size == ExecuteRegionLength == DRAM_SIZE in
+		 * cva6_linux64_soc_top == the reserved-memory window. D6 carries
+		 * ExecuteRegionLength 0x0C00_0000 -- matches.
+		 * NOTE for the bitstream stage: D6 currently also sets
+		 * CachedRegionLength to 192 MiB. The board-proven conservative
+		 * state is 64 MiB (0x0400_0000) -- cacheable memory above
+		 * 0x6800_0000 reproducibly correlated with a board failure
+		 * within ~5 s. This concerns the RTL configuration, NOT this
+		 * memory node: the guest is allowed the full 192 MiB, just
+		 * uncached above 64 MiB. */
+		reg = <0x64000000 0x0C000000>;
+	};
+
+	soc {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "simple-bus";
+		ranges;
+
+		clint@2000000 {
+			compatible = "sifive,clint0", "riscv,clint0";
+			reg = <0x02000000 0x00010000>;
+			interrupts-extended = <&cpu0_intc 3>, <&cpu0_intc 7>;
+		};
+
+		serial@10000000 {
+			compatible = "ns16550a";
+			reg = <0x10000000 0x00000100>;
+			reg-shift = <2>;
+			reg-io-width = <4>;
+			clock-frequency = <75000000>;
+			current-speed = <115200>;
+			/* no "interrupts": there is no interrupt controller */
+		};
+	};
+};

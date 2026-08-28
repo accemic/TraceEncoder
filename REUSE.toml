@@ -6,60 +6,377 @@
 
 version = 1
 SPDX-PackageName = "CEDARtools.TraceEncoder"
+SPDX-PackageVersion = "1.0.0"
 SPDX-PackageSupplier = "Accemic Technologies GmbH <info@accemic.com>"
 SPDX-PackageDownloadLocation = "https://github.com/accemic/TraceEncoder"
 
 [[annotations]]
-path = ["VERSION", "**/.gitkeep"]
+path = ["VERSION", "**/.gitkeep", "**/.gitignore"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
 SPDX-License-Identifier = "ISC"
 
-# Vendored NexRv reference decoder binary. Built from the CEDARtools.TraceEncoder port
-# at https://github.com/accemic/NexRv-for-C-Trace, derived from the IAR
-# Systems NexRv tool and licensed under ISC; Accemic's modifications are
-# likewise ISC. The binary carries no in-file SPDX header, so the
-# copyright and license are recorded here.
-[[annotations]]
-path = "bin/NexRv"
-precedence = "aggregate"
-SPDX-FileCopyrightText = ["2020 IAR Systems AB", "2026 Accemic Technologies GmbH"]
-SPDX-License-Identifier = "ISC"
+# Verible lint rule files: a list of +rule / -rule lines with # comments.
+# They carry no SPDX header of their own, so the license is recorded here.
 
-# Verible lint rule files. The format is a bare list of +rule / -rule
-# lines and doesn't accept in-file comments without risking parser
-# rejection, so license info lives here.
 [[annotations]]
 path = "**/.rules.verible_lint"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
 SPDX-License-Identifier = "ISC"
 
-# Documentation images. PNG/SVG exports are binary/opaque and carry no
-# in-file header (the editable .drawio sources do). License info lives here.
+# Documentation images. Each `.drawio.png` IS its own editable source: the
+# draw.io XML rides in a PNG text chunk, so opening the PNG in draw.io recovers
+# the drawing. There is deliberately no sibling `.drawio` file -- two copies of
+# one drawing drift, and the guard scripts/check_drawio_embedded.py (part of
+# `make lint`) keeps it that way. No SPDX header survives a draw.io round-trip
+# in any of these formats, so the license info lives here.
 [[annotations]]
 path = ["doc/images/*.png", "doc/images/*.svg"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
 SPDX-License-Identifier = "CC-BY-4.0"
 
-# Kria app manifest (JSON cannot carry an in-file SPDX comment).
+# The Reference Manual, rendered from its AsciiDoc sources (maintained in
+# Accemic's documentation repository) and shipped here as a PDF and a single
+# self-contained HTML file. Build products carry no SPDX header of their own,
+# and the legal chapter they render quotes SPDX expressions as text -- hence
+# "override": this block is their whole declaration, the file is not parsed.
 [[annotations]]
-path = "examples/tgc5b_soc/fpga/kv260/shell.json"
+path = ["doc/rm-ctte.pdf", "doc/rm-ctte.html"]
+precedence = "override"
+SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
+SPDX-License-Identifier = "CC-BY-4.0"
+
+# Reference vectors and regression corpora: byte-exact input and expected
+# data (trace captures, program descriptions, oracle PC streams, archived
+# decoder captures). They have no comment syntax that could carry a header.
+[[annotations]]
+path = ["tests/etrace/vectors/*", "tests/overflow/**/*.u32", "verification/corpus/*.tar.gz",
+        "examples/kv260/*/board/refs/*"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
-SPDX-License-Identifier = "ISC"
+SPDX-License-Identifier = "CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial"
+
+# Pre-built KV260 demo apps: the bitstream (`.bit.bin`), its device-tree
+# overlay, `shell.json`, the per-file `MANIFEST.sha256` and, for the Linux
+# demos, `BOARD_SETUP.txt` -- extracted verbatim from the board-gated bundle
+# series recorded in scripts/demo.pin. A bitstream is the built product of
+# the Hardware IP and carries its license; the third-party cores compiled
+# into it are licensed as stated in each example's README. The set is
+# frozen by its manifest, so nothing in it can take a header.
+[[annotations]]
+path = "examples/kv260/*/fpga/prebuilt/*/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
+SPDX-License-Identifier = "CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial"
+
+# Reference states of the register image (CAPS words and their derivation
+# table). Same class as the regression corpora above: byte-exact expected
+# data with no comment syntax that could carry a header.
+[[annotations]]
+path = ["verification/ref_final/*.txt", "verification/ref_final/*.tsv"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
+SPDX-License-Identifier = "CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial"
+
+# Gate evidence: run logs and Vivado utilization/timing reports of the
+# CTTE design, kept verbatim as the measurement record behind the gate
+# verdicts. They are machine output and are not edited after the run, so
+# they carry no in-file header; the copyright and license recorded here
+# cover Accemic's contribution (the design under measurement and the
+# measurement itself). The Vivado reports additionally carry the tool
+# vendor's banner in their first line, which stays untouched.
+[[annotations]]
+path = ["verification/evidence/**/*.log", "verification/evidence/**/*.rpt"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
+SPDX-License-Identifier = "CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial"
+
+# Vendored subset of the RISC-V trace specification's reference flow
+# (https://github.com/riscv-non-isa/riscv-trace-spec). The Python models
+# carry their own BSD-2-Clause headers; the two files below do not.
+[[annotations]]
+path = ["third_party/riscv-trace-spec-ref/README.md",
+        "third_party/riscv-trace-spec-ref/scripts/common/__init__.py"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2019-2021 Siemens"
+SPDX-License-Identifier = "BSD-2-Clause"
+
+# The upstream repository's own licence document, kept verbatim for
+# provenance and renamed from LICENSE: it carries the CC-BY-4.0 legal code,
+# which upstream applies to the trace SPECIFICATION -- not to the Python
+# models vendored next to it, which are BSD-2-Clause (see the README there).
+# Under the old name it read like the licence of this directory's code and
+# was skipped by `reuse` on top of that, so the contradiction stayed
+# invisible. The annotation below records the document's own origin.
+[[annotations]]
+path = "third_party/riscv-trace-spec-ref/UPSTREAM-SPEC-LICENSE-CC-BY-4.0.txt"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "Creative Commons Corporation"
+SPDX-License-Identifier = "CC-BY-4.0"
 
 # Prebuilt program artifacts for the TGC5B example SoC. Generated from the
 # hardware-IP-licensed prog/src (crt0.S + main.c, via prog/src/build.sh);
-# these data files (readmemh image, NexRv pcinfo, disassembly) carry no in-file
-# header, so the license — inherited from the source — is recorded here.
+# these data files (readmemh image, pcinfo, disassembly) carry no in-file
+# header, so the license -- inherited from the source -- is recorded here.
 [[annotations]]
 path = [
-    "examples/tgc5b_soc/prog/hello_trace.hex",
-    "examples/tgc5b_soc/prog/hello_trace.pcinfo",
-    "examples/tgc5b_soc/prog/hello_trace.dis",
+    "examples/kv260/common/tgc5b/prog/hello_trace.hex",
+    "examples/kv260/common/tgc5b/prog/hello_trace.pcinfo",
+    "examples/kv260/common/tgc5b/prog/hello_trace.dis",
 ]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
 SPDX-License-Identifier = "CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial"
+
+# ---------------------------------------------------------------------------
+# Artefact classes introduced by the consolidation into this repository: rule ONCE per
+# class with directory globs, so files arriving with later migration steps are
+# covered by the class, not by chasing individual paths.
+
+# Demo capture data for the dashboard's hardware-free demo mode: recorded
+# trace streams plus the instruction maps and symbol tables to decode them.
+# The demo dataset, split BY PROVENANCE (maintainer decision, 2026-08-19).
+#
+# It used to be one blanket claim -- everything under demo/ as "2026 Accemic,
+# CC-BY-4.0". A licence audit pointed out what that swept up: the console
+# captures carry OpenSBI's banner and Linux's boot messages, and the .pcinfo
+# listings are disassemblies of OpenSBI. Claiming copyright in someone else's
+# program output, and licensing it out, is not a small inaccuracy -- it is the
+# kind a reviewer finds first.
+#
+# The split below follows what each file actually IS.
+
+# 1. Recordings: what our hardware measured. Trace byte streams and the raw
+#    console ring dumps they came from. These are measurements -- facts about
+#    a run, with no authorship to assert. CC0 says exactly that, instead of
+#    claiming a copyright and then licensing it back out.
+[[annotations]]
+path = ["examples/dashboard/demo/*.bin", "examples/dashboard/demo/raw/*.bin"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
+SPDX-License-Identifier = "CC0-1.0"
+
+# 2. Console transcripts: the guests' own output, cleaned of capture
+#    artefacts only (see make_demo_console.py). The text is OpenSBI's and
+#    Linux's, not ours; what is ours is the recording. CC0 again -- and the
+#    copyright line names the upstreams, because they wrote what you read.
+[[annotations]]
+path = ["examples/dashboard/demo/console_*.txt"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = ["2026 Accemic Technologies GmbH (recording)", "OpenSBI contributors", "Linux kernel contributors"]
+SPDX-License-Identifier = "CC0-1.0"
+
+# 3a. Listings of the OPENSBI firmware images the Linux guests ran. A
+#     disassembly is a derived work of the program it describes, so it
+#     carries that program's licence -- OpenSBI is BSD-2-Clause. The symbol
+#     and site maps of the same firmware are the same class.
+#
+#     NAMED INDIVIDUALLY ON PURPOSE. The first version of this split used
+#     `demo/*.pcinfo`, which swept in mbv.pcinfo and tgc.pcinfo -- listings of
+#     our own and MINRES' bare-metal programs, which have nothing to do with
+#     OpenSBI. A glob that is convenient today mislabels the file someone
+#     adds tomorrow; a new listing should have to be classified, not
+#     absorbed.
+[[annotations]]
+path = [
+    "examples/dashboard/demo/cva6_linux.pcinfo",
+    "examples/dashboard/demo/cva6_linux64.pcinfo",
+    "examples/dashboard/demo/rocket64.pcinfo",
+    "examples/dashboard/demo/rocket2.pcinfo",
+    "examples/dashboard/demo/symbols_sbi.map",
+    "examples/dashboard/demo/sites_sbi.map",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "OpenSBI contributors"
+SPDX-License-Identifier = "BSD-2-Clause"
+
+# 3b. Listing of our own MicroBlaze V bare-metal program (trace_test), and of
+#     the TGC5B example program. Both are Accemic sources; the listings
+#     inherit from them, exactly as examples/kv260/common/tgc5b/prog/ does above.
+[[annotations]]
+path = ["examples/dashboard/demo/mbv.pcinfo", "examples/dashboard/demo/tgc.pcinfo"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
+SPDX-License-Identifier = "CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial"
+
+# 4. Everything else in demo/: our own program images and symbol maps, the
+#    dataset README. hello_trace.hex is a copy of the TGC5B example program
+#    and follows its source; see demo/README.md.
+[[annotations]]
+path = ["examples/dashboard/demo/*.elf", "examples/dashboard/demo/symbols_mbv.map", "examples/dashboard/demo/README.md"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
+SPDX-License-Identifier = "CC-BY-4.0"
+
+# hello_trace.hex is a copy of examples/kv260/common/tgc5b/prog/hello_trace.hex and
+# follows its source. The program is ACCEMIC's (see prog/src/crt0.S and
+# main.c) -- it merely runs ON the MINRES core; the core's licence is not the
+# program's. Checked 2026-08-19, because the first draft of this split got it
+# backwards.
+[[annotations]]
+path = ["examples/dashboard/demo/hello_trace.hex"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
+SPDX-License-Identifier = "CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial"
+
+# Tool/scenario configuration in JSON (cannot carry an in-file SPDX comment).
+[[annotations]]
+path = ["examples/dashboard/*.json", "examples/dashboard/devtools/**/*.json"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
+SPDX-License-Identifier = "ISC"
+
+# Diagram sources and exports (draw.io); documentation-class artefacts.
+[[annotations]]
+path = ["examples/dashboard/devtools/*.drawio", "examples/dashboard/devtools/*.drawio.svg"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
+SPDX-License-Identifier = "CC-BY-4.0"
+
+# Adapter characterisation vectors (CSV truth tables): the measured record of
+# what each core's trace port emits, i.e. specification-level documentation.
+[[annotations]]
+path = ["doc/adapters/*.csv"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
+SPDX-License-Identifier = "CC-BY-4.0"
+
+# Company logo shipped with the dashboard page (maintainer decision, 2026-08-19).
+#
+# It was CC-BY-4.0, and CC-BY expressly permits adaptations -- of a logo,
+# which is the one thing a trade mark may not undergo. That put the file in
+# direct conflict with TRADEMARKS.md in the same repository. A mark is never
+# part of an open-source grant anyway; the usual answer, and the one Linux,
+# Mozilla and Rust all use, is a separate trade-mark permission. That is what
+# LicenseRef-Accemic-Trademark is: use it unaltered to identify Accemic
+# products, do not modify it, do not use it as a badge of origin for anything
+# else. The rest of the repository stays exactly as open as it was.
+[[annotations]]
+path = ["examples/dashboard/logo_acctech.svg"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
+SPDX-License-Identifier = "LicenseRef-Accemic-Trademark"
+
+# Adapter unit-test stimulus vectors (.vec): data files consumed by the
+# itype-decoder testbenches, same class as the CSV truth tables.
+[[annotations]]
+path = ["rtl/adapters/*/test/*.vec"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
+SPDX-License-Identifier = "CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial"
+
+# Prebuilt program artifacts for the tgc5b2_axis_wp example, same class as the
+# common/tgc5b prog/ artifacts above: generated from the hardware-IP-licensed
+# sw sources by its own pipeline (gen_program.py; regenerated and diffed
+# byte-identical during the migration into this repository), no in-file header possible.
+[[annotations]]
+path = ["examples/kv260/tgc5b2_axis_wp/sw/axis_wp_demo.dis",
+        "examples/kv260/tgc5b2_axis_wp/sw/axis_wp_demo.hex",
+        "examples/kv260/tgc5b2_axis_wp/sw/axis_wp_demo.pcinfo",
+        "examples/kv260/tgc5b2_axis_wp/sw/axis_wp_demo_sites.map",
+        "examples/kv260/tgc5b2_axis_wp/sw/axis_wp_demo_symbols.map"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
+SPDX-License-Identifier = "CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial"
+
+# Buildroot/kernel configuration fragments for the cva6_2 AMP guest. A
+# defconfig is consumed by the kernel build verbatim and a comment line in the
+# wrong place changes what it selects, so the licence is recorded here.
+[[annotations]]
+path = ["examples/kv260/cva6_2/sw/cva6_2_kv260_rv64_defconfig",
+        "examples/kv260/cva6_2/sw/cva6_2_rv64.config"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
+SPDX-License-Identifier = "CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial"
+
+# Prebuilt trio branch-test payload, same class as the tgc5b2_axis_wp sw
+# artifacts above: compiled from this example's own sources and committed so
+# the demo runs without a RISC-V toolchain. Binaries carry no header.
+[[annotations]]
+path = ["examples/kv260/trio/sw/build/branch_test.bin",
+        "examples/kv260/trio/sw/build/branch_test.elf"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
+SPDX-License-Identifier = "CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial"
+
+[[annotations]]
+path = "examples/kv260/common/board/shell.json"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
+SPDX-License-Identifier = "ISC"
+
+[[annotations]]
+# Delta patches against the pinned upstream CVA6 (Solderpad); the patches
+# carry the same licence as the files they modify (CVA6_PIN.md documents
+# each delta and its upstream-worthiness).
+path = "examples/kv260/third_party/patches/cva6/*.patch"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
+SPDX-License-Identifier = "Apache-2.0 WITH SHL-2.0"
+
+# ---------------------------------------------------------------------------
+# Vendored Rocket reference generat (maintainer decision, 2026-08-19)
+#
+# `system-nexys-video.v` is FIRRTL output of the vivado-risc-v flow around
+# rocket-chip -- 8.8 MB of machine-written Verilog per variant, with no
+# in-file header and no sensible place to put one. It is committed because
+# there is no fetch path for it and the recipe to regenerate it needs patches
+# this repository does not carry; without it, `rocket_linux` and `rocket2`
+# are unbuildable for anyone who does not already have the file.
+#
+# The generat mixes three upstreams, and the SPDX expression says so instead
+# of picking the most convenient one: rocket-chip is BSD-3-Clause (Regents of
+# the University of California) and Apache-2.0 (SiFive), the JTAG parts carry
+# the chisel-jtag terms (BSD-3-Clause in substance), and the surrounding
+# vivado-risc-v flow is MIT. The upstream licence texts sit next to the file
+# as LICENSE.Berkeley, LICENSE.SiFive, LICENSE.jtag and
+# LICENSE.vivado-risc-v.md, exactly as they were delivered.
+[[annotations]]
+path = [
+    "examples/kv260/third_party/rocket_ref/system-nexys-video.v",
+    "examples/kv260/third_party/rocket_ref/rocket64t2/system-nexys-video.v",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = ["2012-2014 The Regents of the University of California", "SiFive, Inc.", "2021-2025 Eugene Tarassov"]
+SPDX-License-Identifier = "BSD-3-Clause AND Apache-2.0 AND MIT"
+
+# The upstream licence texts, delivered with the generat and left byte-identical.
+[[annotations]]
+path = [
+    "examples/kv260/third_party/rocket_ref/LICENSE.Berkeley",
+    "examples/kv260/third_party/rocket_ref/LICENSE.SiFive",
+    "examples/kv260/third_party/rocket_ref/LICENSE.jtag",
+    "examples/kv260/third_party/rocket_ref/LICENSE.vivado-risc-v.md",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = ["2012-2016 The Regents of the University of California", "SiFive, Inc.", "2021-2025 Eugene Tarassov"]
+SPDX-License-Identifier = "BSD-3-Clause AND Apache-2.0 AND MIT"
+
+# The rvcfi demo's generated program images, watchpoint tables and site maps
+# (examples/kv260/tgc5b2_rvcfi/sw/, produced by build.sh / gen_sites.py from
+# the ISC sources next to them; the programs are -nostdlib, so the images hold
+# our code plus libgcc's runtime routines under GCC's runtime exception).
+# NAMED INDIVIDUALLY, like the demo listings above: the malloc demo under
+# sw/malloc/ links newlib and does NOT commit its images for that reason.
+[[annotations]]
+path = [
+    "examples/kv260/tgc5b2_rvcfi/sw/rvcfi_core0.hex",
+    "examples/kv260/tgc5b2_rvcfi/sw/rvcfi_core0.dis",
+    "examples/kv260/tgc5b2_rvcfi/sw/rvcfi_core0.sym",
+    "examples/kv260/tgc5b2_rvcfi/sw/rvcfi_core1.hex",
+    "examples/kv260/tgc5b2_rvcfi/sw/rvcfi_core1.dis",
+    "examples/kv260/tgc5b2_rvcfi/sw/rvcfi_core1.sym",
+    "examples/kv260/tgc5b2_rvcfi/sw/sites_core0.csv",
+    "examples/kv260/tgc5b2_rvcfi/sw/sites_core1.csv",
+    "examples/kv260/tgc5b2_rvcfi/sw/sites_meta_core0.json",
+    "examples/kv260/tgc5b2_rvcfi/sw/sites_meta_core1.json",
+    "examples/kv260/tgc5b2_rvcfi/sw/wp_table_core0_full.txt",
+    "examples/kv260/tgc5b2_rvcfi/sw/wp_table_core0_hot.txt",
+    "examples/kv260/tgc5b2_rvcfi/sw/wp_table_core1_full.txt",
+    "examples/kv260/tgc5b2_rvcfi/sw/wp_table_core1_hot.txt",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Accemic Technologies GmbH"
+SPDX-License-Identifier = "ISC"

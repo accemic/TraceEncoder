@@ -1,37 +1,37 @@
+// SPDX-FileCopyrightText: 2012-2020 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
 `default_nettype none
 
-// vim: set ts=4 et:
+// vim: set ts=4 noet:
 // -*- indent-tabs-mode: t; tab-width: 4 -*-
 
 /**
-* Copyright (c) 2012-2020 by Accemic Technologies GmbH Kiefersfelden Germany
-* SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
-*
-* @brief   Clock domain crossing for high frequency
-* @detail  vector_cdc2 with request–acknowledge handshake for safe CDC
-*  		   Source domain (d_clk) runs free counter d_data and transfers it to q_clk domain.
-*		   Synchronous resets in both domains.
-*
-* @author  Alexander Weiss <aweiss@accemic.com>
-*/
+ * @brief   Clock domain crossing for high frequency
+ * @details  vector_cdc2 with request–acknowledge handshake for safe CDC
+ *             Source domain (d_clk) runs free counter d_data and transfers it to q_clk domain.
+ *         Synchronous resets in both domains.
+ *
+ * @author  Alexander Weiss <aweiss@accemic.com>
+ */
 
 module vector_cdc2 #(
-	parameter int unsigned DATA_WIDTH = 32,
-	parameter logic [DATA_WIDTH-1:0] INIT = '0  // initial value after reset
+	parameter int unsigned           DATA_WIDTH = 32,
+	parameter logic [DATA_WIDTH-1:0] INIT       = '0 // initial value after reset
 )(
-	input uwire logic 					d_clk,
-	input uwire logic 					d_rst,
-	input uwire logic [DATA_WIDTH-1:0]	d_data,
-	input uwire logic 					q_clk,
-	input uwire logic 					q_rst,
-	output uwire logic [DATA_WIDTH-1:0]	q_data
+	input uwire logic                   d_clk,
+	input uwire logic                   d_rst,
+	input uwire logic [DATA_WIDTH-1:0]  d_data,
+	input uwire logic                   q_clk,
+	input uwire logic                   q_rst,
+	output uwire logic [DATA_WIDTH-1:0] q_data
 );
 
   // Source domain (d_clk)
-  logic         		 DToggle;
+  logic                  DToggle;
   logic [DATA_WIDTH-1:0] DData;
-  logic 				 AckSync1, AckSync2, LastAck;
-  logic 				 AckToggle;  // handshake back from q_clk domain
+  logic                  AckSync1, AckSync2, LastAck;
+  logic                  AckToggle;  // handshake back from q_clk domain
 
   always_ff @(posedge d_clk or posedge d_rst) begin
 	if (d_rst) begin
@@ -98,7 +98,7 @@ endmodule
   //-----------------------------------------------------------------------------
   // Handshake toggle in d_clk domain
   //-----------------------------------------------------------------------------
-  logic         		 DToggle;
+  logic                  DToggle;
   logic [DATA_WIDTH-1:0] DData;
 
   always_ff @(posedge d_clk) begin
@@ -129,7 +129,7 @@ endmodule
   //-----------------------------------------------------------------------------
   // Edge detection & data capture in clk2 domain
   //-----------------------------------------------------------------------------
-  logic 				 LastToggle;
+  logic                  LastToggle;
   logic [DATA_WIDTH-1:0] QData;
 
   always_ff @(posedge q_clk) begin
@@ -139,8 +139,8 @@ endmodule
 	end else begin
 	  // On toggle change, capture the latest prod_data
 	  if (QToggle2 != LastToggle) begin
-		QData    	<= DData;
-		LastToggle 	<= QToggle2;
+		QData       <= DData;
+		LastToggle  <= QToggle2;
 	  end
 	  // else: no change ⇒ hold previous data_out
 	end

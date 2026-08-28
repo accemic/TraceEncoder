@@ -8,7 +8,7 @@
 /**
  * @author   Alexander Weiss <aweiss@accemic.com>, Albert Schulz <aschulz@accemic.com>, Alexander Lange <alange@accemic.com>
  *
- * @brief    Accemic CEDARtools.TraceEncoder Performance Counter Interface
+ * @brief    CEDARtools.TraceEncoder Performance Counter Interface
  */
 
 interface ct_perfcnt_if ();

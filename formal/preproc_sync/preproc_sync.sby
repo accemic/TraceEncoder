@@ -1,0 +1,101 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+#
+# SymbiYosys job for ct_L23_preproc_sync (P-SYNC-1..11).
+#   prove      : P-SYNC-1..3 + 5a (mode gating) unbounded (k-induction),
+#                free environment
+#   cover      : non-vacuity witnesses (incl. the Gate-14 resume collision
+#                and a CDC-crossed quota PERIODIC)
+#   live       : P-SYNC-4 bounded no-starvation (deterministic environment)
+#   livecover  : recurrence witness (3 PERIODICs) in the same environment
+#   quota      : P-SYNC-5b window bound + P-SYNC-6 no-lost-request +
+#                P-SYNC-7 no-double-request, closed loop through the real
+#                vector_cdc2 pairs with the exact egress-counter model
+#                (BMC; depth 160 covers > 2 full 16-B quota windows incl.
+#                the ~47-cycle worst-case rearm+detect round trip)
+#   quotacover : the P-SYNC-5b/7 witnesses (two PERIODICs = a full rearm
+#                round trip observed) in the same closed loop
+#   tereq      : P-SYNC-9 no-lost-request + P-SYNC-10 no-double-request for
+#                the explicit request over the TE register (P8), closed loop
+#                through the CSR shim's real pacer module AND both real
+#                strobe_cdc crossings (at equal clocks, ASM-SYNC-3; depth 80
+#                covers the 32-cycle liveness bound plus two full round trips)
+#   tereqcover : its witnesses (a request served, a SECOND one served after a
+#                full round trip, and a write landing while one is outstanding
+#                producing that second message -- the queue-depth contract)
+#   reqcoll    : P-SYNC-11 -- the explicit request and the trace quota in ONE
+#                environment: the request wins the beat they collide on, and
+#                neither starves the other (window bound + request liveness +
+#                credit, each with the other source running)
+#   reqcollcover : the collision witnesses (one message serves the request
+#                while the quota level is up; a quota PERIODIC still follows)
+#   tereqrst   : P-SYNC-12 -- the request survives a reset of the CONSUMER's
+#                domain alone (P8 closing audit B-N1). Same closed loop as
+#                tereq plus the shim's real signal_cdc for tip_rst, and the
+#                two crossings reset APART; the free reset event drops
+#                ASM-SYNC-5 (depth 100 covers the 40-cycle bound after a
+#                reset plus the reset window itself)
+#   tereqrstcover : its witnesses (a request destroyed by a consumer reset is
+#                served afterwards; the consumer really is reset alone)
+# Input build/preproc_sync_formal.v is produced by run.sh.
+
+[tasks]
+prove
+cover
+live
+livecover
+quota
+quotacover
+tereq
+tereqcover
+reqcoll
+reqcollcover
+tereqrst
+tereqrstcover
+
+[options]
+prove: mode prove
+prove: depth 20
+cover: mode cover
+cover: depth 45
+live: mode bmc
+live: depth 200
+livecover: mode cover
+livecover: depth 100
+quota: mode bmc
+quota: depth 160
+quotacover: mode cover
+quotacover: depth 160
+tereq: mode bmc
+tereq: depth 80
+tereqcover: mode cover
+tereqcover: depth 80
+reqcoll: mode bmc
+reqcoll: depth 160
+reqcollcover: mode cover
+reqcollcover: depth 160
+tereqrst: mode bmc
+tereqrst: depth 100
+tereqrstcover: mode cover
+tereqrstcover: depth 100
+
+[engines]
+smtbmc yices
+
+[script]
+read -formal preproc_sync_formal.v
+prove: prep -top f_preproc_check
+cover: prep -top f_preproc_check
+live: prep -top f_live
+livecover: prep -top f_live
+quota: prep -top f_quota
+quotacover: prep -top f_quota
+tereq: prep -top f_tereq
+tereqcover: prep -top f_tereq
+reqcoll: prep -top f_reqcoll
+reqcollcover: prep -top f_reqcoll
+tereqrst: prep -top f_tereqrst
+tereqrstcover: prep -top f_tereqrst
+
+[files]
+build/preproc_sync_formal.v

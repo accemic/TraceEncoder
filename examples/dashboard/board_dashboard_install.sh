@@ -1,0 +1,248 @@
+#!/bin/bash
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: ISC
+# board_dashboard_install.sh -- set the dashboard up as a PERMANENT SERVICE on
+# the KV260: reachable directly in the browser, surviving a reboot. Without it
+# the server runs as a *transient* systemd unit (systemd-run) bound to
+# 127.0.0.1 -- which together means it is gone after every reboot, and whoever
+# wants to see it needs a double SSH tunnel. This script installs instead:
+#
+#   1. /etc/default/ctrace-dashboard      -- the only place holding options
+#   2. /usr/local/sbin/ctrace_loadapp.sh  -- loads the PL app (idempotent, waits for dfx-mgr)
+#   3. ctrace-app.service                 -- oneshot, loads the app at boot
+#   4. ctrace-dashboard.service           -- the server, After=ctrace-app, Restart=always
+#
+# THE ORDER IS THE POINT, not cosmetics: a register read at 0xA000_0000 with an
+# unprogrammed PL wedges the AXI interconnect and the board is dead (three
+# boards frozen that way). Therefore (a) ctrace-app.service loads the app
+# BEFORE the server, and (b) the server only brings its live bus up at all when
+# `xmutil listapps` reports a known app in the slot (PL_GUARD in server.py) --
+# if the app load fails, the dashboard comes up in DEMO instead of taking the
+# board down with it.
+#
+# SECURITY: --host 0.0.0.0 makes the API (including /api/write and /api/elf,
+# i.e. full /dev/mem access) reachable for ANYONE in the same network segment.
+# That is intended for a lab segment and equivalent there to the SSH access
+# that is open anyway; the board must therefore not be attached to a corporate
+# network or forwarded through a router. If that is not wanted, set
+# BIND=127.0.0.1 in /etc/default (and go back to `ssh -L`). There is NO
+# authentication.
+#
+# Call on the board:  sudo bash board_dashboard_install.sh [APP] [PORT]
+set -eu
+
+APP="${1:-mbv_ctrace_kv260}"
+PORT="${2:-8099}"
+DIR="${DASH_DIR:-/home/ubuntu/ctrace_dashboard}"
+DEF=/etc/default/ctrace-dashboard
+LOADER=/usr/local/sbin/ctrace_loadapp.sh
+
+[ -f "$DIR/server.py" ] || { echo "ERROR: $DIR/server.py missing"; exit 1; }
+
+TOOLS=/usr/local/share/ctrace
+HERE_SH="$(cd "$(dirname "$0")" && pwd)"
+
+echo "== 0. Board tools ($TOOLS) =="
+# Two helpers the board side cannot work without, and neither of which was
+# staged before 2026-08-19:
+#
+#   kv260_plclk.sh -- programs pl_clk0. Without it the dashboard can only READ
+#     the clock, never set it. Measured on 2026-08-19: the boot firmware had
+#     left pl_clk0 at 150 MHz while every design here is constrained to
+#     71.114 MHz, so PHASE=prep of every boot recipe aborted with PLCLK_WRONG
+#     and the Linux scenarios looked "empty" in the dashboard -- the cause was
+#     the clock, not the payload.
+#   phys_io.py -- the recipes under boot/ call it as `/tmp/phys_io.py`
+#     (its own file header said this script stages it there; until now that
+#     was not true).
+#
+# Copied to a PERSISTENT place. /tmp is re-populated by the app loader on
+# every boot, because /tmp does not survive one.
+mkdir -p "$TOOLS"
+stage_tool() {
+	for c in "$DIR/$1" "$HERE_SH/$1" "$HERE_SH/../kv260/common/board/$1" \
+	         "$DIR/../kv260/common/board/$1"; do
+		[ -f "$c" ] || continue
+		install -m 0755 "$c" "$TOOLS/$1"
+		echo "  $1 <- $c"
+		return 0
+	done
+	echo "  WARNING: $1 not found -- looked next to server.py, next to this"
+	echo "           script and under ../kv260/common/board/. Copy it to"
+	echo "           $TOOLS by hand."
+	return 1
+}
+stage_tool kv260_plclk.sh || true
+stage_tool phys_io.py || true
+[ -f "$TOOLS/phys_io.py" ] && cp -f "$TOOLS/phys_io.py" /tmp/phys_io.py
+
+echo "== 1. options ($DEF) =="
+# Only created when not already present: a change made on the board (other
+# scenario, other pcinfo) must NOT be overwritten by another script run.
+if [ -f "$DEF" ]; then
+    echo "  present, left unchanged:"
+else
+    ARGS="--host 0.0.0.0 --port $PORT --scenario mbv"
+    [ -x "$DIR/NexRv" ]                  && ARGS="$ARGS --nexrv $DIR/NexRv"
+    [ -f "$DIR/branch_test.pcinfo" ]     && ARGS="$ARGS --pcinfo0 $DIR/branch_test.pcinfo"
+    [ -f "$DIR/symbols_mbv.map" ]        && ARGS="$ARGS --symbols $DIR/symbols_mbv.map"
+    cat > "$DEF" <<EOF
+# CTTE dashboard -- options of the permanent service (ctrace-dashboard.service).
+# After every change:  sudo systemctl restart ctrace-dashboard
+#
+# BIND 0.0.0.0 = reachable directly in the lab segment (http://<board-ip>:$PORT/),
+#        127.0.0.1 = only via ssh -L. There is NO authentication.
+DASH_DIR="$DIR"
+DASH_ARGS="$ARGS"
+# app that ctrace-app.service loads into the PL at boot (empty = none)
+CTRACE_APP="$APP"
+# only for the self-check of the installer / the unit
+CTRACE_PORT="$PORT"
+EOF
+fi
+cat "$DEF"
+# shellcheck disable=SC1090
+. "$DEF"
+
+echo "== 2. app loader ($LOADER) =="
+cat > "$LOADER" <<'LOADEOF'
+#!/bin/bash
+# ctrace_loadapp.sh -- load the PL app idempotently (boot path of the dashboard).
+# Generated by board_dashboard_install.sh; configuration in /etc/default/ctrace-dashboard.
+set -u
+[ -f /etc/default/ctrace-dashboard ] && . /etc/default/ctrace-dashboard
+APP="${CTRACE_APP:-}"
+say() { echo "$*"; echo "ctrace_loadapp: $*" > /dev/kmsg 2>/dev/null || true; }
+# The boot recipes under boot/ call `/tmp/phys_io.py` and `/tmp/kv260_plclk.sh`,
+# and /tmp does not survive a reboot -- re-stage BOTH from the persistent copies
+# on every boot.
+#
+# kv260_plclk.sh was missing from this loop until 2026-08-19 and it cost a
+# board session: after a reboot the clock tool was gone, so every recipe's
+# prep phase stopped at PLCLK_WRONG (correctly -- the clock really was at the
+# boot firmware's 100 MHz) and the fix looked like a design problem instead of
+# a missing file. Restoring one of the two tools and not the other is the
+# worst of both: the recipe gets far enough to fail somewhere else.
+for t in phys_io.py kv260_plclk.sh; do
+    if [ -f "/usr/local/share/ctrace/$t" ]; then
+        cp -f "/usr/local/share/ctrace/$t" "/tmp/$t" 2>/dev/null || true
+    fi
+done
+[ -n "$APP" ] || { say "no app configured -- nothing to do"; exit 0; }
+command -v xmutil >/dev/null || { say "xmutil missing"; exit 1; }
+
+# After a boot, dfx-mgrd needs a moment before it answers requests;
+# `xmutil listapps` fails before that (empty list / rc!=0) and a loadapp
+# on top of it runs into nothing.
+for i in $(seq 1 60); do
+    out="$(xmutil listapps 2>&1)" && echo "$out" | grep -q "$APP" && break
+    sleep 2
+done
+
+active() { xmutil listapps 2>/dev/null | awk -v a="$APP" '$1==a && $NF!="-1" && $NF!="" {print $NF}'; }
+cur="$(active)"
+if [ -n "$cur" ]; then say "$APP is already loaded (slot $cur)"; exit 0; fi
+
+# unloadapp runs ALWAYS -- dfx-mgrd keeps its base design (k26-starter-kits)
+# in slot 0 WITHOUT showing it in the slot->handle column; a loadapp on top
+# of it fails with "Remove previously loaded accelerator, no empty slot".
+# The column therefore proves our apps only, not the state of the slot.
+try_load() {
+    xmutil unloadapp >/dev/null 2>&1 || true
+    sleep 1
+    xmutil loadapp "$APP" || true
+    for _ in 1 2 3 4 5; do
+        sleep 1.5
+        [ -n "$(active)" ] && return 0
+    done
+    return 1
+}
+
+say "loadapp $APP"
+if ! try_load; then
+    # dfx-mgrd then reports success without recording the slot; restarting the
+    # daemon resets it, after which unload+load takes effect.
+    say "no slot entry -> restart dfx-mgr and retry"
+    systemctl restart dfx-mgr; sleep 5
+    try_load || { say "loadapp $APP FAILED (journalctl -u dfx-mgr)"; exit 1; }
+fi
+st="$(cat /sys/class/fpga_manager/fpga0/state 2>/dev/null || echo '?')"
+say "$APP loaded (slot $(active), fpga_manager=$st)"
+exit 0
+LOADEOF
+chmod 0755 "$LOADER"
+
+echo "== 3. ctrace-app.service (app at boot) =="
+cat > /etc/systemd/system/ctrace-app.service <<EOF
+[Unit]
+Description=CTTE: load the PL app (bitstream+overlay)
+After=dfx-mgr.service local-fs.target
+Wants=dfx-mgr.service
+Before=ctrace-dashboard.service
+ConditionPathExists=/usr/bin/xmutil
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=$LOADER
+TimeoutStartSec=300
+StandardOutput=journal
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+echo "== 4. ctrace-dashboard.service (permanent service) =="
+cat > /etc/systemd/system/ctrace-dashboard.service <<EOF
+[Unit]
+Description=CTTE KV260 dashboard (GUI + JSON API over /dev/mem)
+Documentation=file://$DIR/README.md
+After=network-online.target ctrace-app.service
+Wants=network-online.target
+# No Requires=: if the app load fails, the dashboard should still come up
+# (it stays in DEMO then, see PL_GUARD in server.py) -- otherwise the
+# diagnostic interface would be gone in exactly the failing case.
+
+[Service]
+Type=simple
+EnvironmentFile=$DEF
+WorkingDirectory=$DIR
+ExecStart=/usr/bin/python3 $DIR/server.py \$DASH_ARGS
+Restart=always
+RestartSec=3
+StandardOutput=journal
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# An already running TRANSIENT unit of the same name has to go first -- and
+# really the file: in the unit search order /run/systemd/transient takes
+# PRECEDENCE over /etc/systemd/system. Left in place, systemd would keep
+# starting the old command line (127.0.0.1, no --host) while the new unit
+# file sits next to it unused -- a mistake noticed only after the reboot.
+systemctl stop ctrace-dashboard.service 2>/dev/null || true
+systemctl reset-failed ctrace-dashboard.service 2>/dev/null || true
+if [ -f /run/systemd/transient/ctrace-dashboard.service ]; then
+    echo "  removed the old transient unit"
+    rm -f /run/systemd/transient/ctrace-dashboard.service
+fi
+systemctl daemon-reload
+systemctl enable ctrace-app.service ctrace-dashboard.service >/dev/null
+test "$(systemctl show -p FragmentPath --value ctrace-dashboard.service)" \
+     = /etc/systemd/system/ctrace-dashboard.service \
+  || { echo "ERROR: the active unit file is $(systemctl show -p FragmentPath --value ctrace-dashboard.service)"; exit 1; }
+systemctl start ctrace-app.service || echo "  WARNING: app load failed (dashboard starts in DEMO)"
+systemctl restart ctrace-dashboard.service
+
+echo "== 5. self-check =="
+sleep 3
+systemctl is-enabled ctrace-app.service ctrace-dashboard.service
+systemctl is-active  ctrace-app.service ctrace-dashboard.service || true
+ip="$(ip -4 -o addr show scope global | awk '{print $4}' | cut -d/ -f1 | head -1)"
+echo "-- GET /api/mode on $ip:${CTRACE_PORT:-$PORT}"
+curl -s -m 10 "http://$ip:${CTRACE_PORT:-$PORT}/api/mode" || echo "  (not reachable)"
+echo
+echo "== DONE -- direct URL: http://$ip:${CTRACE_PORT:-$PORT}/ =="
+echo "   logs: journalctl -u ctrace-dashboard -f"
+echo "   stop: sudo systemctl stop ctrace-dashboard   (campaigns need the board exclusively)"

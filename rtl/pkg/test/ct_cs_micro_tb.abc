@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+import	@rtl/pkg : ct_cs_cpuif_pkg ct_pkg ct_cs_micro ct_cs_cpuif
+import	@rtl/external/testtools : tt
+
+# Check Simulation
+#
+# PROFILE NOTE: ct_cs_micro carries an elaboration guard that rejects every
+# profile richer than CF-only slim (DAQ / data trace / ACT / filters /
+# compression / trigger registers / FIFO histogram). With the committed
+# ct_pkg.sv this testbench therefore $fatals on purpose -- it is driven by
+# scripts/cli_microcsr_test.sh, which builds a CF-slim profile sandbox
+# (a COPY of rtl/pkg, never the repository) first.
+read_sim	ct_cs_micro_tb.sv
+simulate	ct_cs_micro_tb

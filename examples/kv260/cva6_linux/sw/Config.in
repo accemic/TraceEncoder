@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: ISC
+#
+# Intentionally empty: this BR2_EXTERNAL tree only carries a defconfig and a
+# kernel config fragment (see README.md), no package menu entries. Buildroot
+# requires this file to exist for a BR2_EXTERNAL tree to be recognized; an
+# empty Config.in (beyond comments) is valid Kconfig syntax and adds no menu
+# entries.

@@ -1,12 +1,15 @@
-// -*- indent-tabs-mode:t; tab-width:4 -*-
-// vim: tabstop=4:noexpandtab
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
+// -*- indent-tabs-mode: t; tab-width: 4 -*-
 `default_nettype none
 
 /**
  * @file    ct_L23_preproc_df_split_tb.sv
  * @brief   Directed testbench for ct_L23_preproc_df in SPLIT_DATA_ACCESS=1 mode.
  *
- * @description
+ * @details
  *   Verifies split-load data trace qualification in the split-load path.
  *   In SPLIT_DATA_ACCESS mode, data trace events are split into two phases:
  *     - Address phase: dretire pulse carries daddr/dsize (LOAD or STORE)
@@ -67,6 +70,9 @@ module ct_L23_preproc_df_split_tb;
 		.df_range,
 		.df_qualifier,
 		.cs_tip,
+		// Unit TB: no mid-stream DataTracing edges, so the live level is
+		// the aligned level (integration alignment lives in ct_L23_preproc).
+		.data_trace_active_q(cs_tip.trTeDataTracing),
 		.internal_delay,
 		.extra_delay
 	);

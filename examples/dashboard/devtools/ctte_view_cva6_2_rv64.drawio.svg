@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1224" height="370" viewBox="0 0 1224 370" content="&lt;mxfile host=&quot;TraceEncoder&quot; agent=&quot;devtools/compact_layout.py&quot; version=&quot;24.7.5&quot;&gt;
+  &lt;diagram id=&quot;arch-cva6_2_rv64&quot; name=&quot;cva6_2_rv64&quot;&gt;
+    &lt;mxGraphModel dx=&quot;1400&quot; dy=&quot;900&quot; grid=&quot;1&quot; gridSize=&quot;10&quot; guides=&quot;1&quot; tooltips=&quot;1&quot; connect=&quot;1&quot; arrows=&quot;1&quot; fold=&quot;1&quot; page=&quot;1&quot; pageScale=&quot;1&quot; pageWidth=&quot;1224&quot; pageHeight=&quot;370&quot; math=&quot;0&quot; shadow=&quot;0&quot; background=&quot;#0b0f17&quot;&gt;
+      &lt;root&gt;
+        &lt;mxCell id=&quot;0&quot;/&gt;
+        &lt;mxCell id=&quot;1&quot; parent=&quot;0&quot;/&gt;
+        &lt;mxCell id=&quot;ct0&quot; value=&quot;CEDARtools.TraceEncoder · ENC0 · cv64a6 core 0&quot; style=&quot;rounded=1;dashed=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#3c5270;fontColor=#C98500;verticalAlign=top;align=left;spacingLeft=6;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;362&quot; y=&quot;51&quot; width=&quot;564&quot; height=&quot;96&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;ct1&quot; value=&quot;CEDARtools.TraceEncoder · ENC1 · cv64a6 core 1&quot; style=&quot;rounded=1;dashed=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#3c5270;fontColor=#C98500;verticalAlign=top;align=left;spacingLeft=6;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;362&quot; y=&quot;223&quot; width=&quot;564&quot; height=&quot;96&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cpu0&quot; value=&quot;Core&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#20293a;strokeColor=#C98500;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;30&quot; y=&quot;30&quot; width=&quot;190&quot; height=&quot;138&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;tip0&quot; value=&quot;Trace ingress&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;246&quot; y=&quot;76&quot; width=&quot;92&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;preproc0&quot; value=&quot;Preproc&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;382&quot; y=&quot;76&quot; width=&quot;84&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;fifo0&quot; value=&quot;FIFO&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;486&quot; y=&quot;68&quot; width=&quot;84&quot; height=&quot;62&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;msggen0&quot; value=&quot;MsgGen&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;590&quot; y=&quot;76&quot; width=&quot;84&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;nexusfmt0&quot; value=&quot;Nexus Fmt&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;694&quot; y=&quot;76&quot; width=&quot;92&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;mseomdo0&quot; value=&quot;MSEO/MDO&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;806&quot; y=&quot;76&quot; width=&quot;100&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cpu1&quot; value=&quot;Core&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#20293a;strokeColor=#C98500;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;30&quot; y=&quot;202&quot; width=&quot;190&quot; height=&quot;138&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;tip1&quot; value=&quot;Trace ingress&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;246&quot; y=&quot;248&quot; width=&quot;92&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;preproc1&quot; value=&quot;Preproc&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;382&quot; y=&quot;248&quot; width=&quot;84&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;fifo1&quot; value=&quot;FIFO&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;486&quot; y=&quot;240&quot; width=&quot;84&quot; height=&quot;62&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;msggen1&quot; value=&quot;MsgGen&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;590&quot; y=&quot;248&quot; width=&quot;84&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;nexusfmt1&quot; value=&quot;Nexus Fmt&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;694&quot; y=&quot;248&quot; width=&quot;92&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;mseomdo1&quot; value=&quot;MSEO/MDO&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;806&quot; y=&quot;248&quot; width=&quot;100&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;funnel&quot; value=&quot;Trace Funnel&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;950&quot; y=&quot;51&quot; width=&quot;78&quot; height=&quot;268&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;ddr&quot; value=&quot;Mem (DDR4)&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#18202c;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;1082&quot; y=&quot;84&quot; width=&quot;112&quot; height=&quot;54&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;uram&quot; value=&quot;Mem (URAM)&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#18202c;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;1082&quot; y=&quot;158&quot; width=&quot;112&quot; height=&quot;54&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;pib&quot; value=&quot;PIB&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#18202c;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;1082&quot; y=&quot;232&quot; width=&quot;112&quot; height=&quot;54&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cva6_2_rv64_e0&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;cpu0&quot; target=&quot;tip0&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cva6_2_rv64_e1&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;tip0&quot; target=&quot;preproc0&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cva6_2_rv64_e2&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;preproc0&quot; target=&quot;fifo0&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cva6_2_rv64_e3&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;fifo0&quot; target=&quot;msggen0&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cva6_2_rv64_e4&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;msggen0&quot; target=&quot;nexusfmt0&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cva6_2_rv64_e5&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;nexusfmt0&quot; target=&quot;mseomdo0&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cva6_2_rv64_e6&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;cpu1&quot; target=&quot;tip1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cva6_2_rv64_e7&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;tip1&quot; target=&quot;preproc1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cva6_2_rv64_e8&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;preproc1&quot; target=&quot;fifo1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cva6_2_rv64_e9&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;fifo1&quot; target=&quot;msggen1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cva6_2_rv64_e10&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;msggen1&quot; target=&quot;nexusfmt1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cva6_2_rv64_e11&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;nexusfmt1&quot; target=&quot;mseomdo1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cva6_2_rv64_e12&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;mseomdo0&quot; target=&quot;funnel&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cva6_2_rv64_e13&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;mseomdo1&quot; target=&quot;funnel&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cva6_2_rv64_e14&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;funnel&quot; target=&quot;ddr&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cva6_2_rv64_e15&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;funnel&quot; target=&quot;uram&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cva6_2_rv64_e16&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;funnel&quot; target=&quot;pib&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+      &lt;/root&gt;
+    &lt;/mxGraphModel&gt;
+  &lt;/diagram&gt;
+&lt;/mxfile&gt;">
+<rect width="100%" height="100%" fill="#0b0f17"/>
+<rect x="362" y="51" width="564" height="96" rx="10" fill="none" stroke="#3c5270" stroke-dasharray="5 4"/>
+<text x="372" y="46" font-family="Segoe UI" font-size="12" font-weight="600" fill="#C98500">CEDARtools.TraceEncoder · ENC0 · cv64a6 core 0</text>
+<rect x="362" y="223" width="564" height="96" rx="10" fill="none" stroke="#3c5270" stroke-dasharray="5 4"/>
+<text x="372" y="218" font-family="Segoe UI" font-size="12" font-weight="600" fill="#C98500">CEDARtools.TraceEncoder · ENC1 · cv64a6 core 1</text>
+<path d="M220,99 L236.4,99" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M244.1,99 L236.4,95.15 L236.4,102.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M338,99 L372.4,99" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M380.1,99 L372.4,95.15 L372.4,102.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M466,99 L476.4,99" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M484.1,99 L476.4,95.15 L476.4,102.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M570,99 L580.4,99" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M588.1,99 L580.4,95.15 L580.4,102.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M674,99 L684.4,99" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M692.1,99 L684.4,95.15 L684.4,102.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M786,99 L796.4,99" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M804.1,99 L796.4,95.15 L796.4,102.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M220,271 L236.4,271" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M244.1,271 L236.4,267.15 L236.4,274.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M338,271 L372.4,271" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M380.1,271 L372.4,267.15 L372.4,274.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M466,271 L476.4,271" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M484.1,271 L476.4,267.15 L476.4,274.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M570,271 L580.4,271" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M588.1,271 L580.4,267.15 L580.4,274.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M674,271 L684.4,271" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M692.1,271 L684.4,267.15 L684.4,274.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M786,271 L796.4,271" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M804.1,271 L796.4,267.15 L796.4,274.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M906,99 L940.4,99" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M948.1,99 L940.4,95.15 L940.4,102.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M906,271 L940.4,271" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M948.1,271 L940.4,267.15 L940.4,274.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M1028,185 L1055,185 L1055,111 L1072.4,111" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M1080.1,111 L1072.4,107.15 L1072.4,114.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M1028,185 L1072.4,185" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M1080.1,185 L1072.4,181.15 L1072.4,188.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M1028,185 L1055,185 L1055,259 L1072.4,259" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M1080.1,259 L1072.4,255.15 L1072.4,262.85 Z" fill="#5b6b85" stroke="none"/>
+<rect x="30" y="30" width="190" height="138" rx="6" fill="#20293a" stroke="#C98500"/>
+<text x="36" y="47" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Core</text>
+<rect x="246" y="76" width="92" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="252" y="93" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Trace ingress</text>
+<rect x="382" y="76" width="84" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="388" y="93" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Preproc</text>
+<rect x="486" y="68" width="84" height="62" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="492" y="85" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">FIFO</text>
+<rect x="590" y="76" width="84" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="596" y="93" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">MsgGen</text>
+<rect x="694" y="76" width="92" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="700" y="93" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Nexus Fmt</text>
+<rect x="806" y="76" width="100" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="812" y="93" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">MSEO/MDO</text>
+<rect x="30" y="202" width="190" height="138" rx="6" fill="#20293a" stroke="#C98500"/>
+<text x="36" y="219" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Core</text>
+<rect x="246" y="248" width="92" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="252" y="265" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Trace ingress</text>
+<rect x="382" y="248" width="84" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="388" y="265" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Preproc</text>
+<rect x="486" y="240" width="84" height="62" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="492" y="257" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">FIFO</text>
+<rect x="590" y="248" width="84" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="596" y="265" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">MsgGen</text>
+<rect x="694" y="248" width="92" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="700" y="265" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Nexus Fmt</text>
+<rect x="806" y="248" width="100" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="812" y="265" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">MSEO/MDO</text>
+<rect x="950" y="51" width="78" height="268" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="956" y="68" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Trace Funnel</text>
+<rect x="1082" y="84" width="112" height="54" rx="6" fill="#18202c" stroke="#33445c"/>
+<text x="1088" y="101" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Mem (DDR4)</text>
+<rect x="1082" y="158" width="112" height="54" rx="6" fill="#18202c" stroke="#33445c"/>
+<text x="1088" y="175" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Mem (URAM)</text>
+<rect x="1082" y="232" width="112" height="54" rx="6" fill="#18202c" stroke="#33445c"/>
+<text x="1088" y="249" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">PIB</text>
+</svg>

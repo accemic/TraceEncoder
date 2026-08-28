@@ -1,11 +1,11 @@
-// -*- indent-tabs-mode:t; tab-width:4 -*-
-// vim: tabstop=4:noexpandtab
+// SPDX-FileCopyrightText: 2018-2024 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
+// -*- indent-tabs-mode: t; tab-width: 4 -*-
 /**
- * Copyright (c) 2018-2024 by Accemic Technologies GmbH Kiefersfelden Germany
- * SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
- *
- * @brief	Generic interface for a data sink.
- * @author	Thomas B. Preußer <tpreusser@accemic.com>
+ * @brief   Generic interface for a data sink.
+ * @author  Thomas B. Preußer <tpreusser@accemic.com>
  *
  * @details
  *
@@ -27,34 +27,34 @@
  */
 
 interface sink_if #(
-	type T = logic [7:0],
+	type         T                = logic [7:0],
 	int unsigned ALMOST_THRESHOLD = 0,
-	logic		 STOP_ON_OVERRUN  = 1
+	logic        STOP_ON_OVERRUN  = 1
 )(
 	input uwire logic clk,
 	input uwire logic rst
 );
 
 	// Basic Sink Interface with Backpressure Capability
-	logic	full;
-	T		d;
-	logic	wr;
+	logic   full;
+	T       d;
+	logic   wr;
 
 	// Derived Availability Status
-	//	Notes: 	- Do NOT merge assignments.
-	//			  Vivado wrongly trims the associated logic then (2018.1).
-	//			- Leave status flags as uwires to lock out competing drivers.
+	//  Notes:  - Do NOT merge assignments.
+	//            Vivado wrongly trims the associated logic then (2018.1).
+	//          - Leave status flags as uwires to lock out competing drivers.
 	var int unsigned  cnt_avail;
 
-	uwire	afull;
-	assign	afull = cnt_avail < ALMOST_THRESHOLD;  // static
+	uwire   afull;
+	assign  afull = cnt_avail < ALMOST_THRESHOLD;  // static
 
 	function logic have_available(input int unsigned  threshold);
 		return  threshold <= cnt_avail;
 	endfunction // have_available
 
 	// Overrun Detection
-	logic	Overrun = 0;
+	logic   Overrun = 0;
 	always_ff @(posedge clk) begin
 		if(rst)  Overrun <= 0;
 		else if(full && wr) begin

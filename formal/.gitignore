@@ -1,0 +1,33 @@
+# sby work directories + generated formal models.
+# MAINTENANCE TRAP: this list enumerates task suffixes one by one, so every
+# new sby task name needs a new line here. Forgetting one does not fail the
+# formal run -- it fails `reuse lint`, because the generated work dir then
+# shows up as an untracked file without licensing information (that is how
+# *_tereqrst was found, AP0 merge 2026-08-16).
+*/build/
+*/*_prove/
+*/*_cover/
+*/*_bmc/
+*/*_live/
+*/*_livecover/
+*/*_red/
+*/*_quota/
+*/*_quotacover/
+*/*_tereq/
+*/*_tereqcover/
+*/*_tereqrst/
+*/*_tereqrstcover/
+*/*_bmc0/
+*/*_bmc1/
+*/*_prv0/
+*/*_prv1/
+*/*_reqcoll/
+*/*_reqcollcover/
+*/*_mut/
+# jobname-dirs from task-less sby invocations
+*/msg_gen/
+*/ovf_injector/
+*/preproc_sync/
+*/mseo_mdo/
+*/nexus_formatter/
+*/composer_slots/

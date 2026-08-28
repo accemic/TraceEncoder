@@ -20,7 +20,7 @@
  *   timestamp behaviour by spreading retirements out.
  *
  *   Conventions per the RISC-V Trace Spec ingress port
- *   (https://github.com/riscv-non-isa/riscv-trace-spec/blob/main/ingressPort.adoc):
+ *   (https://docs.riscv.org/reference/e-trace/v2.0/ingressPort.html):
  *
  *     - SR (single-retirement) mode: `iretire` is a 1-bit strobe (high
  *       for exactly one tip_clk cycle per retired instruction). Set by
@@ -71,10 +71,10 @@
 module cpu_model #(
 	// tip_clk cycles per retired instruction. Larger = more time between
 	// retirements = more timestamp messages.
-	int CYCLES_PER_INSTR = 4,
+	int    CYCLES_PER_INSTR   = 4,
 	// Default size of a retired instruction, in log2(halfwords) per spec.
 	// 1 = 32-bit (RV32I), 0 = 16-bit (RVC). Tests can override per-task.
-	int DEFAULT_ILASTSIZE = 1,
+	int    DEFAULT_ILASTSIZE  = 1,
 	// Optional path for a NexRv PCInfo file derived from the scripted
 	// scenario. Format (one line per retired instruction):
 	//   0x<src_pc>,<type><length_bytes>[,0x<target_pc>]
@@ -97,14 +97,14 @@ module cpu_model #(
 	// Empty = no file.
 	string EXPECTED_DATA_PATH = "",
 	// Optional path for an execution-ordered "expected CTXP" file — the
-	// C-Trace eXPort records (SYNC / BRANCH_* / CALL / RETURN / MEMREAD_n /
+	// CTTE eXPort records (SYNC / BRANCH_* / CALL / RETURN / MEMREAD_n /
 	// MEMWRITE_n / DAQ_*) the NexRv reference decoder should produce from the
 	// trace, in program order. Compared (normalized) against NexRv's CTXP text
 	// export by scripts/decode_and_check.sh --ctxp. Empty = no file.
 	string EXPECTED_CTXP_PATH = ""
 ) (
-	input  uwire logic clk,    // tip_clk
-	input  uwire logic rst,    // tip_rst (active high)
+	input  uwire logic clk, // tip_clk
+	input  uwire logic rst, // tip_rst (active high)
 	tip_if.master      tip
 );
 
@@ -138,6 +138,11 @@ module cpu_model #(
 	logic [TIP_SDATA_WIDTH-1:0] r_sdata = 0;
 	logic [TIP_LRESP_WIDTH-1:0] r_lresp = 0;
 	logic [TIP_LDATA_WIDTH-1:0] r_ldata = 0;
+	// Generic event sideband (seq 24, B1)
+	logic           r_debug_mode = 0;
+	logic           r_evti       = 0;
+	logic           r_power_down = 0;
+	logic           r_trigger    = 0;
 
 	assign tip.iretire   = r_iretire;
 	assign tip.itype     = r_itype;
@@ -158,6 +163,10 @@ module cpu_model #(
 	assign tip.sdata     = r_sdata;
 	assign tip.lresp     = r_lresp;
 	assign tip.ldata     = r_ldata;
+	assign tip.debug_mode = r_debug_mode;
+	assign tip.evti       = r_evti;
+	assign tip.power_down = r_power_down;
+	assign tip.trigger    = r_trigger;
 
 	// Free-running time counter (TIP time signal)
 	always_ff @(posedge clk) begin
@@ -242,6 +251,19 @@ module cpu_model #(
 		data_traced = on;
 	endtask
 
+	// Split-load pending-overwrite bookkeeping (SPLIT_DATA_ACCESS=1): the
+	// composer holds exactly ONE pending split load; a LOAD whose lresp
+	// never arrives before the next LOAD is silently replaced and never
+	// emits a data message. cpu_model cannot see lresp (the TB drives it
+	// hierarchically), so the TB marks the doomed load itself, right after
+	// issuing it. The event stays in the log (liveness/debug) but is
+	// excluded from the expected-data/CTXP references — the oracle encodes
+	// the documented overwrite contract, not a decoder shortfall.
+	task automatic mark_last_event_data_untraced();
+		if (event_q.size() > 0) event_q[event_q.size()-1].data_traced = 1'b0;
+		else $error("[cpu_model] mark_last_event_data_untraced: event log empty");
+	endtask
+
 	// ------------------------------------------------------------------
 	// Low-level pulse helper: drive one retired instruction for one
 	// clock cycle, pad with idle cycles up to CYCLES_PER_INSTR.
@@ -250,6 +272,19 @@ module cpu_model #(
 	// ecause / tval are meaningful only when itype is INTERRUPT (ecause)
 	// or EXCEPTION_TRAP (ecause + tval).
 	// ------------------------------------------------------------------
+	// iretire value for a SINGLE retired instruction, in whichever shape
+	// this build's ingress uses. SR: the strobe, 1. Block: the instruction's
+	// own halfword count, 2^ilastsize -- driving a bare 1 there would claim
+	// a one-halfword block for a 32-bit instruction, which is not "the
+	// single-retirement case of a block ingress" but a malformed beat.
+	// At CT_EN_BLOCK_TIP = 0 this folds to the literal 1, so every existing
+	// scenario drives exactly the bits it drove before.
+	function automatic tip_iretire_t sr_iretire(input tip_ilastsize_t ilastsize_);
+		int hw;
+		hw = 1 << ilastsize_;
+		sr_iretire = ct_pkg::CT_EN_BLOCK_TIP ? tip_iretire_t'(hw) : tip_iretire_t'(1);
+	endfunction
+
 	task automatic drive_instr_pulse(
 		input tip_itype_e     itype_,
 		input tip_iaddr_t     iaddr_,
@@ -262,7 +297,7 @@ module cpu_model #(
 		repeat (CYCLES_PER_INSTR - 1) @(posedge clk);
 		// Drive the retirement on the next clock edge.
 		@(negedge clk);
-		r_iretire   = 1;
+		r_iretire   = sr_iretire(ilastsize_);
 		r_itype     = itype_;
 		r_iaddr     = iaddr_;
 		r_ilastsize = ilastsize_;
@@ -306,6 +341,77 @@ module cpu_model #(
 	endtask
 
 	// ------------------------------------------------------------------
+	// Generic event sideband (seq 24, B1)
+	// ------------------------------------------------------------------
+	// Enter debug mode: per the tip_if port contract the level rises on a
+	// beat AFTER the last pre-debug retire (this task drives it on an idle
+	// beat). While in debug the encoder emits/counts nothing, so the caller
+	// should retire debug-window instructions between debug_enter/-_exit
+	// with set_inst_traced(0) -- this task flips the expected-PC gating
+	// itself for convenience.
+	task automatic debug_enter();
+		@(posedge clk);
+		r_debug_mode <= 1'b1;
+		set_inst_traced(1'b0);
+		@(posedge clk);
+	endtask
+
+	// Exit debug mode: level falls before the first post-debug retire.
+	task automatic debug_exit();
+		@(posedge clk);
+		r_debug_mode <= 1'b0;
+		set_inst_traced(1'b1);
+		@(posedge clk);
+	endtask
+
+	// One-cycle external trace trigger pulse (SYNC=0 marker on the next
+	// retire while tracing is active).
+	task automatic evti_pulse();
+		@(posedge clk);
+		r_evti <= 1'b1;
+		@(posedge clk);
+		r_evti <= 1'b0;
+		@(posedge clk);
+	endtask
+
+	// Retire one OTHER instruction that carries a context report (ingress
+	// ctype=2 "report precisely" + context value): with trTeControl.Context
+	// set the encoder emits an Ownership message (TCODE 2, FORMAT=2) for it.
+	// Logged as a normal run instruction in the expected-PC reference.
+	task automatic context_report(input tip_context_t ctx);
+		r_context = ctx;
+		r_ctype   = tip_ctype_t'(2);
+		drive_instr_pulse(.itype_(OTHER), .iaddr_(cur_pc));
+		log_event(CPU_RUN, cur_pc);
+		cur_pc = cur_pc + 4;
+		r_ctype   = '0;
+		r_context = '0;
+	endtask
+
+	// One-cycle watchpoint/trigger pulse (SYNC=6 marker on the next retire
+	// while tracing is active and trTeControl.InstTrigEnable is set).
+	task automatic trigger_pulse();
+		@(posedge clk);
+		r_trigger <= 1'b1;
+		@(posedge clk);
+		r_trigger <= 1'b0;
+		@(posedge clk);
+	endtask
+
+	// Power-down window: no retires are expected while the level is high.
+	task automatic power_down_enter();
+		@(posedge clk);
+		r_power_down <= 1'b1;
+		@(posedge clk);
+	endtask
+
+	task automatic power_down_exit();
+		@(posedge clk);
+		r_power_down <= 1'b0;
+		@(posedge clk);
+	endtask
+
+	// ------------------------------------------------------------------
 	// Straight-line execution
 	// ------------------------------------------------------------------
 	// Retire enough 32-bit instructions to cover `n_bytes`. (Compressed
@@ -320,6 +426,145 @@ module cpu_model #(
 			log_event(CPU_RUN, cur_pc);
 			cur_pc = cur_pc + 4;
 		end
+	endtask
+
+	// ------------------------------------------------------------------
+	// Block ingress (R1.3, ct_pkg::CT_EN_BLOCK_TIP)
+	//
+	// ONE tip beat reports SEVERAL retired instructions:
+	//   iretire   = halfwords of the whole block
+	//   iaddr     = FIRST instruction of the block
+	//   ilastsize = size of the LAST instruction
+	//   itype     = how the block terminated
+	// Only the last instruction of a block may be a control-flow event --
+	// that is what ends a block -- so the tasks below take `n_lead` linear
+	// instructions plus one terminator.
+	//
+	// The point of the whole gate is the LOGGING: these tasks log one oracle
+	// event PER INSTRUCTION, exactly as the single-retirement tasks do. The
+	// expected-PC reference a block scenario produces is therefore identical
+	// to the one the same instructions produce when driven one per beat, and
+	// "block reporting does not change the reconstructed flow" is checked
+	// against an oracle that never saw a block. A comparison of the
+	// encoder's own halfword count against the encoder's own halfword count
+	// would prove nothing.
+	//
+	// 32-bit instructions only (ilastsize = 1, two halfwords each). Mixed
+	// RVC sizing is an ilastsize question the SR tasks already cover; the
+	// block shape is orthogonal to it.
+	// ------------------------------------------------------------------
+	task automatic drive_block_pulse(
+		input tip_itype_e itype_,
+		input tip_iaddr_t iaddr_first_,
+		input int         n_instr_
+	);
+		int hw;
+		if (!ct_pkg::CT_EN_BLOCK_TIP) begin
+			$error("[cpu_model] BLOCK-TASK-IN-SR-BUILD: block tasks need ct_pkg::CT_EN_BLOCK_TIP=1 (tip.iretire is one bit here and would truncate)");
+			$finish;
+		end
+		if (n_instr_ < 1) begin
+			$error("[cpu_model] drive_block_pulse: n_instr must be >= 1 (got %0d)", n_instr_);
+			$finish;
+		end
+		// Computed BEFORE the call/assignment, never as a cast inside an
+		// argument: XSIM 2026.1 with -debug off mistranslates an int'() cast
+		// in argument position (the value arrives as 0).
+		hw = 2 * n_instr_;
+		repeat (CYCLES_PER_INSTR - 1) @(posedge clk);
+		@(negedge clk);
+		r_iretire   = tip_iretire_t'(hw);
+		r_itype     = itype_;
+		r_iaddr     = iaddr_first_;
+		r_ilastsize = tip_ilastsize_t'(1);
+		r_ecause    = tip_ecause_e'(0);
+		r_tval      = '0;
+		@(posedge clk);
+		@(negedge clk);
+		r_iretire   = 0;
+		r_dretire   = 0;
+		r_itype     = OTHER;
+		r_ecause    = tip_ecause_e'(0);
+		r_tval      = '0;
+	endtask
+
+	// Log `n` linear instructions from cur_pc and advance it. Shared tail of
+	// every block task, so the oracle can only be written one way.
+	function automatic void log_block_lead(input int n);
+		for (int i = 0; i < n; i++) begin
+			log_event(CPU_RUN, cur_pc);
+			cur_pc = cur_pc + 4;
+		end
+	endfunction
+
+	// A purely linear block: n_instr instructions, terminated by OTHER.
+	// (OTHER is also how an adapter splits a long linear run to keep iretire
+	// inside CT_IRETIRE_WIDTH -- it raises no CF event, it only accumulates.)
+	task automatic run_block(input int n_instr);
+		drive_block_pulse(.itype_(OTHER), .iaddr_first_(cur_pc), .n_instr_(n_instr));
+		log_block_lead(n_instr);
+	endtask
+
+	// n_lead linear instructions followed by a taken branch, in ONE beat.
+	task automatic block_branch_taken(input int n_lead, input tip_iaddr_t target);
+		tip_iaddr_t cf_pc;
+		cf_pc = cur_pc + tip_iaddr_t'(4 * n_lead);
+		drive_block_pulse(.itype_(TAKEN_BRANCH), .iaddr_first_(cur_pc), .n_instr_(n_lead + 1));
+		log_block_lead(n_lead);
+		log_event(CPU_BRANCH_TAKEN, cf_pc, target);
+		cur_pc = target;
+	endtask
+
+	// n_lead linear instructions followed by a NOT-taken branch, in ONE beat.
+	// Execution falls through to the instruction after the branch.
+	task automatic block_branch_not_taken(input int n_lead, input tip_iaddr_t target = '0);
+		tip_iaddr_t cf_pc, tgt;
+		cf_pc = cur_pc + tip_iaddr_t'(4 * n_lead);
+		tgt   = (target == '0) ? (cf_pc + 8) : target;
+		drive_block_pulse(.itype_(NOT_TAKEN_BRANCH), .iaddr_first_(cur_pc), .n_instr_(n_lead + 1));
+		log_block_lead(n_lead);
+		log_event(CPU_BRANCH_NOT_TAKEN, cf_pc, tgt);
+		cur_pc = cf_pc + 4;
+	endtask
+
+	// n_lead linear instructions followed by a direct call, in ONE beat.
+	// Exercises the composer's return-address push, which in block mode has
+	// to derive the return address from the BLOCK span (iaddr + 2*iretire),
+	// not from iaddr + one instruction.
+	task automatic block_call_to(input int n_lead, input tip_iaddr_t target);
+		tip_iaddr_t cf_pc;
+		cf_pc = cur_pc + tip_iaddr_t'(4 * n_lead);
+		drive_block_pulse(.itype_(INFERRABLE_CALL), .iaddr_first_(cur_pc), .n_instr_(n_lead + 1));
+		log_block_lead(n_lead);
+		call_stack.push_back(cf_pc + 4);
+		log_event(CPU_CALL, cf_pc, target);
+		cur_pc = target;
+	endtask
+
+	// n_lead linear instructions followed by a return, in ONE beat.
+	task automatic block_ret(input int n_lead);
+		tip_iaddr_t cf_pc, ret_pc;
+		if (call_stack.size() == 0) begin
+			$error("[cpu_model] block_ret() with empty call stack at pc=%08x", cur_pc);
+			return;
+		end
+		cf_pc = cur_pc + tip_iaddr_t'(4 * n_lead);
+		drive_block_pulse(.itype_(RETURN), .iaddr_first_(cur_pc), .n_instr_(n_lead + 1));
+		log_block_lead(n_lead);
+		ret_pc = call_stack[$];
+		call_stack.pop_back();
+		log_event(CPU_RET, cf_pc, ret_pc);
+		cur_pc = ret_pc;
+	endtask
+
+	// n_lead linear instructions followed by an indirect (uninferable) jump.
+	task automatic block_uninferable_jump(input int n_lead, input tip_iaddr_t target);
+		tip_iaddr_t cf_pc;
+		cf_pc = cur_pc + tip_iaddr_t'(4 * n_lead);
+		drive_block_pulse(.itype_(UNINFERABLE_JUMP), .iaddr_first_(cur_pc), .n_instr_(n_lead + 1));
+		log_block_lead(n_lead);
+		log_event(CPU_UNINFERABLE_JUMP, cf_pc, target);
+		cur_pc = target;
 	endtask
 
 	// ------------------------------------------------------------------
@@ -542,7 +787,11 @@ module cpu_model #(
 			);
 		end
 		trap_stack.push_back(cur_pc + 4);
-		log_event(CPU_EXCEPTION, cur_pc, handler, cause);
+		// no_retire=1: faulting instruction never retired (iretire=0) -> NO expected.pcs slot
+		// (iretire ingress rule; 1:1 with AMD + the count_halfwords=iretire encoder). no_retire=0:
+		// co-reported, the instruction retired -> keep the L slot.
+		if (no_retire) log_event(CPU_EXCEPTION_NORETIRE, cur_pc, handler, cause);
+		else           log_event(CPU_EXCEPTION,          cur_pc, handler, cause);
 		cur_pc = handler;
 	endtask
 
@@ -574,7 +823,7 @@ module cpu_model #(
 	);
 		repeat (CYCLES_PER_INSTR - 1) @(posedge clk);
 		@(negedge clk);
-		r_iretire   = 1;
+		r_iretire   = sr_iretire(tip_ilastsize_t'(DEFAULT_ILASTSIZE));
 		r_itype     = OTHER;
 		r_iaddr     = cur_pc;
 		r_ilastsize = tip_ilastsize_t'(DEFAULT_ILASTSIZE);
@@ -591,8 +840,9 @@ module cpu_model #(
 	endtask
 
 	// size: log2 of byte count (0=B, 1=H, 2=W, 3=D, ...)
-	task automatic load_data(input tip_iaddr_t addr, input int size);
-		drive_dretire_pulse(LOAD, addr, tip_dsize_t'(size));
+	task automatic load_data(input tip_iaddr_t addr, input int size,
+	                         input tip_data_t data = '0);
+		drive_dretire_pulse(LOAD, addr, tip_dsize_t'(size), data);
 		log_event(CPU_LOAD, cur_pc, addr, 0, size);
 		cur_pc = cur_pc + 4;
 	endtask
@@ -701,7 +951,10 @@ module cpu_model #(
 			// "the number of instructions retired may be zero"). The PCInfo
 			// slot for cur_pc is filled in when cur_pc retires after mret, so
 			// this event itself has no PCInfo type and no expected.pcs entry.
-			CPU_INTERRUPT_ASYNC:     return "";
+			// CPU_EXCEPTION_NORETIRE: synchronous exception whose faulting
+			// instruction never retired (iretire=0) -> not counted, no slot
+			// (1:1 with AMD; matches the count_halfwords=iretire encoder fix).
+			CPU_INTERRUPT_ASYNC, CPU_EXCEPTION_NORETIRE: return "";
 			// A conditional branch is a "BD" (Branch Direct) in PCInfo
 			// whether or not it was taken at runtime — the HIST bit in
 			// the trace resolves the direction. A not-taken branch
@@ -731,6 +984,37 @@ module cpu_model #(
 		endcase
 	endfunction
 
+	// ------------------------------------------------------------------
+	// PC text format -- a CONTRACT with the reference decoder, not a taste
+	// question. Every --pc gate diffs this model's expected-PC file against
+	// NexRv's -pcout output line for line, so the two must print an address
+	// with the same number of digits: 0x%08x while CT_XLEN = 32, 0x%016x at
+	// 64 (NexRvDeco.c pcout). The PCInfo file uses the same width; NexRv
+	// parses it with SCNx64, so a wider field stays readable either way.
+	//
+	// The format string MUST be a literal at every $sformatf call site, and
+	// the width choice therefore lives in the `if` below rather than in a
+	// parameter handed to the formatter. This used to read
+	//     localparam string PC_HEX_FMT = <ternary>;
+	//     return $sformatf(PC_HEX_FMT, a);
+	// which is legal SystemVerilog and works under XSIM, but Verilator 5.040
+	// -- the backend pinned in .abc.config, i.e. the one `make sim` uses --
+	// does NOT substitute a non-literal format: it emitted the format string
+	// itself, so pc_hex() returned the eleven characters "0x%08x" followed by
+	// the address in decimal. Every artefact this model writes goes through
+	// pc_hex (expected.pcs, the NexRv PCInfo, expected.data), so EVERY --pc
+	// gate on the default backend was comparing against garbage, and the
+	// PCInfo the decoder was handed could not be parsed either (D1-F2,
+	// measured: 1 of 26 PCs decoded in tests/instruction/01_basic).
+	// scripts/check_sim_fmt.py keeps the class out of the tree; the reference
+	// sanity check in scripts/decode_and_check.sh catches a garbage oracle
+	// from any other cause.
+	// ------------------------------------------------------------------
+	function automatic string pc_hex(input tip_iaddr_t a);
+		if (tip_pkg::TIP_IADDRESS_WIDTH > 32) return $sformatf("0x%016x", a);
+		else                                  return $sformatf("0x%08x", a);
+	endfunction
+
 	function automatic int write_nexrv_info(input string path);
 		// NexRv loads the PCInfo into an array indexed by
 		// (addr - base) / 4. Entries MUST be sorted by address and
@@ -755,8 +1039,8 @@ module cpu_model #(
 			if (t == "") continue;
 			if (types_at.exists(event_q[i].pc)) begin
 				if (types_at[event_q[i].pc] != t) begin
-					$error("[cpu_model] write_nexrv_info: PC 0x%08x has conflicting types '%s' and '%s' — NexRv pcinfo requires one type per PC. Restructure the test scenario.",
-						event_q[i].pc, types_at[event_q[i].pc], t);
+					$error("[cpu_model] write_nexrv_info: PC %s has conflicting types '%s' and '%s' — NexRv pcinfo requires one type per PC. Restructure the test scenario.",
+						pc_hex(event_q[i].pc), types_at[event_q[i].pc], t);
 				end
 				continue;
 			end
@@ -788,12 +1072,12 @@ module cpu_model #(
 				if (types_at.exists(a)) begin
 					automatic string t = types_at[a];
 					if (t == "L" || t == "R") begin
-						$fwrite(fd, "0x%08x,%s%0d\n", a, t, len_bytes);
+						$fwrite(fd, "%s,%s%0d\n", pc_hex(a), t, len_bytes);
 					end else begin
-						$fwrite(fd, "0x%08x,%s%0d,0x%08x\n", a, t, len_bytes, targets_at[a]);
+						$fwrite(fd, "%s,%s%0d,%s\n", pc_hex(a), t, len_bytes, pc_hex(targets_at[a]));
 					end
 				end else begin
-					$fwrite(fd, "0x%08x,L%0d\n", a, len_bytes);  // gap-fill sentinel
+					$fwrite(fd, "%s,L%0d\n", pc_hex(a), len_bytes);  // gap-fill sentinel
 					n_gap++;
 				end
 				n_written++;
@@ -825,7 +1109,7 @@ module cpu_model #(
 			// Instructions retired while instruction tracing was paused are
 			// not in the trace, so they are not in the decoded PC stream.
 			if (!event_q[i].traced) continue;
-			$fwrite(fd, "0x%08x\n", event_q[i].pc);
+			$fwrite(fd, "%s\n", pc_hex(event_q[i].pc));
 			n_written++;
 		end
 		$fclose(fd);
@@ -838,6 +1122,10 @@ module cpu_model #(
 	// Format per line:  LOAD|STORE,0x<daddr>,<size_bytes>
 	// size_bytes is in DECIMAL (1/2/4/8) — same encoding NexRv prints
 	// in its data-message decode, so the two are diff-able as-is.
+	// Gated on .data_traced like the CTXP MEM records: accesses issued
+	// while data tracing is off (set_data_traced(0), e.g. the off-window
+	// of the DataTracing re-anchor test) never reach the wire and must
+	// not appear in the reference either.
 	function automatic int write_expected_data(input string path);
 		int fd;
 		int n_written = 0;
@@ -849,13 +1137,14 @@ module cpu_model #(
 		end
 		foreach (event_q[i]) begin
 			automatic int unsigned size_bytes = 1 << event_q[i].size;
+			if (!event_q[i].data_traced) continue;
 			case (event_q[i].kind)
 				CPU_LOAD:  begin
-					$fwrite(fd, "LOAD,0x%08x,%0d\n", event_q[i].target, size_bytes);
+					$fwrite(fd, "LOAD,%s,%0d\n", pc_hex(event_q[i].target), size_bytes);
 					n_written++;
 				end
 				CPU_STORE: begin
-					$fwrite(fd, "STORE,0x%08x,%0d\n", event_q[i].target, size_bytes);
+					$fwrite(fd, "STORE,%s,%0d\n", pc_hex(event_q[i].target), size_bytes);
 					n_written++;
 				end
 				default: ;
@@ -893,6 +1182,7 @@ module cpu_model #(
 	localparam int unsigned CMD_DATA_WR      = 10;
 	localparam int unsigned CMD_DATA_RD      = 11;
 	localparam int unsigned CMD_CF_SYNC      = 12;
+	localparam int unsigned CMD_WATCHPOINT   = 14;
 
 	function automatic int write_expected_ctxp(input string path);
 		int fd;
@@ -953,7 +1243,7 @@ module cpu_model #(
 					end
 					prev_iaddr = e.pc;
 				end
-				CPU_INTERRUPT, CPU_EXCEPTION: begin
+				CPU_INTERRUPT, CPU_EXCEPTION, CPU_EXCEPTION_NORETIRE: begin
 					last_pc_exc = prev_iaddr;
 					if (e.traced) begin
 						$fwrite(fd, "#0:INTERRUPT:0x%0h:0x%0h\n", prev_iaddr, e.target); n_written++;
@@ -1022,6 +1312,18 @@ module cpu_model #(
 								CMD_DATA_WR:    begin $fwrite(fd, "#0:DAQ_COUNTER:0x0:0x%0h\n", 2 << 19); n_written++; end
 								CMD_DATA_RD:    begin $fwrite(fd, "#0:DAQ_COUNTER:0x0:0x%0h\n", 3 << 19); n_written++; end
 								CMD_CF_SYNC:    begin $fwrite(fd, "#0:SYNC::0x%0h\n", e.pc); n_written++; end
+								// Watchpoint (P4): the encoder emits TCODE 15 with
+								// WPHIT = DirectData[15:0] AND trWpMask.WEM, and the
+								// decoder exports it as a WATCHPOINT record. The mask
+								// lives in a CSR the cpu_model does not see, so this
+								// oracle assumes the all-ones mask (the tests that
+								// compare CTXP run with WEM = 0xFFFF); a masked leg
+								// must not be diffed against this reference.
+								CMD_WATCHPOINT: begin
+									if ((dd & 24'hFFFF) != 0) begin
+										$fwrite(fd, "#0:WATCHPOINT::0x%0h\n", dd & 24'hFFFF); n_written++;
+									end
+								end
 								default: ;
 							endcase
 						end
@@ -1056,11 +1358,11 @@ module cpu_model #(
 	function automatic void dump_events();
 		$display("[cpu_model] event log (%0d entries):", event_q.size());
 		foreach (event_q[i]) begin
-			$display("  %4d: %-18s pc=%08x target=%08x payload=%016x size=%0d",
+			$display("  %4d: %-18s pc=%s target=%s payload=%016x size=%0d",
 				i,
 				event_kind_str(event_q[i].kind),
-				event_q[i].pc,
-				event_q[i].target,
+				pc_hex(event_q[i].pc),
+				pc_hex(event_q[i].target),
 				event_q[i].payload,
 				event_q[i].size);
 		end

@@ -1,0 +1,44 @@
+# gate    : ooc_resources_P8
+# package : P8 (audit fix round)
+# command : bash scripts/p8_ooc_pair.sh both <wt>   (off leg repeated after a
+#           Vivado hiccup under parallel load; two extra control legs, see note)
+# HEAD    : 9a41049
+# when    : 2026-08-05 19:03:39 WEDT
+# superseded-by : verification/evidence/P8/reverify_at_294bf6d.log
+#           : the OOC pair, re-run at 294bf6d; its two attribution controls were NOT repeated and stand here.
+#           : This tree (9a41049) was rebased away; the verdicts below
+#           : were never demonstrated on the branch (checked by
+#           : scripts/check_evidence_stamp.py).
+# note    : re-run because the RDL idiom moved the field's self-clear into the
+#           generated block and the pacing became its own module. The FF delta
+#           is unchanged and attributes exactly (16); the LUT delta grew from
+#           +3 to +80 and is ATTRIBUTED by two controls in the same session:
+#           the pre-change commit reproduces its old number exactly, and an
+#           isolation build with the pacer inlined again reproduces the new
+#           one -- so the module extraction is free and what moved is the
+#           register-block idiom (restructuring, no flip-flop).
+# ----------------------------------------------------------------
+--- pair at 9a41049 ---
+--- on: | CLB LUTs*                  | 25699 |     0 |          0 |    117120 | 21.94 |
+--- on: | CLB Registers              | 20195 |     0 |          0 |    234240 |  8.62 |
+--- on: |   Register as Flip Flop    | 20194 |     0 |          0 |    234240 |  8.62 |
+--- off: | CLB LUTs*                  | 25619 |     0 |          0 |    117120 | 21.87 |
+--- off: | CLB Registers              | 20179 |     0 |          0 |    234240 |  8.61 |
+--- off: |   Register as Flip Flop    | 20178 |     0 |          0 |    234240 |  8.61 |
+--- control 1: commit 0eff631 (pre-change), feature ON, same session ---
+--- pre: | CLB LUTs*                  | 25622 |     0 |          0 |    117120 | 21.88 |
+--- pre: |   Register as Flip Flop    | 20194 |     0 |          0 |    234240 |  8.62 |
+--- control 2: HEAD with ct_sync_req_pacer inlined again (isolation build) ---
+--- inline: | CLB LUTs*                  | 25699 |     0 |          0 |    117120 | 21.94 |
+--- inline: |   Register as Flip Flop    | 20194 |     0 |          0 |    234240 |  8.62 |
+--- hierarchical row of the extracted module (on leg) ---
+|     genInstSyncReq.sync_req_pacer                              |                         ct_sync_req_pacer |          2 |          2 |       0 |    0 |     2 |      0 |      0 |    0 |          0 |
+--- tool hiccup: the off leg failed twice before it ran ---
+Vivado aborted synth_design in 20 s with
+  couldn't read file ".../scripts/rt/data/unimacro/unimacro_vhdl.tcl": No error
+while a parallel package's simulation battery was using the same Vivado
+installation (P4 worker, seen 18:18 and 18:29). That is the hiccup
+scripts/p8_ooc_pair.sh documents: the leg is repeated, it is not a result.
+The third attempt (18:33) produced the report quoted above. The failing
+transcripts are gone -- each leg overwrites bld/p8_ooc_<tag>.log -- so this
+line is the record of them.

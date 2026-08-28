@@ -6,7 +6,8 @@ SPDX-License-Identifier: CC-BY-4.0
 # High-level tests
 
 This directory is for **high-level / system / integration testbenches**
-only — anything that exercises CEDARtools.TraceEncoder end-to-end or spans multiple
+only — anything that exercises CEDARtools.TraceEncoder end-to-end or spans
+multiple
 modules.
 
 **Per-module unit testbenches do not live here.** They live next to

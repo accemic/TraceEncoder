@@ -1,15 +1,14 @@
-// -*- indent-tabs-mode:t; tab-width:4 -*-
-// vim: tabstop=4:noexpandtab
+// SPDX-FileCopyrightText: 2025 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
+// -*- indent-tabs-mode: t; tab-width: 4 -*-
 
 /**
- * SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
- * Copyright (c) 2025 Accemic Technologies GmbH
- * Address: Kiefersfelden, Germany
- *
  * @file    signal_ack_lock_fsm.sv
  * @brief   Handshake-locked signal pulse with optional CDC.
  *
- * @description
+ * @details
  *   This module implements a handshake-locked pulse generator using a finite state machine.
  *   When the input signal (`in`) rises, the output (`out`) is asserted and remains high until an acknowledge (`ack`) is received.
  *   After `ack`, the module waits for the input to fall before resetting and readying for the next pulse.
@@ -34,11 +33,11 @@
 module signal_ack_lock_fsm #(
 	logic DO_CDC = 1'b0
 )(
-	input	logic clk,
-	input	logic rst,
-	input	logic in,
-	input	logic ack,
-	output	uwire out
+	input   logic clk,
+	input   logic rst,
+	input   logic in,
+	input   logic ack,
+	output  uwire out
 );
 
 	// CDC block if enabled

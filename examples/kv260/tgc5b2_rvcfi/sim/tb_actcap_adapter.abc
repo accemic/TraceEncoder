@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+import @rtl/pkg : tip_pkg tip_if
+import @examples/kv260/tgc5b2_rvcfi/rtl : ct_tip_adapter_actcap
+
+read_sim tb_actcap_adapter.sv
+simulate tb_actcap_adapter

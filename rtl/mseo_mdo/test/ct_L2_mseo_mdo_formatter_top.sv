@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
 // SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
 
-// vim: set ts=4 et:
+// vim: set ts=4 noet:
 // -*- indent-tabs-mode: t; tab-width: 4 -*-
 `default_nettype none
 
@@ -13,21 +13,22 @@ module ct_L2_mseo_mdo_formatter_top #(
 	parameter int unsigned NEXUS_MAX_FIELD_DATA_WIDTH = nexus_vendor::NEXUS_MAX_FIELD_DATA_WIDTH,
 	parameter int unsigned MDO_WIDTH                  = 30
 ) (
-	input  uwire logic                               proc_clk,
-	input  uwire logic                               proc_rst,
-	input  uwire logic                               atb_atclk,
-	input  uwire logic                               atb_atresetn,
-	output uwire logic                               atb_atvalid,
+	input  uwire logic                              proc_clk,
+	input  uwire logic                              proc_rst,
+	input  uwire logic                              atb_atclk,
+	input  uwire logic                              atb_atresetn,
+	output uwire logic                              atb_atvalid,
 	output uwire logic [atb_pkg::ATDATA_WIDTH-1:0]  atb_atdata,
 	output uwire logic [atb_pkg::ATBYTES_WIDTH-1:0] atb_atbytes,
 	output uwire logic [atb_pkg::ATID_WIDTH-1:0]    atb_atid,
-	output uwire logic                               atb_afready
+	output uwire logic                              atb_afready
 );
 	import nexus::*;
 
 	nexus_message_t nexus_msg = '0;
 	logic [31:0]    Seed = 32'h1;
 	logic           synq_req_trace_byte_count;
+	logic           synq_req_trace_msg_count;
 	logic           ready_out;
 
 	ct_cs_procclk_if cs_proc();
@@ -92,6 +93,8 @@ module ct_L2_mseo_mdo_formatter_top #(
 		.cs_atb,
 		.atb,
 		.synq_req_trace_byte_count,
+		.synq_req_trace_msg_count,
+		.quota_cnt_clr             (1'b0),
 		.ready_out
 	);
 

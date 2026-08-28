@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+import @rtl/external/amba      : axis_if atb_if
+import @rtl/external/wishbone  : wb_package
+import @rtl/pkg                : tip_if tip_pkg
+import @rtl                    : ct_encoder
+import @examples/kv260/common/tgc5b/rtl : ct_tip_adapter ct_axil_to_wb ct_soc_ram ct_soc_periph
+import @examples/kv260/common/tgc5b/cpu : TGC5B_AXI4L_H2E
+
+read_sv tgc5b_wp_synth_wrap.sv

@@ -1,0 +1,52 @@
+# gate    : formal_preproc_sync_P8
+# package : P8 (audit fix round)
+# command : TARGETS=preproc_sync bash ci/run_stage2b_formal.sh ; bash formal/preproc_sync/run_red.sh
+# HEAD    : 9a41049
+# when    : 2026-08-05 18:18:36 WEDT
+# superseded-by : verification/evidence/P8/reverify_at_294bf6d.log
+#           : formal preproc_sync incl. the red counter-proofs, re-run at 294bf6d.
+#           : This tree (9a41049) was rebased away; the verdicts below
+#           : were never demonstrated on the branch (checked by
+#           : scripts/check_evidence_stamp.py).
+# note    : verdict only. The TE-request environment now instantiates the CSR
+#           shim's REAL pacing module (ct_sync_req_pacer) and BOTH real
+#           strobe_cdc crossings -- at equal clocks (ASM-SYNC-3), which is the
+#           bound of the claim (audit B-2). P-SYNC-11 (reqcoll) is the
+#           request-meets-quota collision the audit asked for (B-5); MG is the
+#           audit's own "ack yes, message no" mutation, which the previous
+#           A_sync9_live let through (C-2).
+# ----------------------------------------------------------------
+SBY 17:20:45 [preproc_sync_live] DONE (PASS, rc=0)
+SBY 17:20:45 [preproc_sync_tereq] DONE (PASS, rc=0)
+SBY 17:20:48 [preproc_sync_cover] DONE (PASS, rc=0)
+SBY 17:20:48 [preproc_sync_reqcoll] DONE (PASS, rc=0)
+SBY 17:22:16 [preproc_sync_livecover] DONE (PASS, rc=0)
+SBY 17:22:16 [preproc_sync_prove] DONE (PASS, rc=0)
+SBY 17:22:16 [preproc_sync_quota] DONE (PASS, rc=0)
+SBY 17:22:16 [preproc_sync_tereqcover] DONE (PASS, rc=0)
+SBY 17:22:22 [preproc_sync_quotacover] DONE (PASS, rc=0)
+SBY 17:22:22 [preproc_sync_reqcollcover] DONE (PASS, rc=0)
+PASS  preproc_sync (prove cover live livecover quota quotacover tereq tereqcover reqcoll reqcollcover)
+--- red counter-proofs (formal/preproc_sync/run_red.sh) ---
+== red cross-check 1/2: P-SYNC-1-only vs CURRENT rtl (expect PASS)
+   PASS on fixed RTL — property holds where it must.
+== red cross-check 2/2: P-SYNC-1-only vs pre-fix worktree 441eac4c (expect FAIL)
+   FAIL on pre-fix RTL — Klasse-9 race caught. CEX:
+RED COUNTER-PROOF OK (green on fix, red on 441eac4c).
+== red mutation MA_mode_gate (expect FAIL on task prove; target family: A_sync5_mode (mode discrimination))
+   failing assert (line 1381): 			assert (!((f_SR == sv2v_cast_4(sv2v_cast_4E625(2))) && ((p_sync_mode_q == 3'h0) || (p_sync_mode_q == 3'h7)))) ;
+== red mutation MB_rearm_dropped (expect FAIL on task quota; target family: A_sync7_rearm (no double request))
+   failing assert (line 3430): 			assert (!(f_periodic && f_seen_per) || f_rearm) ;
+== red mutation MC_periodic_silent (expect FAIL on task quota; target family: A_sync5_win (window bound))
+   failing assert (line 3419): 			assert (f_win <= sv2v_cast_16(F_QUOTA + F_DELTA)) ;
+== red mutation MD_quota_level_dead (expect FAIL on task quota; target family: A_sync6_live (no lost request))
+   failing assert (line 3438): 			assert (f_press <= sv2v_cast_8(F_K6)) ;
+== red mutation ME_ack_dropped (expect FAIL on task tereq; target family: A_sync9_live (no lost request))
+   failing assert (line 4490): 			assert (f_press <= sv2v_cast_8(F_K9)) ;
+== red mutation MF_pending_stuck (expect FAIL on task tereq; target family: A_sync10_credit (no double request))
+   failing assert (line 4483): 			assert (!f_req_sync || (f_credit != 4'd0)) ;
+== red mutation MG_ack_without_msg (expect FAIL on task tereq; target family: A_sync9_live (no lost request, DUT-independent trigger); -DRED_MASK_SYNC10)
+   failing assert (line 4490): 			assert (f_press <= sv2v_cast_8(F_K9)) ;
+== red mutation MH_quota_outranks_req (expect FAIL on task reqcoll; target family: A_sync11_prio (request wins the shared beat))
+   failing assert (line 5596): 			assert (!(((f_sync_any && sr_started[1]) && sr_ovf_seen[1]) && sr_tip_pend[1]) || f_req_sync) ;
+RED MUTATION CROSS-CHECKS OK (8/8 red where they must be).

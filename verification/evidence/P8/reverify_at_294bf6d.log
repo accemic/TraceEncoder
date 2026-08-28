@@ -1,0 +1,146 @@
+# gate    : reverify_P8_at_integrated_head
+# package : P8 (audit fix round -- independent re-run by the successor worker)
+# command : see each block below
+# HEAD    : 294bf6d
+# when    : 2026-08-05 19:49-21:34 WEDT
+# note    : WHY this file exists. The five sibling logs in this directory are
+#           the fix worker's records and all carry "# HEAD : 9a41049". That
+#           tree is NOT this branch: between 0eff631 (where the fix round
+#           started) and the branch, FOUR P4 commits landed (f753840, 7d2c8a5,
+#           5d4dcd3, 28bb49e) touching RTL (ct_L23_preproc_composer_etip.sv,
+#           ct_pkg.sv), the formal runner and the RDL -- 17 files, 1365 lines.
+#           The fix worker rebased its commits onto the branch but did not
+#           repeat its measurements, so no gate had been demonstrated at the
+#           integrated state. The rebase itself was verified content-preserving
+#           (diff 0eff631..9a41049 and diff 28bb49e..fed8bcf are both 1922
+#           lines over 30 files and differ only in context lines).
+#           Everything below was run by the successor worker in its own
+#           worktrees (p8auf_294bf6d / p8auf_neut / p8auf_ooc) at 294bf6d.
+#           The sibling logs are left untouched -- this file adds, it does not
+#           overwrite.
+# ----------------------------------------------------------------
+--- guards (the integrated tree: 21 profile scripts, not the 20 of 9a41049) ---
+[check_feature_flags] OK: 33 CT_EN_* switches, 147 RDL fields (1 type anchor(s), 2 external memory(ies)), CAPS width 23, ENAB 23 bits, 48 matrix + 8 compression-table rows checked
+[check_protocol_discovery] OK: 2 discovery fields hw-driven (RDL sw=r/hw=w, wb shim from EN_ETRACE, generated block read-only from hwif_in, micro-CSR twin identical)
+[check_profile_deps] OK: 3 elaboration dependency(ies) honoured in 21 profile script(s); 3 expected pair(s) present
+[check_xsim_guard] OK: 35 script(s) drive xsim, all through ct_xsim/ct_xsim_ok; no bare xsim call outside scripts/ct_env.sh
+[check_negative_legs] OK: 24 profile switch(es); 2 with a compiled-out negative leg, 22 waived with a reason
+
+--- make doc-check (the fix worker's run predated the two 19:04 doc commits) ---
+  [PASS] doc/architecture.adoc      [PASS] doc/development.adoc
+  [PASS] doc/enhanced-features.adoc [PASS] doc/integration.adoc
+  [PASS] doc/release-notes.adoc     [PASS] doc/trace-format.adoc
+  [PASS] doc/verification.adoc
+
+--- formal: TARGETS=preproc_sync ci/run_stage2b_formal.sh (rc=0) ---
+SBY 19:58:43 [preproc_sync_live] DONE (PASS, rc=0)
+SBY 19:58:43 [preproc_sync_tereq] DONE (PASS, rc=0)
+SBY 20:01:07 [preproc_sync_prove] DONE (PASS, rc=0)
+SBY 20:01:07 [preproc_sync_cover] DONE (PASS, rc=0)
+SBY 20:02:38 [preproc_sync_livecover] DONE (PASS, rc=0)
+SBY 20:02:38 [preproc_sync_tereqcover] DONE (PASS, rc=0)
+SBY 20:02:38 [preproc_sync_quota] DONE (PASS, rc=0)
+SBY 20:02:38 [preproc_sync_reqcoll] DONE (PASS, rc=0)
+SBY 20:02:46 [preproc_sync_quotacover] DONE (PASS, rc=0)
+SBY 20:02:46 [preproc_sync_reqcollcover] DONE (PASS, rc=0)
+PASS  preproc_sync (prove cover live livecover quota quotacover tereq tereqcover reqcoll reqcollcover)
+
+--- red counter-proofs, incl. the two mutations the audit asked for (rc=0) ---
+== red mutation MG_ack_without_msg (expect FAIL on task tereq; target family: A_sync9_live (no lost request, DUT-independent trigger); -DRED_MASK_SYNC10)
+   failing assert (line 4490): 			assert (f_press <= sv2v_cast_8(F_K9)) ;
+== red mutation MH_quota_outranks_req (expect FAIL on task reqcoll; target family: A_sync11_prio (request wins the shared beat))
+   failing assert (line 5596): 			assert (!(((f_sync_any && sr_started[1]) && sr_ovf_seen[1]) && sr_tip_pend[1]) || f_req_sync) ;
+RED MUTATION CROSS-CHECKS OK (8/8 red where they must be).
+RED COUNTER-PROOF OK (green on fix, red on 441eac4c).
+
+--- non-vacuity: covers actually reached (from the cover tasks' logfiles) ---
+f_tereq.4493   step  9   C_tereq_served
+f_tereq.4494   step 17   C_tereq_twice
+f_tereq.4495   step 17   C_tereq_queued_second   <- the audit A-1 contract witness
+f_reqcoll.5600 step 26   C_coll_on_one_beat
+f_reqcoll.5601 step 50   C_coll_quota_alive
+
+--- system test: scripts/cli_tesyncreq_test.sh (rc=0) ---
+counted by the run, not by memory: grep -cE ': (PASS|FAIL)' = 48, of which one
+is OVERALL => 47 checks, 0 FAIL, 10 legs.
+REQ: exactly one SYNC = 14                    : PASS (1)
+REQ2: two writes -> two SYNC = 14             : PASS (2)
+REQ3: three writes -> still two               : PASS (2)
+QCOLL: request inside the quota stream        : PASS (1)
+QCOLL: quota keeps running around it          : PASS (2)
+ACT: identical up to the request              : PASS (first differing byte 93)
+ACT: same PC sequence as the control          : PASS (same)
+ACT: exactly one message more                 : PASS (1)
+ACT: and that message is the SYNC = 14        : PASS (1)
+ACT: the control asked for nothing            : PASS (2)
+OVERALL: PASS
+NOTE: reqnop is 102 PCs. The fix worker's handoff quoted 98; sim_gates.log and
+this run both say 102 (98 is the off and qcoll figure).
+
+--- compiled-out negative: cli_tesyncreq_test.sh ro, switch at 0 (rc=0) ---
+both reads return 0 (request inert)           : PASS (2)
+NO SYNC = 14 with the feature out             : PASS (0)
+OVERALL: PASS
+
+--- unit testbench (xsim) ---
+Testcase: Global Testset passed. Checked 28 assertions.
+Info: Testbench passed.
+HOW: driven through xvlog/xelab/xsim directly. `abc -sim` on this testbench
+dies reproducibly in this shell with "ERROR: [Common 17-180] Spawn failed:
+Broken pipe" while launching compile.bat -- the documented local quirk (see
+scripts/p8_off_neutrality.sh and ci/run_stage2_sim.sh, which prints "spawn
+failure expected, ignored"). The same .prj compiles with xvlog with 0 errors,
+so this is the harness, not the design.
+
+--- delivery path: peakrdl ip-xact on the pinned venv (rc=0) ---
+access = write-only          (was writeOnce before the fix round -- audit B-4)
+the register image carries the corrected contract text AND the measured
+numbers ("three writes back to back -> 2") -- audit A-1.
+
+--- byte neutrality, BOTH directions, family SELECTED not inherited (audit B-1) ---
+[20:16:40] reference family: REF_FINAL_caps23_20260805-1037_a04b37b.txt (CAPS 0x7fffbf, minted 20260805-1037 at HEAD a04b37b)
+[20:16:41] this build emits CAPS 0x7fffbf -- CT_EN_INST_SYNC_REQ carries no CAPS bit, so on and off select the same family
+[20:48:43] BYTE NEUTRALITY (on): IDENTICAL (31 of 31 artefacts)
+[20:48:43] cli failures: 0
+[20:48:43] OVERALL: PASS
+[21:10:29] BYTE NEUTRALITY (off): IDENTICAL (31 of 31 artefacts)
+[21:10:29] cli failures: 0
+[21:10:29] OVERALL: PASS
+Read the ON leg for what it is (audit B-7): no reference testbench writes bit
+27, so it shows the feature dormant, not working. The activity proof is the
+req/reqnop (ACT) pair above.
+
+--- stage 2, P8-relevant subset ---
+first attempt: natovf / suiteisync / bpsyncbr / pausedge FAILED, all four with
+"FAIL: donor prj missing (.../overrun_recovery_tb...)" -- a FRESH worktree has
+no built donor project, not a regression. After building the donor with
+abc -sim tests/overflow/01_overrun_recovery/overrun_recovery_tb.abc (rc=0):
+PASS  natovf        G1 natural overflow reached (2 Error messages) / G3 errors bounded (2 <= 40)
+PASS  suiteisync    S0 805 periodic syncs / S1 432 VendorBP / S2 Decoded OK (16525 PCs)
+PASS  bpsyncbr      B0 19 / B1 4 VendorBP / B2 Decoded OK (508 PCs)
+PASS  pausedge      P1 9 correlations / P2 Decoded OK (4984 PCs) / P3 pause-edge contract holds
+PASS  syncquota     test 29 + test 30 (incl. SyncReqSource==3 readback)
+PASS  tesyncreq     OVERALL: PASS
+The four numbers 805 / 432 / 16525 / 508 match the fix worker's evidence
+exactly -- a cross-check that the P4 integration did not move these paths.
+
+--- OOC pair at this HEAD (scripts/p8_ooc_pair.sh, part xck26-sfvc784-2LV-c) ---
+--- on:  | CLB LUTs*               | 25787 |  22.02 |    Register as Flip Flop | 20172 |
+--- off: | CLB LUTs*               | 25707 |  21.95 |    Register as Flip Flop | 20156 |
+=> delta +80 LUT / +16 FF for CT_EN_INST_SYNC_REQ.
+That delta is EXACTLY the one measured at 9a41049 (25699/25619, 20194/20178);
+the absolutes moved with P4 (+88 LUT / -22 FF). So the P8 cost is invariant to
+P4's change -- now measured, not assumed.
+TOOL HICCUPS, disclosed: the off leg died twice before it ran, both times with
+"couldn't read file" on a file of the VIVADO INSTALLATION itself
+(scripts/rt/data/common.tcl, then scripts/rt/fpga_tcl/rtSynthParallelPrep.tcl).
+Both files exist -- checked. That is the hiccup class p8_ooc_pair.sh documents
+in its header; the third attempt produced the report above (rc=0). The two
+control builds that ATTRIBUTE the +80 (pre-change commit, pacer re-inlined)
+were NOT repeated -- they stand in ooc_resources.log and are the fix worker's.
+
+--- not run in this round (not claimed) ---
+make lint as a whole (Verible not installed on this machine, unchanged since
+P1/P9); the full 26-gate stage 2 (six relevant gates run, C-10 stays for P10);
+soak/fuzz and board E2E (no P8 gate, P10); C-6 RM status matrix (docs/ is
+untracked and gitignored on this branch -- campaign-wide leftover).

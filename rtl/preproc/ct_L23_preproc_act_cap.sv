@@ -11,8 +11,8 @@
  * @file    ct_L23_preproc_act_cap.sv
  * @brief   Preprocessing stage for ACT‑CAP (CSR Access Protocol) commands.
  *
- * @description
- *   The ACT‑CAP (Accemic C‑Trace CSR Access Protocol) allows the trace encoder
+ * @details
+ *   The ACT‑CAP (Accemic CEDARtools CSR Access Protocol) allows the trace encoder
  *   to transparently observe CPU write accesses to designated virtual CSR
  *   registers via the Trace Ingress Port (TIP). This is achieved without CPU
  *   modifications, since CSR writes are treated as functional NOPs with no
@@ -44,7 +44,13 @@
  *   - Reset clears the entire pipeline to prevent spurious outputs.
  *   - CSR writes to non‑ACT‑CAP addresses are ignored.
  *   - Output is aligned to the tail of the pipeline (EXTRA_DELAY cycles).
- *   - TODO: check implementation of mcontrol CSR (0x7a1) support
+ *   - ACT-CAP decodes writes to ITS OWN CSR window only (CSR_ACT_CAP_BASE,
+ *     nexus_vendor_riscv_pkg). It deliberately does not watch the RISC-V
+ *     debug-trigger CSRs (mcontrol, 0x7a1): CTTE has no debug-trigger
+ *     interface at all -- the ingress port carries no trigger-hit
+ *     sideband, which is why trTeTrigDbgControl (0x050) is read-only 0 in
+ *     every profile (rdl/ct_cs_cpuif.rdl, doc/release-notes.adoc). A CSR
+ *     write outside the ACT-CAP window is ignored, mcontrol included.
  */
 
 `undef  MY_DEBUG
@@ -61,13 +67,13 @@ import ct_cs_cpuif_pkg::*;
 import ct_cs_cpuif_types_pkg::*;
 
 module ct_L23_preproc_act_cap (
-	input uwire logic           clk,                    // trace input clock
-	input uwire logic           rst,                    // reset
-	tip_if.slave                tip,                    // TIP from CPU
-	ct_act_cap_if.master        act_cap,
-	ct_cs_tipclk_if.slave       cs_tip,                 // control / status interface
-	output delay_t              internal_delay,         // delay of this component including all submodules
-	input uwire delay_t         extra_delay             // extra delay to be added for syncronizing preproc modules
+	input uwire logic     clk,            // trace input clock
+	input uwire logic     rst,            // reset
+	tip_if.slave          tip,            // TIP from CPU
+	ct_act_cap_if.master  act_cap,
+	ct_cs_tipclk_if.slave cs_tip,         // control / status interface
+	output delay_t        internal_delay, // delay of this component including all submodules
+	input uwire delay_t   extra_delay     // extra delay to be added for syncronizing preproc modules
 );
 
 	logic                           [EXTRA_DELAY_MAX:0] ValidPipe = '0;

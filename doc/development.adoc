@@ -6,7 +6,8 @@
 :toclevels: 3
 
 This page covers the build flow, the SystemRDL register flow, the
-contribution rules, and how to integrate CEDARtools.TraceEncoder into an SoC.
+contribution rules, and how to integrate CEDARtools.TraceEncoder (CTTE)
+into an SoC.
 
 toc::[]
 
@@ -20,19 +21,169 @@ Every umbrella command is routed through the link:../Makefile[`Makefile`]:
 |===
 | Target | What it does
 
-| `make help`            | List available targets.
-| `make sim`             | Run all encoder testbenches; print a PASS/FAIL summary.
-| `make sim-<name>`      | Run one testbench (e.g. `sim-basic`) — see link:verification.adoc[Verification] for the scenarios.
-| `make sim-tgc5b-soc`   | Simulate the example SoC (`examples/tgc5b_soc`): real TGC5B core → encoder → NexRv decode.
-| `make sim-tgc5b-ps`    | Simulate the KV260 devmem flow around that SoC (`ct_soc_top`).
-| `make sim-examples`    | Run every worked integration under `examples/` (both of the above) with a PASS/FAIL summary — what CI runs next to `make sim`.
-| `make impl-tgc5b-soc`  | Out-of-context Vivado synthesis of the example SoC (resource / timing estimate).
-| `make coverage`        | Re-run the suite under Verilator line coverage and report one suite-wide rate.
-| `make lint`            | `verible-verilog-lint` over the repo's SystemVerilog.
-| `make clean`           | Remove the `bld/` directory.
-| `make rdl`             | Regenerate the PeakRDL-derived SV from `rdl/ct_cs_cpuif.rdl`.
-| `make rdl-soc`         | Regenerate the example SoC's peripheral regblock from `examples/tgc5b_soc/rdl/ct_soc.rdl`.
-| `make rdl-html`        | Render the browsable HTML register reference into `bld/rdl-html/`.
+| `make help`        | List available targets.
+| `make sim`         | Run all testbenches; print a PASS/FAIL summary.
+| `make sim-<name>`  | Run one testbench (e.g. `sim-basic`).
+| `make lint`        | The eight host guards, then `verible-verilog-lint` over `rtl/` and `tests/`.
+| `make clean`       | Remove the `bld/` directory.
+| `make rdl`         | Regenerate the PeakRDL-derived SV from `rdl/*.rdl`.
+| `make bld-bootstrap` | Generate the three xsim projects the gates clone (see <<fresh-tree>>).
+| `make bld-refresh` | The same, but regenerate them even if they exist.
+|===
+
+[#fresh-tree]
+=== Starting from a fresh clone or worktree
+
+`bld/` is gitignored, and every `cli_*_test.sh` gate drives
+`xvlog`/`xelab`/`xsim` by hand over an xsim project that `abc` generates
+below it. A tree that has never been built therefore has no project, and
+that used to be reported as
+
+[source]
+----
+FAIL: donor prj missing (.../repeated_history_tb.abc.sim/...)
+FAIL: no prj at .../implicit_return_tb.abc.sim/...
+----
+
+by nineteen gates at once — and the byte-neutrality gates layered on top
+summarised it as `BYTE NEUTRALITY: DRIFT / OVERALL: FAIL`, i.e. as a
+drift verdict about an encoder that had never been built. **That is not
+what those messages mean any more.** The gates bootstrap the project they
+need (`ct_need_prj` in link:../scripts/ct_env.sh[`scripts/ct_env.sh`]),
+so a fresh worktree runs them without a warm-up step. The first gate to
+need a given project pays about a minute for it and says so:
+
+[source]
+----
+ct_env: BOOTSTRAP -- bld/ carries no xsim project for repeated_history_tb (it is
+  gitignored, so a fresh clone or worktree has none). Generating it
+  with abc; this takes about a minute. Log: .../bld/abc_bootstrap_repeated_history_tb.log
+ct_env: bootstrap ok -- repeated_history_tb_vlog.prj (abc rc=0)
+----
+
+`make bld-bootstrap` does all three up front if you would rather pay it
+once before a long gate run. Three projects exist because the gates clone
+them with the testbench source substituted:
+`implicit_return_tb` (instruction tests), `repeated_history_tb`
+(feature tests) and `overrun_recovery_tb` (overflow tests).
+
+The generated project pins the **file list**, not the file contents —
+`xvlog` recompiles every source it names on each run. So a stale project
+only matters when a source was added to or removed from one of the three;
+`make bld-refresh` (or `CT_PRJ_REFRESH=1`) regenerates them then.
+
+*How a failure is reported.* Three outcomes are now distinct, because
+merging them is what cost the time:
+
+[cols="1,3", options="header"]
+|===
+| Exit / line | Meaning
+
+| `77` → `SKIP` | The gate needs an input this repository does not ship
+  (a captured hardware run, a decoder build with `-decoe`). Not a pass,
+  not a failure.
+| `78` → `TOOL` | The toolchain or the build tree could not be
+  established: no Vivado, no `abc`, no working `python`, a bootstrap that
+  did not produce a project. Red — but never a statement about the
+  encoder.
+| anything else → `FAIL` | The gate ran and its check failed.
+|===
+
+A byte-neutrality run whose legs did not all complete now reports
+`BYTE NEUTRALITY: INCONCLUSIVE` instead of `DRIFT`: an incomplete
+manifest cannot say anything about byte identity.
+
+[#sim-backend]
+=== Simulation backends, and why `abc -sim` "fails"
+
+link:../.abc.config[`.abc.config`] pins `sim_backend=verilator`. That is
+deliberate and it is the right default: Verilator is the Vivado-free
+route, it is what `make sim` and the coverage runs use, and it works on
+this workstation too — on Windows it needs `VERILATOR_ROOT` pointed at a
+native path, which both the `Makefile` and `ct_env.sh` do for you (the
+binary reports an MSYS-internal path it cannot open itself, and without
+the repair it aborts in `Cannot find verilated_std.sv`).
+
+What the Verilator backend does **not** produce is an xsim project, and
+the whole `cli_*` gate battery needs one. So those scripts ask for the
+other backend explicitly — `abc --sim-backend vivado -sim ...` — instead
+of depending on the repository-wide setting. Do the same when you drive
+`abc` by hand for a gate; there is no need to edit `.abc.config`, and
+editing it inside a worktree under test leaves a dirty file in the very
+tree whose byte identity is being measured.
+
+*`Spawn failed: Broken pipe` is expected, and it is not your fault.*
+On this Windows workstation, `abc --sim-backend vivado -sim` always ends
+with
+
+[source]
+----
+ERROR: [Common 17-180] Spawn failed: Broken pipe
+ERROR: [USF-XSim-62] 'compile' step failed with error(s) while executing '.../compile.bat'
+ERROR: [Common 17-39] 'launch_simulation' failed due to earlier errors.
+----
+
+Vivado's `launch_simulation` cannot spawn its own `compile.bat` from this
+shell. How far the isolation goes, measured 2026-08-06:
+
+* the project, the `.prj` and `compile.bat` are **written before** the
+  spawn step and are complete and correct;
+* the very `compile.bat` Vivado could not spawn runs to completion when
+  started directly from the same shell (`cmd //c ./compile.bat`, rc=0,
+  every source analysed);
+* `cmd.exe` spawns fine from this shell, `TMP`/`TEMP`/`COMSPEC` are
+  native Windows values — the failure is inside Vivado's own spawn, not
+  in the environment it inherits.
+
+The workaround follows from that and is what every gate does: let `abc`
+generate the project, ignore its exit code, and drive `xvlog`, `xelab`
+and `xsim` on the command line. `ct_need_prj` therefore judges the
+bootstrap by *whether the `.prj` exists*, never by `abc`'s return code.
+
+=== Toolchain discovery for the developer scripts
+
+Everything under link:../scripts/[`scripts/`] sources
+link:../scripts/ct_env.sh[`scripts/ct_env.sh`], which resolves the toolchain
+without any machine-specific paths in the scripts themselves:
+
+[cols="1,3", options="header"]
+|===
+| Variable | Meaning
+
+| `CT_VIVADO_BIN`
+| Vivado `bin/` directory. Without it the pinned version from `.abc.config`
+  is searched in both installer layouts (`<root>/Vivado/<version>/bin` and,
+  from 2026.1, `<root>/<version>/Vivado/bin`). An `xvlog` that is already on
+  `PATH` is only accepted if it *is* the pinned version — set
+  `CT_VIVADO_ANY=1` for a deliberate cross-version run.
+
+| `CT_ABC_BIN` | Directory holding the abc-flow driver.
+| `CT_ABC_TIMEOUT` | Seconds a bootstrap `abc -sim` may take (default 900).
+| `CT_PRJ_REFRESH` | `1` regenerates an xsim project even if it exists
+  (see <<fresh-tree>>).
+| `CT_PYTHON_BIN` | A working Python 3 (abc is a Python program). On a
+  fresh Windows shell both `python` and `python3` are usually the
+  Microsoft Store stubs, which print an installation hint instead of
+  running; `ct_need_python` resolves one real interpreter and writes
+  `bld/pyshim/` wrappers for both names. **A script that calls `python`
+  must call `ct_need_python` first** — every gate script was audited for
+  this on 2026-08-06.
+| `NEXRV` | Explicit path to the reference decoder CTTD; otherwise the
+  fetched build matching the host is used (`bin/cttd-linux-x86_64`,
+  `bin/cttd-linux-arm64`, `bin/cttd-windows-x64.exe` -- `py
+  scripts/fetch_cttd.py`, pin `scripts/cttd.pin`). The variable keeps its
+  historical name.
+| `VERILATOR_ROOT` | Verilator prefix. On Windows the `Makefile` and
+  `ct_env.sh` derive a native path from the binary location, because
+  Verilator otherwise reports an MSYS-internal path it cannot open itself.
+| `CT_REPLAY_PCINFO` | Program description of a captured hardware run, needed
+  by the two replay gates. Not part of this repository — without it those
+  gates skip (exit 77) instead of failing.
+| `NEXRV_DECOE` | Optional override for the E-Trace CTXP gate
+  (`cli_etrace_ctxp_test.sh`): a decoder build carrying the `-decoe` front
+  end. Since 2026-08-17 the pinned CTTD carries it, so the gate runs on
+  `$NEXRV` by default (6/6 legs) and this override is only for a deliberate
+  cross-check against another build.
 |===
 
 === Running simulations
@@ -53,6 +204,36 @@ exercise (`rtl/<module>/test/`); end-to-end / multi-module scenarios live
 under link:../tests/[`tests/`]. See link:verification.adoc[Verification]
 for the test harness and the check flags.
 
+=== The examples flow
+
+The worked integrations under link:../examples/[`examples/`] run through
+the same machinery, one level up: `make sim-examples` drives every
+simulable example and prints a PASS/FAIL summary. It refuses to report
+PASS over an empty example list — a summary over nothing must never read
+as green (that exact failure happened once, when a merge silently dropped
+the list variable).
+
+The ingress adapters under `rtl/adapters/` (MicroBlaze V TRACE bus, CVA6
+ITI, Rocket TCI) are part of the IP, not of the examples; their unit
+benches run through `scripts/cli_adapters_test.sh`, which CI stage 2
+starts. The example catalog and feature matrix live in
+link:../examples/README.md[`examples/README.md`].
+
+Multi-source merging has its own gate since 2026-08-19:
+`scripts/cli_dualsrc_test.sh` drives `tests/instruction/39_dual_src`, where
+two encoder instances with `SrcBits`=2 and `SrcID` 0/1 send **at the same
+time** and the merged stream is split again by source. Two details of that
+bench are deliberate and worth copying if you write a similar one:
+
+* The two sources run **different programs at disjoint addresses**. Two
+  sources running the same image differ in exactly one bit per message, and
+  a test that cannot fail confirms nothing — that is precisely why a board
+  run with two identical guests looked like a passing multi-source proof and
+  was none.
+* The bench checks the *negative* case too: cross-decoding one source against
+  the other's reference must fail, and it does (`rc=9`). Without that, a
+  decoder that simply ignored the source field would still look green.
+
 == Register (RDL) flow
 
 SystemRDL is the source of truth for the register map
@@ -67,6 +248,40 @@ SystemRDL is the source of truth for the register map
 
 Never hand-edit the generated files; they are overwritten on regen.
 
+=== The PeakRDL toolchain is found, never guessed
+
+`make rdl` installs the pinned PeakRDL into a local `.venv-rdl*/`, which
+is gitignored and therefore belongs to the **main checkout**: a linked
+`git worktree` has none of its own.
+link:../scripts/gen_rdl_profile.py[`scripts/gen_rdl_profile.py`] resolves
+it through `git rev-parse --git-common-dir`, so a worktree finds the main
+checkout's venv:
+
+[source,sh]
+----
+$ cd <a worktree with no .venv-rdl*>
+$ py scripts/gen_rdl_profile.py --pkg ... --rdl-dir ... --out-dir ...
+[gen_rdl_profile] ct_profile.inc.rdl: full profile (no defines)
+[gen_rdl_profile] wrote .../ct_cs_cpuif.sv
+[gen_rdl_profile] done.                                            # rc=0
+----
+
+If it cannot find a pinned venv it **stops**; it does not fall back to a
+`peakrdl` on `PATH`:
+
+[source]
+----
+ERROR: no pinned peakrdl venv found in ... -- refusing the PATH peakrdl at
+... (its output has no addrmap localparams). Run scripts/gen_rdl.sh once,
+or set GEN_RDL_ALLOW_PATH_PEAKRDL=1 to override deliberately.
+----
+
+That refusal exists because the silent fallback happened three times: the
+unpinned PeakRDL emits a regblock without the addrmap `localparam`s, so
+the whole xsim battery dies hours later in
+`'NUM_PERFCNT_IFETCH_TH_RANGES' is not declared` — wrong tool, and the
+error message points anywhere but at it.
+
 == Coding rules
 
 * Every source / doc file carries an SPDX header:
@@ -79,21 +294,18 @@ SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
 +
 This is enforced by the REUSE CI job; files that cannot carry an in-file
 header are annotated in link:../REUSE.toml[`REUSE.toml`].
-* New RTL must pass `make lint` (Verible, rules in
-  `.rules.verible_lint`).
+* New RTL must pass `make lint` (Verible). The rule set is **opt-in**:
+  `scripts/lint.sh` runs with `--ruleset=none`, so only the rules listed
+  in `.rules.verible_lint` are active, and `--rules_config_search` picks
+  up per-directory overrides (`rtl/pkg/` for generated code, `formal/`
+  for the property harnesses). Both the root file and the overrides say
+  in a comment why each deviation exists.
 * See link:../CONTRIBUTING.md[`CONTRIBUTING.md`] for branch naming, the
   CLA, and the PR workflow.
 
 == SoC integration
 
-A worked end-to-end example lives under `examples/tgc5b_soc/` (see its
-`README`): a MINRES TGC5B RV32I core wired to `ct_encoder` with RAM, a
-timer/interrupt controller (from the example's `rdl/ct_soc.rdl`), an AXI4-Lite
-→ Wishbone CSR bridge, and a system testbench that runs a real program and
-decodes the resulting trace with NexRv. It is a concrete template for the
-steps below.
-
-To drop CEDARtools.TraceEncoder (`ct_encoder`) into a design:
+To drop CTTE (`ct_encoder`) into a design:
 
 * **TIP** — connect the core's instruction-trace port to the
   `tip_if.slave` (in the `tip_clk` domain). Choose `SPLIT_DATA_ACCESS` to

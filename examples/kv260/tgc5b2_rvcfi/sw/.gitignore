@@ -1,0 +1,4 @@
+# Build outputs (the committed artifacts are the .hex/.dis/.pcinfo, not the ELF).
+*.elf
+*.o
+__pycache__/

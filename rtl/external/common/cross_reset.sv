@@ -1,16 +1,16 @@
-// -*- indent-tabs-mode:t; tab-width:4 -*-
-// vim: tabstop=4:noexpandtab
+// SPDX-FileCopyrightText: 2018-2024 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
+// -*- indent-tabs-mode: t; tab-width: 4 -*-
 
 /**
- * Copyright (c) 2018-2024 by Accemic Technologies GmbH Kiefersfelden Germany
- * SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+ * @author  Thomas B. Preußer <tpreusser@accemic.com>
+ * @brief   Reset generator delivering safe synchronized resets for multiple
+ *          clock domains.
  *
- * @author	Thomas B. Preußer <tpreusser@accemic.com>
- * @brief	Reset generator delivering safe synchronized resets for multiple
- *			clock domains.
- *
- *		hold'[N-1]	<= hold[N-1]
- *		hold'[i]	<= hold[i] || rst[i+1]
+ *      hold'[N-1]  <= hold[N-1]
+ *      hold'[i]    <= hold[i] || rst[i+1]
  *
  *            (LDPE)
  *            +-----+
@@ -40,36 +40,36 @@
  */
 
 module cross_reset #(
-	int unsigned	N,						// number of clock domains
-	logic			RELEASE_LEFT2RIGHT = 0,	// ordered release of resets from left to right
-	logic[N-1:0][7:0]		BUFFERS = 0		// string of '-' OR 'G', 'H', 'R' to request reset on BUFx
+	int unsigned      N,                      // number of clock domains
+	logic             RELEASE_LEFT2RIGHT = 0, // ordered release of resets from left to right
+	logic[N-1:0][7:0] BUFFERS            = 0  // string of '-' OR 'G', 'H', 'R' to request reset on BUFx
 )(
-	input	logic			rst0,	// Input Reset (simply OR multiple sources)
-	input	logic [N-1:0]	clk,
-	input	logic [N-1:0]	hold,
-	output	logic [N-1:0]	rst_u,	// synchronized reset before optional buffer insertion
-	output	logic [N-1:0]	rst
+	input   logic         rst0,  // Input Reset (simply OR multiple sources)
+	input   logic [N-1:0] clk,
+	input   logic [N-1:0] hold,
+	output  logic [N-1:0] rst_u, // synchronized reset before optional buffer insertion
+	output  logic [N-1:0] rst
 );
 
 	// Reset Latch
-	//	- holds input reset until copied to all synchronized outputs
-	logic			rst_latch	= 0;
-	uwire [N-1:0]	rst_ack;
-	uwire			rst_done	= &rst_ack;
+	//  - holds input reset until copied to all synchronized outputs
+	logic           rst_latch   = 0;
+	uwire [N-1:0]   rst_ack;
+	uwire           rst_done    = &rst_ack;
 	always @(rst0 or rst_done) begin
-		if(rst0)			rst_latch <= 1;
-		else if(rst_done)	rst_latch <= 0;
+		if(rst0)            rst_latch <= 1;
+		else if(rst_done)   rst_latch <= 0;
 	end
 
 	// Latch Output Synchronized into all Clock Domains
 	for(genvar  i = 0; i < N; i++) begin : genSync
 		uwire  c = clk[i];
 
-		(* ASYNC_REG = "true", SHIFT_EXTRACT = "no" *) logic [1:0]	Rst = 0;
+		(* ASYNC_REG = "true", SHIFT_EXTRACT = "no" *) logic [1:0]  Rst = 0;
 		uwire  hld = RELEASE_LEFT2RIGHT? (i < N-1? rst[i+1] : 1'b0) : hold[i];
 		always_ff @(posedge rst_latch or posedge c) begin
-			if(rst_latch)	Rst <= '1;
-			else			Rst <= { Rst[0], hld };
+			if(rst_latch)   Rst <= '1;
+			else            Rst <= { Rst[0], hld };
 		end
 		assign  rst_u[i] = Rst[1];
 
@@ -94,8 +94,8 @@ module cross_reset #(
 
 		logic  Ack = 0;
 		always_ff @(negedge rst_latch or posedge c) begin
-			if(!rst_latch)	Ack <= 0;
-			else			Ack <= rst[i] && Rst[0];
+			if(!rst_latch)  Ack <= 0;
+			else            Ack <= rst[i] && Rst[0];
 		end
 		assign  rst_ack[i] = Ack;
 	end : genSync

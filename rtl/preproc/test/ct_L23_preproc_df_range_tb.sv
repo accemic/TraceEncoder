@@ -1,9 +1,12 @@
-// -*- indent-tabs-mode:t; tab-width:4 -*-
-// vim: tabstop=4:noexpandtab
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
+// -*- indent-tabs-mode: t; tab-width: 4 -*-
 /**
  * @file    ct_L23_preproc_df_range_tb.sv
  * @brief   Directed data-address range lookup testbench for ct_L23_preproc_df_range.
- * @description Programs the external range table and verifies hit generation
+ * @details Programs the external range table and verifies hit generation
  *   for addresses inside and outside the configured data ranges.
  * @environment Uses wb_clk to fill the M1 range memory and tip_clk to drive
  *   retired data accesses into the DUT.
@@ -89,7 +92,7 @@ module ct_L23_preproc_df_range_tb;
 	localparam int TESTS = 12;
 
 	M1_K    key         [TESTS] = '{   32'h03,   32'h05,   32'h07,   32'h08,   32'h0B,   32'h0A,   32'h0F,   32'h01,   32'h14,  32'h16,    32'h09,   32'h1E };
-	logic   exp_hit 	[TESTS] = '{        0,        0,        0,        1,        1,        1,        1,        0,        1,       1,         1,        1 };
+	logic   exp_hit     [TESTS] = '{        0,        0,        0,        1,        1,        1,        1,        0,        1,       1,         1,        1 };
 
 	// Task: Generate tests
 	task automatic generate_tests();
@@ -170,25 +173,25 @@ module ct_L23_preproc_df_range_tb;
 
 		// Configure ranges
 		// Configure ascending ranges / values
-		// DUT0 Range	DUT1 Value	DUT0 Result
-		// 08..09		08			0000
-		// 0A..0B		0A			0101
-		// 0C..0D		0C			0202
-		// 0E..0F		0E			0303
-		// 10..11		10			0404
-		// 12..13		12			0505
-		// 14..15		14			0606
-		// 16..17		16			0707
-		// 18..19		18			0808
-		// 1A..1B		1A			0909
-		// 1C..1D		1C			0A0A
-		// 1E..1F		1E			0B0B
-		// 20..21		20			0C0C
-		// 22..23		22			0D0D
-		// 24..25		24			0E0E
+		// DUT0 Range   DUT1 Value  DUT0 Result
+		// 08..09       08          0000
+		// 0A..0B       0A          0101
+		// 0C..0D       0C          0202
+		// 0E..0F       0E          0303
+		// 10..11       10          0404
+		// 12..13       12          0505
+		// 14..15       14          0606
+		// 16..17       16          0707
+		// 18..19       18          0808
+		// 1A..1B       1A          0909
+		// 1C..1D       1C          0A0A
+		// 1E..1F       1E          0B0B
+		// 20..21       20          0C0C
+		// 22..23       22          0D0D
+		// 24..25       24          0E0E
 		for (int i = 0; i < M1_N; i++) begin
-			kr.key[0]	= 8+(2*i);
-			kr.key[1]	= 8+(2*i)+1;
+			kr.key[0]   = 8+(2*i);
+			kr.key[1]   = 8+(2*i)+1;
 			WriteExt(i, m1_kr_t'(kr));
 		end
 

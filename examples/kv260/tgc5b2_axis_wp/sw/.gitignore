@@ -1,0 +1,3 @@
+# Committed: .hex (sim/board image), .dis (WP-set + oracle input),
+# generated sources, expected_walk/wp_set/expected_hits. Local-only:
+/axis_wp_demo.elf

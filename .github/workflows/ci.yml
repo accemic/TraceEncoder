@@ -1,41 +1,113 @@
 # SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
 # SPDX-License-Identifier: ISC
+#
+# What runs here is what a hosted runner can honestly run. Two things
+# deliberately do NOT: the 51-gate XSIM battery (scripts/run_gates.sh) needs
+# Vivado, and hardware verdicts need a KV260 board. See CONTRIBUTING.md,
+# "Continuous integration".
 
 name: ci
 
 on:
   push:
     branches: [main]
+  # No branch filter: a PR against any base runs this. A plain push to a
+  # feature branch runs nothing -- dispatch the workflow on that branch
+  # (`gh workflow run ci.yml --ref <branch>`) or open the PR.
   pull_request:
-    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # Pinned, not `releases/latest`: the old form scraped the GitHub API
+  # unauthenticated (60 requests/hour shared across all hosted runners) and
+  # silently followed whatever Verible released that morning, so the lint
+  # verdict was not reproducible. Bump deliberately.
+  VERIBLE_VERSION: v0.0-4148-g1ea007ec
 
 jobs:
   lint:
-    name: SystemVerilog lint (verible)
+    name: Lint + static guards
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Verible
+
+      - name: Install Verible ${{ env.VERIBLE_VERSION }}
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          url=$(curl -fsSL https://api.github.com/repos/chipsalliance/verible/releases/latest \
-            | grep -oE '"browser_download_url": *"[^"]*linux-static-x86_64\.tar\.gz"' \
-            | sed -E 's/.*"(https[^"]*)"/\1/' | head -1)
-          test -n "$url"
-          curl -fsSL "$url" -o verible.tar.gz
+          set -euo pipefail
+          asset="verible-${VERIBLE_VERSION}-linux-static-x86_64.tar.gz"
+          url="https://github.com/chipsalliance/verible/releases/download/${VERIBLE_VERSION}/${asset}"
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" "$url" -o verible.tar.gz
           mkdir -p "$HOME/verible"
           tar -xzf verible.tar.gz -C "$HOME/verible" --strip-components=1
           echo "$HOME/verible/bin" >> "$GITHUB_PATH"
-      - name: Run make lint
+
+      - name: make lint
         run: make lint
+
+  publication-checks:
+    name: Publication guards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # No lab addresses or credentials in a tracked file, English-only prose,
+      # every path a tutorial names resolves, the vendored-CVA6 delta list
+      # matches what fetch.sh does, and the mbv CTRL map agrees with its RTL.
+      # These used to hang off an internal CI driver and had therefore never
+      # run on a public CI at all.
+      - name: make check-publication
+        run: make check-publication
+
+  dashboard-tests:
+    name: Dashboard self-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      # test_demo_decode.py takes a real decode verdict and refuses to run
+      # without the decoder -- a decode check without its decoder would be a
+      # false green. Same pin, same hard failure as in the sim job.
+      - name: Provision the reference decoder (CTTD)
+        run: python3 scripts/fetch_cttd.py
+      - name: Run the dashboard self-tests
+        run: |
+          set -euo pipefail
+          cd examples/dashboard
+          rc=0
+          for t in test_*.py; do
+            echo "== $t"
+            python3 "$t" || rc=1
+          done
+          # The *.py glob never covered this one, so it had never run anywhere.
+          echo "== test_addr64.mjs"
+          node test_addr64.mjs || rc=1
+          exit $rc
+
+  reuse:
+    name: REUSE / SPDX compliance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # v6 runs reuse 6.x (REUSE spec 3.3), the tool version `reuse lint` is
+      # run with locally; the reuse 4.x behind v4 did not match REUSE.toml
+      # paths with a `*` in a middle directory segment and reported 44 files
+      # as uncovered that 6.x covers.
+      - uses: fsfe/reuse-action@v6
 
   sim:
     name: Simulation (Verilator)
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     env:
-      # Pinned Verilator, built from source. Ubuntu's apt ships 5.020, which
-      # rejects the standards-compliant binary $fopen modes ("wb") the dump
-      # testbenches use — binary-mode $fopen needs a newer Verilator. Bump this
-      # deliberately, the same way .abc.config pins the Vivado version.
+      # Ubuntu's apt ships 5.020, which rejects the standards-compliant binary
+      # $fopen modes ("wb") the dump testbenches use. Bump deliberately, the
+      # same way .abc.config pins the Vivado version.
       VERILATOR_VERSION: v5.042
     steps:
       - uses: actions/checkout@v4
@@ -50,6 +122,7 @@ jobs:
       - name: Build Verilator ${{ env.VERILATOR_VERSION }}
         if: steps.verilator-cache.outputs.cache-hit != 'true'
         run: |
+          set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y git autoconf g++ flex bison make help2man \
                                   libfl-dev libfl2 perl python3
@@ -61,8 +134,9 @@ jobs:
           make -j"$(nproc)"
           make install
 
-      - name: Set up sim toolchain
+      - name: Set up the sim toolchain
         run: |
+          set -euo pipefail
           sudo apt-get update
           # tclsh evaluates the .abc dependency files; libfl2 is Verilator's
           # runtime dependency (needed on a cache hit too, when the build above
@@ -72,17 +146,47 @@ jobs:
 
       - name: Install abc (abc-flow)
         run: |
+          set -euo pipefail
           git clone --depth 1 https://github.com/accemic/abc-flow.git "$HOME/abc-flow"
           echo "$HOME/abc-flow/abc" >> "$GITHUB_PATH"
 
-      - name: Run make sim
+      # The decode verdict of every sim-* target is taken by CTTD, the pinned
+      # reference decoder. It is not committed; scripts/cttd.pin names the
+      # public GitHub release it is fetched from and the sha256 per platform.
+      # A runner that cannot obtain exactly that build has no verdict to
+      # offer, so this step is a hard failure: a simulation that decoded
+      # nothing must never look like a green one. (Before the pin pointed at
+      # a public host this step was allowed to fail and the run said so in
+      # its summary; that fallback is gone with the reason for it.)
+      - name: Provision the reference decoder (CTTD)
+        run: python3 scripts/fetch_cttd.py
+
+      - name: make sim
         run: |
           verilator --version
           abc -h >/dev/null
           make sim
 
-      # The worked integrations under examples/ (TGC5B SoC + its KV260 devmem
-      # flow). Same toolchain as `make sim` — the program artifacts are
-      # committed, so no RISC-V toolchain is needed here.
-      - name: Run make sim-examples
+      - name: make sim-examples
         run: make sim-examples
+
+      - name: Decoder regression corpus
+        run: bash scripts/run_corpus_regression.sh
+
+      # decode_and_check.sh writes bld/.decode_skipped only under
+      # CT_DECODE_OPTIONAL=1, which this workflow never sets; the check stays
+      # so a future change that sets it cannot pass as a full verdict.
+      - name: Summarise
+        if: always()
+        run: |
+          {
+            if [ -f bld/.decode_skipped ]; then
+              echo "### Simulation ran, decode verdict NOT taken"
+              echo
+              echo '```'
+              sort -u bld/.decode_skipped
+              echo '```'
+            else
+              echo "### Simulation and decode verdict both taken"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

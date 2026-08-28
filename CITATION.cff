@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
 # SPDX-License-Identifier: ISC
 cff-version: 1.2.0
-title: "CEDARtools.TraceEncoder — RISC-V N-Trace Encoder IP"
+title: "CEDARtools.TraceEncoder — trace encoder IP for RISC-V cores"
 message: >-
   If you use this software in academic or research work, please cite it
   using the metadata in this file.
@@ -12,14 +12,17 @@ authors:
 repository-code: "https://github.com/accemic/TraceEncoder"
 url: "https://www.accemic.com"
 abstract: >-
-  CEDARtools.TraceEncoder is an open-source SystemVerilog implementation of a RISC-V
-  N-Trace encoder. It ingests a core's instruction-trace port (TIP),
-  compresses the execution stream into N-Trace messages, and emits them
-  on an ATB or AXI-Stream output. The IP is dual-licensed under
-  CERN-OHL-S-2.0 or an Accemic commercial license.
+  CEDARtools.TraceEncoder (CTTE, formerly C-Trace) is an open-source
+  SystemVerilog trace encoder for RISC-V cores. It ingests a core's
+  instruction-trace port (TIP) and compresses the execution stream either
+  into N-Trace messages per the IEEE-ISTO 5001-2012 (Nexus) standard or
+  into E-Trace te_inst packets, emitting them on an ATB or AXI-Stream
+  output. The IP is dual-licensed under CERN-OHL-S-2.0 or an Accemic
+  commercial license.
 keywords:
   - RISC-V
   - N-Trace
+  - E-Trace
   - tracing
   - hardware
   - SystemVerilog
@@ -27,4 +30,5 @@ keywords:
   - FPGA
 license: CERN-OHL-S-2.0
 license-url: "https://github.com/accemic/TraceEncoder/blob/main/LICENSE.md"
-version: "0.1.0"
+version: "1.0.0"
+date-released: "2026-08-28"

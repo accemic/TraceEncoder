@@ -1,0 +1,462 @@
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CC-BY-4.0
+
+= MicroBlaze V `TRACE` bus -- semantics truth table (Gate G1)
+:toc: macro
+:toclevels: 2
+
+Migrated 2026-08 from an internal predecessor repository; see
+link:../../rtl/adapters/README.md[`rtl/adapters/README.md`] for the
+package-level provenance. This is the specification level of
+link:../../rtl/adapters/amd_microblaze_v/[the MicroBlaze V adapter] --
+every behavioral rule in `mbv_trap_mapper.sv` and
+`mbv_riscv_itype_decoder.sv` traces back to a row in this document.
+
+toc::[]
+
+[NOTE]
+====
+**Status: G1 CLOSED for the MVP scope (2026-07-16, rounds 1-7).** All
+semantics the **RV32 program-flow MVP** needs are empirically confirmed:
+retirement (table 1, done), trap entry for 6 causes + the interrupt
+discriminator (table 2, done except access faults), trap return (table 3,
+done), RVC/`ilastsize` (table 5, done, **R3 disproved**). `Trace_Valid_Instr`
+is -- as feared -- **not** architectural retirement; the confirmed rule is
+`iretire = Valid_Instr && !Exception_Taken`.
+
+**Deliberately left open (do NOT block the MVP adapter):**
+
+* **Access faults** (rows 2.6/2.7/2.9, causes 5/7/1): **cannot be triggered**
+  on the LMB-only SoC (no bus with an error response). The cause mapping is
+  generically confirmed (`ecause = Exc_Kind[3:0]` over 6 causes), these
+  causes follow the same rule. Verification with AXI peripherals is planned
+  **from Gate G4** on.
+* **Special causes >15 / NMI / external break** (table 4): these ports are
+  **not exposed** on this IP configuration; unreachable in the MVP. The
+  `impdef` path (§5.3) remains a design decision, untested -> **P1**.
+* **Data alignment** (table 6): data trace is **P2/G8**, not an MVP goal.
+* **System questions** (table 7): Fmax/bandwidth/N-Trace coexistence --
+  **non-semantic**, do not block the adapter logic (bandwidth/overflow
+  belong to Gates G5/G6, coexistence to the cross-validation work).
+
+=> **Adapter approval granted for the MVP program-flow scope.** Every row
+above remains a **blocker for its own scope** (data trace, special causes,
+FPGA bandwidth) and must be measured before the corresponding gate.
+====
+
+== Version pin (R1 -- the `TRACE` bus is not version-stable)
+
+Every measurement holds **only** for exactly this configuration. On a
+version change: a new table.
+
+[cols="1,3", options="header"]
+|===
+| Field | Value
+
+| Vivado version | **2026.1**
+| MicroBlaze V IP version | **`xilinx.com:ip:microblaze_riscv:1.0`**
+| MBV config | RV32 - C-ext OFF - M-ext ON - Machine mode - MMU OFF - Trace Bus IF ON (Appendix A)
+| CTTE pin | `3a74ea5` (`tip_pkg` 4-bit `ecause`, `itype` 0-15)
+| Board / sim | Kria **KR260** (`xck26`) - **behavioral XSIM** (`tb_mbv_g0_soc`)
+| Measurement method | XSIM on the external `Trace_*` ports - object dump (`sw/.../build/*.oracle.csv`) as the oracle
+| Measured by / on | Rounds 1-7: **2026-07-16** (ecall/ebreak/mret - external interrupt - illegal - full-cycle/PipeRun - misaligned L/S - interrupt-on-branch - **RVC/R3**; rest open)
+|===
+
+== Measurement methodology
+
+1. Stimulus: `sw/microblaze_v_ctrace_demo/` (Appendix B programs), object dump = static image.
+2. Capture: ILA/XSIM on `Trace_PC, Trace_Instruction, Trace_Valid_Instr, Trace_Jump_Taken,
+   Trace_Exception_Taken, Trace_Exception_Kind` **+ `Trace_OF/EX/MEM_PipeRun` + `Trace_Halted`**
+   (newly discovered pipeline-run signals -- disambiguate retire vs. stall) (+ the data
+   `Trace_*` signals for §8). Note: `Trace_Privilege_Mode`/`Trace_PID_Reg` do **not** exist on
+   this IP version (see link:microblaze_v_trace_ports.adoc[`microblaze_v_trace_ports.adoc`]).
+3. Per scenario: log the AMD signals cycle-by-cycle against the expected instruction sequence.
+4. Derive the TIP target values (`iretire/itype/ecause/impdef`) from that and record them here ->
+   feeds `mbv_trap_mapper.sv` (G3) + finalizes the trap rows of the `tb_mbv_trap_mapper` vectors.
+
+'''
+
+== Table 1 -- basic retirement behavior
+
+Confirmed: does `Trace_Valid_Instr` deliver exactly one strobe per
+**normal** (non-trap) instruction?
+
+[cols="1,3,3,2,2,3,1", options="header"]
+|===
+| # | Scenario | Expectation (hypothesis) | `Trace_Valid_Instr` measured | Strobes / instr | `iretire` rule | Confirmed?
+
+| 1.1 | linear ALU sequence (`trace_test`) | 1 strobe per instr, `iretire=1` | **=1 per instr** | **1** (PC sequence 1:1 with retires, 4000/4000 == oracle) | `iretire=1` at `Valid_Instr=1 && !Exc_Taken` | Yes
+| 1.2 | load-use stall / pipeline bubble (`data_trace_test`, full-cycle window) | strobe only on retire, not every cycle | **confirmed**: 531 strobes / 1101 cycles (48.2 %) | **1** (single-cycle pulse) | stall => `Valid_Instr=0`; **`Trace_OF_PipeRun=0`** marks a stall (295x, **exactly 1 cycle each**, 26.8 %) | Yes
+| 1.3 | taken branch | strobe on the branch, `TAKEN_BRANCH` | **=1** at the branch, `Trace_Jump_Taken=1` | **1** | `iretire=1` | Yes
+| 1.4 | not-taken branch | strobe, `NOT_TAKEN_BRANCH` | **=1**, `Trace_Jump_Taken=0` | **1** | `iretire=1` | Yes
+| 1.5 | multi-cycle (`mul`, M-ext; `data_trace_test` @0x130) | exactly 1 strobe on completion | **=1 on completion** | **1** (no double strobe in the whole window) | `iretire=1` | Yes (`div` not tested)
+|===
+
+== Table 2 -- trap entry (the actual risk zone, §5.2)
+
+Core question: is the trap coupled to the **predecessor** (`iretire=1`) or
+to the faulting instruction (`iretire=0`)? Is the faulting instruction even
+presented on `Trace_Instruction`?
+
+[cols="1,3,3,3,2,2,1,1,1", options="header"]
+|===
+| # | Trap scenario | AMD `Trace_Exception_Kind` | Faulting instr on the bus? | Expected `itype` | Expected `iretire` | `ecause` (4 bit) | `impdef` | Confirmed?
+
+| 2.1 | external machine interrupt (edge, in a loop, `interrupt_test`) | **0x2b** = `{bit5=1 INT, cause=0x0b=11 MEXT}` | at the **preempted** instr 0x16c (mepc=0x16c -> **re-executed**) | `INTERRUPT` | **`0`** (0x16c does NOT retire; `Valid_Instr=1`) | `icause` MEXT=11 (`Exc_Kind[4:0]`) | 0 | Yes
+| 2.2 | external machine interrupt **on** a branch (`interrupt_test`, `bne` @0x178, hit **8x**) | **0x2b** (bit5=1 INT, cause=11 MEXT) | at the **preempted** branch instr; **`Trace_Jump_Taken=0`** (the branch never resolves) | `INTERRUPT` | **`0`** (re-executed after mret) | `icause` MEXT=11 | 0 | Yes
+| 2.3 | `ecall` from M-mode (`trap_test`) | **0x0b=11 (RISC-V mcause directly)** | **YES** (PC=0xfc, `Valid_Instr=1`) | `EXCEPTION_TRAP` | **`0`** (despite `Valid_Instr=1`! trap rule) | `ECALL_FROM_M=11` (direct) | 0 | Yes
+| 2.4 | `ebreak` (`trap_test`) | **0x03=3** | **YES** (PC=0x104, `Valid_Instr=1`) | `EXCEPTION_TRAP` | **`0`** (despite `Valid_Instr=1`) | `BREAKPOINT=3` (direct) | 0 | Yes
+| 2.5 | illegal instruction (`illegal_test`, `.word 0x0` @0x104) | **0x02** (bit5=0 sync, cause=2) | **YES** (PC=0x104, instr=0, `Valid_Instr=1`) | `EXCEPTION_TRAP` | **`0`** (`Valid_Instr=1`; mepc+4 -> 0x108) | `ILLEGAL_INSTR=2` (direct) | 0 | Yes
+| 2.6 | load access fault | 5? | | `EXCEPTION_TRAP` | `0`? | `LOAD_FAULT=5` | | No
+| 2.7 | store access fault | 7? | | `EXCEPTION_TRAP` | `0`? | `STORE_FAULT=7` | | No
+| 2.8 | misaligned **load** (`misaligned_test`, `lw` @0x104, addr 0x131) | **0x04** (bit5=0 sync, cause=4) | **YES** (`Valid_Instr=1`) | `EXCEPTION_TRAP` | **`0`** (rule 2) | `MISALIGNED_LOAD=4` (direct) | 0 | Yes
+| 2.8b | misaligned **store** (`misaligned_test`, `sw` @0x114, addr 0x132) | **0x06** (bit5=0 sync, cause=6) | **YES** (`Valid_Instr=1`) | `EXCEPTION_TRAP` | **`0`** (rule 2) | `MISALIGNED_STORE=6` (direct) | 0 | Yes
+| 2.9 | instruction access fault | 1? | | `EXCEPTION_TRAP` | `0`? | `INSTR_FETCH_FAULT=1` | | No
+| 2.10 | page fault (only if MMU on -- MVP: MMU off) | 12/13/15? | | `EXCEPTION_TRAP` | | n/a MVP | | No
+|===
+
+== Table 3 -- trap return
+
+[cols="1,4,2,2,4,1", options="header"]
+|===
+| # | Scenario | Instr | Expected `itype` | `iretire` | Confirmed?
+
+| 3.1 | `mret` after an interrupt (`interrupt_test`, rounds 2/6) | `mret` @0xe4 | `EXCEPTION_IR` (=3) | **`iretire=1`** (`Valid_Instr=1`, `Exc_Taken=0`); `Trace_Jump_Taken=1`, target = mepc (= the preempted instr, e.g. 0x16c) | Yes
+| 3.2 | `mret` after a synchronous exception (`trap_test`) | `mret` @0xe4 | `EXCEPTION_IR` (=3) | **`iretire=1`** (`Valid_Instr=1`, `Exc_Taken=0`); AMD also sets **`Trace_Jump_Taken=1`**, target=mepc | Yes
+| 3.3 | `sret` (only if S-mode -- MVP: M-only) | `sret` | `EXCEPTION_IR` | ? | No
+|===
+
+== Table 4 -- special causes (>4 bit, §5.3 -> `impdef` procedure)
+
+`tip_ecause` is **4 bit**; AMD causes that do not fit -> an `ecause`
+fallback + the full code in `impdef[5:0]`, `impdef[6]=special_cause`,
+`impdef[7]=tval_unavailable`.
+
+[cols="1,3,2,2,2,2,1,1", options="header"]
+|===
+| # | AMD special case | `Trace_Exception_Kind` | itype correct? | `ecause` fallback | `impdef[5:0]` | `impdef[6]` | Confirmed?
+
+| 4.1 | AXI4-Stream exception | 24? | | | | 1 | No
+| 4.2 | NMI | 32? | | | | 1 | No
+| 4.3 | external break | 48? | | | | 1 | No
+|===
+
+== Table 5 -- RVC raw encoding (Gate G7 pre-clarification; MVP: C-ext off) -- **R3 DISPROVED**
+
+[cols="1,5,8,1", options="header"]
+|===
+| # | Question | Measurement | Confirmed?
+
+| 5.1 | Does `Trace_Instruction[31:0]` carry the **original** RVC encoding for a 16-bit instr (`instr[1:0]!=2'b11`), or an **expanded** 32-bit instr? | **ORIGINAL RVC, zero-extended** (`rvc_test` with `C_USE_COMPRESSION=1`): `c.li x11,7` @0xf6 -> `Trace_Instruction=0x0000459d` -- **not** the expansion `0x00700593`. Likewise `c.addi`=0x1141, `c.mv`=0x862e, `c.nop`=0x0001, `c.add`=0x9532, `c.jr`=0x8082. All with `[1:0] in {01,10} != 2'b11`; a 32-bit instr (`auipc`=0x00001117) has `[1:0]=11`. `Trace_PC` counts correctly in **2-byte steps**. G0 check for `rvc_test`: **PASS 4000/4000**. | Yes
+|===
+
+== Table 6 -- data-trace alignment (Gate G8 pre-clarification; MVP: data trace off)
+
+[cols="1,5,4,1", options="header"]
+|===
+| # | Question | Measurement | Confirmed?
+
+| 6.1 | Are `Trace_Data_*` exactly retirement-cycle-aligned with the corresponding instr? | | No
+| 6.2 | Is `Trace_New_Reg_Value` unambiguously the bus read value for **all** loads (sign/zero ext, `rd==x0`, AMO/LR/SC, faulting)? | | No
+|===
+
+== Table 7 -- system questions (timing / coexistence / bandwidth)
+
+[cols="1,5,4,1", options="header"]
+|===
+| # | Question | Measurement | Confirmed?
+
+| 7.1 | Can the native AMD N-Trace encoder **and** the `TRACE` bus be active at the same time? (-> cross-validation) | | No
+| 7.2 | Fmax effect of the wide `TRACE` port on the target config? | | No
+| 7.3 | Output bandwidth/overflow behavior under branch-dense load (`trace_test` loop, worst case §6)? | | No
+| 7.4 | Bit order `Trace_PC`/`Trace_Instruction`: VHDL `(0 to N-1)` <-> SV `[N-1:0]` -- bit-exact against the object dump? (R4, G0 criterion) | | No
+|===
+
+'''
+
+'''
+
+== Measurement results -- round 1 (2026-07-16, behavioral XSIM, `trap_test`/`trace_test`/`branch_test`)
+
+**Raw data** (external `Trace_*` ports, `tb_mbv_g0_soc`): format `PC, valid, exc_taken, exc_kind, jump_taken`.
+
+----
+Normal (linear/branch): every instr valid=1 exactly once, exc=0.   Branch taken: jump_taken=1.
+ecall  @0xfc : valid=1  exc=1  exc_kind=0x0b(11)  jump_taken=0
+ebreak @0x104: valid=1  exc=1  exc_kind=0x03(3)   jump_taken=0
+mret   @0xe4 : valid=1  exc=0  exc_kind=0x00       jump_taken=1  -> next PC = mepc (0x100)
+----
+
+== Measurement results -- round 2 (2026-07-16, external interrupt, `interrupt_test`)
+
+SoC extension: `mbv/Interrupt` external (edge), pulsed from the testbench @cycle 500 (no INTC IP).
+
+----
+Interrupt @0x16c (add, in a loop): valid=1  exc=1  exc_kind=0x2b(=43)  jump_taken=0
+  -> handler 0x40 ... mret 0xe4 (jt=1) -> RESUME @0x16c  (mepc=0x16c -> 0x16c re-executed, does NOT retire)
+Compare: ecall exc_kind=0x0b(=0b001011)  ebreak=0x03(=0b000011)  IRQ=0x2b(=0b101011)
+----
+
+**KEY FINDING (resolves the interrupt/exception ambiguity):**
+`Trace_Exception_Kind[5]` = **interrupt flag** (1=interrupt, 0=synchronous
+exception); `Trace_Exception_Kind[4:0]` = the RISC-V cause. Without this
+bit, ecall (cause 11) and an external interrupt (MEXT 11) would be
+indistinguishable -- with it, cleanly separable.
+
+**Confirmed rules -- feed `mbv_trap_mapper` (G3), AFTER completion + review + CTTD E2E:**
+
+1. **Cause + discriminator from `Trace_Exception_Kind`:**
+   `is_interrupt = Trace_Exception_Kind[5]`;
+   `cause = Trace_Exception_Kind[4:0]` (the RISC-V `mcause` low bits
+   directly: ecall->11, ebreak->3, MEXT->11).
+   => `ecause` (4 bit) = `cause[3:0]` for 0-15; the special-cause `impdef`
+   path (table 4) only applies for cause>15 (open).
+2. **`Trace_Valid_Instr != iretire`** -- on both a trap and an interrupt,
+   `Valid_Instr=1`, yet the instruction does NOT retire (sync: the faulting
+   instr; async: the preempted instr, mepc=this instr). =>
+   **`iretire = Trace_Valid_Instr && !Trace_Exception_Taken`** (confirmed
+   for both; the §2 warning is confirmed).
+3. **Trap entry:** `Trace_Exception_Taken=1` =>
+   `itype = Trace_Exception_Kind[5] ? INTERRUPT : EXCEPTION_TRAP`,
+   `iretire=0`, `ecause=cause`, `iaddr=Trace_PC`. **The interrupt
+   iaddr/iretire encoding is confirmed via CTTD E2E (G5).**
+4. **Trap return:** `mret`/`sret` => `itype = EXCEPTION_IR`, `iretire=1`;
+   AMD additionally sets `Trace_Jump_Taken=1` (target=mepc). Distinguished
+   from a normal branch/jump via instruction decode.
+
+**CORRECTION to the original integration report §5.2:** the hypothesis
+"interrupt coupled to the predecessor -> iretire=1" is **disproved** by
+measurement -- the interrupt is reported at the **preempted** instr (which
+re-executes, iretire=0), not at the retiring predecessor. Rule 2 applies
+uniformly to synchronous traps and interrupts.
+
+== Measurement results -- round 3 (2026-07-16, illegal instruction, `illegal_test`)
+
+----
+illegal @0x104 (.word 0x00000000): valid=1  exc=1  exc_kind=0x02(bit5=0,cause=2)  jump_taken=0
+  -> handler 0x40 ... mret -> RESUME @0x108 (mepc+4, the illegal instr is skipped)
+----
+
+Confirms the rules over a **fault** class (not requested like ecall/ebreak):
+`EXCEPTION_TRAP`, `iretire=0`, `ecause=2` direct, discriminator
+`Exc_Kind[5]=0`. The trap-class triad is now complete (requested trap 11/3
+- fault 2 - async interrupt 0x2b).
+
+== Measurement results -- round 4 (2026-07-16, full-cycle window, `data_trace_test`)
+
+The testbench additionally logs **every cycle without gaps**
+(`cycle_capture.log`, window cycles 1-1200) including the PipeRun signals --
+stall cycles are otherwise never visible (retire capture only shows
+`valid`/`exc`).
+
+----
+Settled (cycles 100..1200, 1101 cycles):
+  Valid_Instr=1 : 531 cycles (48.2 %)     OF_PipeRun=0 (stall): 295 cycles (26.8 %)
+  OF-stall run lengths: {1: 295}      -> EXCLUSIVELY 1-cycle stalls
+  EX_PipeRun==0 : 0 cycles                MEM_PipeRun==0 : 0 cycles   (never stalled)
+  consecutive cycles with Valid_Instr=1 at the SAME PC: 0  -> no double strobe
+  Startup: 77-cycle OF stall after reset deassert (cycle 20) until the first retire (cycle 100)
+----
+
+**Confirmed (answers the §11 core question):**
+
+5. **`Trace_Valid_Instr` is EXACTLY ONE single-cycle pulse per retiring
+   instruction.** No double strobe (0 cases), no strobes per cycle during
+   stalls. Together with G0 (PC sequence == object dump, 6x4000/4000),
+   this confirms **1 strobe <=> 1 retiring instruction**. Also holds for
+   multi-cycle `mul` (table 1.5) -- one strobe on completion.
+6. **`Trace_OF_PipeRun` is the stall indicator** (the only PipeRun that
+   stalls under this load); `Trace_EX/MEM_PipeRun` stayed **constant 1**.
+   Stalls are consistently **1 cycle** long here.
+7. **NEVER derive `iretire` from PipeRun:** in **68 cycles**, `Valid_Instr=1`
+   occurred **while** `OF_PipeRun=0` -- PipeRun is diagnostic context, **not**
+   a retirement signal. Rule 2 (`Valid_Instr && !Exception_Taken`) remains
+   the only `iretire` source.
+
+[NOTE]
+====
+**Measurement-scope caveat:** one workload (`data_trace_test`, LMB BRAM, no
+caches/AXI). `EX/MEM_PipeRun` could well stall under a different load
+(cache miss, AXI latency, `div`) -- this statement is workload-scoped.
+====
+
+'''
+
+== Round 8 (2026-07-16) -- `Trace_Instruction` stays put AFTER the retire
+
+**Trigger:** Gate G5 bring-up. Four E2E tests (`trap`/`illegal`/`misaligned`/`rvc`)
+failed; the CTTD decode derailed. The cause was **not** the trap semantics,
+but the bus hold time.
+
+**Measurement** (TIP capture `mbv_ctte_env`, `trap_test`, at the `mret` @ `0xe4`):
+
+----
+Cycle   Trace_PC   Trace_Instruction  Valid_Instr  -> our itype (before the fix)
+191     0x000000e4 0x30200073 (mret)  1            -> EXCEPTION_IR   (correct)
+192     0x000000e4 0x30200073 (mret)  0            -> EXCEPTION_IR   (GHOST EVENT)
+193     0x000000e4 0x30200073 (mret)  0            -> EXCEPTION_IR   (GHOST EVENT)
+----
+
+**Confirmed:**
+
+8. **`Trace_Instruction` (and `Trace_PC`) stay stable for ~2 more cycles
+   after a retire**, while `Trace_Valid_Instr` is already 0. The word is
+   **dead** in those cycles -- it does not describe an instruction that is
+   currently doing anything. Any evaluation of `Trace_Instruction` **MUST**
+   therefore be gated on `Trace_Valid_Instr` (or `Trace_Exception_Taken`).
+
+**Consequence for the adapter (rule 3):**
+
+[quote]
+Drive `itype` only on a **real event**: `Exception_Taken` -> the trap
+itype, else `Valid_Instr` -> the decoder itype, **else `OTHER`**. Ungated,
+one `mret` is reported to the encoder as **three** events.
+
+**Why this derails the encoder (and is not merely cosmetic):** CTTE
+evaluates `itype` for control flow **without** an `iretire` gate
+(`ct_L23_preproc_composer_etip`: `IsControlFlowInstruction(tip.itype)`;
+`iretire` only steers the halfword count). The ghost events therefore
+produce extra indirect-branch messages -> the message stream derails ->
+CTTD aborts.
+
+**Boundary -- `iretire=0` is NOT the problem:** that is exactly how a
+trapping instruction is correctly reported (upstream `cpu_model`:
+`exception_trap(no_retire=1)`). What must be suppressed are cycles
+**without an event**, not cycles without a retire.
+
+**Test lesson:** the adapter unit testbench had let this bug **through
+unnoticed** -- its stall vector used a `nop`, which decodes to `OTHER`
+anyway. Green, without checking anything. Idle-cycle vectors need a
+**control-flow word** (a stale `mret`/`jalr`/`jal`) sitting on the bus --
+the constellation that actually occurs.
+
+== Measurement results -- round 5 (2026-07-16, misaligned load/store, `misaligned_test`)
+
+----
+misaligned LOAD  @0x104 (lw x6,0(x5), addr 0x131): valid=1 exc=1 exc_kind=0x04 (bit5=0, cause=4)
+misaligned STORE @0x114 (sw x10,0(x7), addr 0x132): valid=1 exc=1 exc_kind=0x06 (bit5=0, cause=6)
+  -> handler mepc+4 skips the access; G0 for this program also PASS (4000/4000)
+----
+
+Confirms rules 1-3 on another trap subclass (**data-access fault**). **Cause
+coverage now: 2 (illegal) - 3 (ebreak) - 4 (misaligned load) - 6 (misaligned
+store) - 11 (ecall) - 11+bit5 (MEXT IRQ)** -- all directly from
+`Trace_Exception_Kind[4:0]`, discriminator `[5]` correct throughout.
+
+== Measurement results -- round 6 (2026-07-16, interrupt on a branch, `interrupt_test`)
+
+Method: interrupt pulsed **periodically** (period 37 cycles, coprime to the
+~9-cycle loop) -> over the run the interrupts hit **rotating loop
+positions**; a simulation instead of a pulse-timing gamble.
+
+----
+69 interrupt entries, exc_kind uniformly 0x2b. Hit loop PCs (all 7):
+  0x160 (22x) 0x164 (8x) 0x168 (8x) 0x16c (8x) 0x170 (7x) 0x174 (8x)  0x178 (8x, bne = LOOP BRANCH)
+Interrupt ON the branch 0x178: valid=1  exc=1  exc_kind=0x2b  jump_taken=0
+Entries with jump_taken=1 : 0 / 69      Entries with valid_instr=0 : 0 / 69
+G0 for this run despite 69 interrupts: PASS (4000/4000)
+----
+
+**Confirmed:**
+
+8. **An interrupt on a branch behaves like on any other instruction**
+   (table 2.2): reported at the **preempted** branch instr, `iretire=0`,
+   re-execution after `mret`.
+9. **`Trace_Jump_Taken` stays 0 when a branch is preempted** -- the branch
+   never resolves. => **`Exception_Taken=1` and `Jump_Taken=1` NEVER occur
+   together (0/69).** The §5.1 priority "trap entry before conditional
+   branch" is therefore **not actually contested by the hardware**; it
+   remains correct as a defensive rule but is not forced. (A *synchronous*
+   trap on a branch practically does not exist -- branches do not fault.)
+10. **Rule 2 confirmed over 69 independent trap events**
+    (`valid_instr=1` without exception).
+
+== Measurement results -- round 7 (2026-07-16, RVC raw encoding -- **risk R3 disproved**)
+
+Setup: `rvc_test.S` (rv32imc, explicit `c.*` instructions; crt0 stays
+`norvc`) on an SoC with `C_USE_COMPRESSION=1` (via `MBV_USE_COMPRESSION=1`;
+**the MVP default stays 0**).
+
+----
+PC      Trace_Instruction   Oracle word   Instr          [1:0]
+0x00f0  0x00001141          0x00001141    c.addi x2,-16   01   16-bit
+0x00f4  0x00004505          0x00004505    c.li  x10,1     01   16-bit
+0x00f6  0x0000459d          0x0000459d    c.li  x11,7     01   16-bit  <- NOT 0x00700593 (the expansion)
+0x00fa  0x0000862e          0x0000862e    c.mv  x12,x11   10   16-bit
+0x00fc  0x00000001          0x00000001    c.nop           01   16-bit
+0x0000  0x00001117          0x00001117    auipc (crt0)    11   32-bit
+G0 check rvc_test: PASS 4000/4000 (0 instr deviations)   PC step size: 2 bytes
+----
+
+**Confirmed -- corrects the original integration report §5.4 / risk R3:**
+
+11. **`Trace_Instruction` carries the ORIGINAL RVC encoding** (zero-extended
+    into the 32-bit field), **not** the expanded 32-bit instruction. The
+    RISC-V length encoding therefore stays visible.
+12. => **`ilastsize = (Trace_Instruction[1:0] == 2'b11) ? 1 : 0`** is
+    **directly derivable** -- **no extra source needed**. **Risk R3 ("RVC
+    length not recognizable") is therefore disproved; Gate G7 is
+    significantly cheaper than planned.** `Trace_PC` counts correctly in
+    2-byte steps.
+
+[NOTE]
+====
+**Side finding (a real bug, found by this run):** the linker script was
+missing an `ALIGN(4)` before `_bss_start`. Without RVC, `.text` happened to
+end word-aligned; **with** RVC it lands on a 2-byte boundary ->
+`_bss_start` misaligned -> crt0's word store `sw x0,0(t0)` trapped
+MISALIGNED_STORE **before** `mtvec` was set -> trap to vector 0 -> an
+infinite restart loop. Fixed (`. = ALIGN(4);` before `_bss_start`); latent,
+it could have hit any build whose `.text/.data` did not happen to end
+aligned.
+====
+
+**Still OPEN (not measured) -- G1 NOT closed for this:** load/store
+**access** faults + instruction fetch fault (table 2.6/2.7/2.9 -- need
+unmapped addresses; presumably **cannot be triggered** with pure LMB BRAM
+without an AXI error response -> clarification once AXI peripherals exist
+from G4 on), special causes >15 (table 4) incl. NMI/external break (ports
+not exposed on this config -- possibly via `C_ENABLE_DISCRETE_PORTS`), data
+alignment (table 6), system questions (table 7). =>
+**`mbv_trap_mapper` was only implemented after the table was complete +
+reviewed + CTTD E2E.**
+
+== Consequences for the adapter (round 1 confirmed; rest after completion)
+
+* **`mbv_trap_mapper.sv` (G3):** `iretire = Valid_Instr && !Exc_Taken`;
+  trap entry -> `Exc_Kind[5] ? INTERRUPT : EXCEPTION_TRAP` (iretire=0,
+  `ecause = Exc_Kind[3:0]` direct); `mret`/`sret` -> `EXCEPTION_IR`
+  (iretire=1). **Both the sync and the interrupt branch are confirmed**
+  (rounds 1-3, 5, 6 over 6 causes + 69 interrupt events); only special
+  causes >15 remain open.
+* **`mbv_riscv_itype_decoder.sv` (G2):** the §5.1 priority "trap entry
+  before conditional branch" is **not contested** by the HW -- on a
+  preempted branch, `Jump_Taken=0` (0/69 collisions). The rule is still
+  implemented defensively (`Exc_Taken` dominates), but no special-casing
+  is needed.
+* **`ilastsize` (MVP + G7):** in the MVP (C-ext off), constant **1**. For
+  G7 the confirmed rule is
+  **`ilastsize = (Trace_Instruction[1:0] == 2'b11) ? 1 : 0`** -- no extra
+  source needed (round 7, R3 disproved).
+* **`mbv_trace_normalizer.sv`:** bit order -- no mirroring needed at the
+  word level (confirmed by G0); sub-field mapping at G4.
+* **PipeRun NOT in the `iretire` path:** `Trace_OF/EX/MEM_PipeRun` are
+  diagnostic/stall context (confirmed: `Valid_Instr=1` occurred 68x
+  **while** `OF_PipeRun=0`). Usable as an optional cover property/debug
+  sideband, **never** as a retirement source.
+* **Assertions:** the confirmed invariants "`Trace_Exception_Taken =>
+  tip.iretire==0`", "`!Valid_Instr && !Exc_Taken => !iretire`" and "no
+  `Valid_Instr` in two consecutive cycles at the same `Trace_PC`" (round 4:
+  0 cases).
+
+== Sources
+
+* The MicroBlaze V implementation concept (itype/retirement/trap, open
+  measurement questions) and the technical integration report (the itype
+  priority, the assertions) are internal Accemic documents that are not part
+  of this repository; everything from them that an integrator needs -- the
+  itype priority, the retirement and trap semantics, the assertions -- is
+  stated in this document and enforced by the adapter under
+  `rtl/adapters/amd_microblaze_v/`.
+* Authoritative TIP enums: `rtl/pkg/tip_pkg.sv` (`tip_itype_e`,
+  `tip_ecause_e`, `icause_e`).

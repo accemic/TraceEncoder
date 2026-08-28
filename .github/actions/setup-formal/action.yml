@@ -1,0 +1,84 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: ISC
+
+name: Set up the formal toolchain
+description: >-
+  Install the pinned YosysHQ OSS CAD Suite and sv2v, and export
+  OSS_CAD_SUITE / SV2V_HOME so formal/common/env.sh picks them up.
+  Both are public tarballs -- the formal gates need no EDA licence.
+
+inputs:
+  oss-cad-suite-version:
+    description: OSS CAD Suite release tag (a date, e.g. 2026-08-02)
+    required: false
+    # The build formal/README.md records its results against. Bump it
+    # deliberately and re-read that README's timing table -- solver versions
+    # move proof times, and an unbounded proof that starts timing out looks
+    # exactly like a property regression.
+    default: "2026-08-02"
+  sv2v-version:
+    description: sv2v release tag
+    required: false
+    default: "v0.0.13"
+
+runs:
+  using: composite
+  steps:
+    - name: Cache the formal toolchain
+      id: cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.local/oss-cad-suite
+          ~/.local/sv2v
+        key: formal-${{ runner.os }}-oss${{ inputs.oss-cad-suite-version }}-sv2v${{ inputs.sv2v-version }}
+
+    - name: Download OSS CAD Suite ${{ inputs.oss-cad-suite-version }}
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        ver='${{ inputs.oss-cad-suite-version }}'
+        # Asset name is the tag with the dashes removed: 2026-08-02 -> 20260802.
+        stamp="${ver//-/}"
+        url="https://github.com/YosysHQ/oss-cad-suite-build/releases/download/${ver}/oss-cad-suite-linux-x64-${stamp}.tgz"
+        echo "fetching $url"
+        curl -fsSL "$url" -o /tmp/oss-cad-suite.tgz
+        mkdir -p "$HOME/.local"
+        # The tarball unpacks to a top-level oss-cad-suite/ directory.
+        tar -xzf /tmp/oss-cad-suite.tgz -C "$HOME/.local"
+
+    - name: Download sv2v ${{ inputs.sv2v-version }}
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        ver='${{ inputs.sv2v-version }}'
+        url="https://github.com/zachjs/sv2v/releases/download/${ver}/sv2v-Linux.zip"
+        echo "fetching $url"
+        curl -fsSL "$url" -o /tmp/sv2v.zip
+        rm -rf /tmp/sv2v-unzip && mkdir -p /tmp/sv2v-unzip
+        unzip -q /tmp/sv2v.zip -d /tmp/sv2v-unzip
+        mkdir -p "$HOME/.local/sv2v"
+        # The zip holds sv2v-Linux/sv2v; SV2V_HOME must be the directory
+        # CONTAINING the binary, which is what formal/common/env.sh probes for.
+        find /tmp/sv2v-unzip -name sv2v -type f -exec cp {} "$HOME/.local/sv2v/sv2v" \;
+        chmod +x "$HOME/.local/sv2v/sv2v"
+
+    - name: Export the toolchain locations
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo "OSS_CAD_SUITE=$HOME/.local/oss-cad-suite" >> "$GITHUB_ENV"
+        echo "SV2V_HOME=$HOME/.local/sv2v"              >> "$GITHUB_ENV"
+
+    - name: Prove the toolchain runs
+      shell: bash
+      run: |
+        set -euo pipefail
+        # A formal job that starts without a working solver reports property
+        # failures about an encoder nobody checked. Fail here instead.
+        export PATH="$HOME/.local/oss-cad-suite/bin:$HOME/.local/sv2v:$PATH"
+        yosys -V
+        sby --help >/dev/null
+        sv2v --version

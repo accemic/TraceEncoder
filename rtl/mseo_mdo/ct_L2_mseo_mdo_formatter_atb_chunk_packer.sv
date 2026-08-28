@@ -10,7 +10,7 @@
  *
  * @brief    Proc-domain Nexus chunk packer
  *
- * @description
+ * @details
  *   Packs MDO/MSEO chunks into ATB-width payloads, inserts alignment padding at
  *   end-of-message, and emits flush payload beats on request.
  */
@@ -20,19 +20,19 @@ module ct_L2_mseo_mdo_formatter_atb_chunk_packer #(
 	int unsigned MDO_WIDTH        = 4,                              // number of MDO payload bits per chunk
 	int unsigned MSEO_WIDTH       = 2                               // number of MSEO bits per chunk
 ) (
-	input uwire logic                               clk,
-	input uwire logic                               rst,
-	input uwire logic                               atb_full,
-	input uwire logic                               flush_start,
-	input uwire logic                               slice_valid,
-	input uwire logic                               end_of_message,
-	input uwire logic [MDO_WIDTH+MSEO_WIDTH-1:0]    chunk_in,
-	output uwire logic                              slice_ready,
-	output uwire logic                              idle,
-	output logic                                    wr,
+	input uwire logic                            clk,
+	input uwire logic                            rst,
+	input uwire logic                            atb_full,
+	input uwire logic                            flush_start,
+	input uwire logic                            slice_valid,
+	input uwire logic                            end_of_message,
+	input uwire logic [MDO_WIDTH+MSEO_WIDTH-1:0] chunk_in,
+	output uwire logic                           slice_ready,
+	output uwire logic                           idle,
+	output logic                                 wr,
 	output logic [((atb_pkg::ATDATA_WIDTH >= (MDO_WIDTH+MSEO_WIDTH))
 		? (atb_pkg::ATDATA_WIDTH / (MDO_WIDTH+MSEO_WIDTH))
-		: 1) * (MDO_WIDTH+MSEO_WIDTH)-1:0]  payload_out
+		: 1) * (MDO_WIDTH+MSEO_WIDTH)-1:0]       payload_out
 );
 	localparam int unsigned CHUNK_WIDTH = MDO_WIDTH + MSEO_WIDTH;
 	localparam int unsigned NUM_CHUNKS_PER_ATB_BEAT =

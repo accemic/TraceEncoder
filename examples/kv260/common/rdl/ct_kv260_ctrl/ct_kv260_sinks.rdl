@@ -1,0 +1,145 @@
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// KV260 example SoC: the shared three-sink subsystem's CTRL window, as
+// built in ../../ct_trace_sinks.sv (URAM ring + DDR4 sink + PIB, T2,
+// 2026-08-14; DDR window read-only hardening U9-1, 2026-08-16).
+//
+// This is the ONE part of the KV260 example-SoC CTRL window that already IS
+// a single, real, reusable RTL module (ct_trace_sinks.sv), instantiated
+// verbatim by duo_soc_top, trio_soc_top and tgc5b2_axis_soc_top today --
+// unlike ct_kv260_common.rf (../ct_kv260_common.rdl), which documents
+// registers that are still hand-implemented separately per top. Field
+// names, bit positions and reset values below are transcribed 1:1 from
+// ct_trace_sinks.sv's own register logic (SINK_WR_MASK, the DDR/PIB
+// generate blocks and the CTRL read mux) -- verified reg-by-reg, bit-by-bit
+// against that file (see README.md in this directory).
+//
+// Local offsets 0x00..0x20 map to CTRL indices IX_SINK_CTRL(6)..
+// IX_DDR_BEATS(14) i.e. absolute CTRL offsets 0x18..0x38 once instantiated
+// at @0x18 in ct_kv260_ctrl_periph (../ct_kv260_ctrl.rdl). Local 0x1C
+// (index 13, absolute 0x34) is DELIBERATELY not declared as a register
+// here -- ct_trace_sinks.sv's own header reserves it for the instantiating
+// top (FUNNEL_CTRL on duo/trio/tgc5b2_axis_wp today); it is documented, not
+// modelled, because its content is per-top, not part of the sink module.
+regfile ct_kv260_sinks_rf {
+    name = "KV260 example SoC - shared three-sink subsystem CTRL window";
+
+    reg {
+        desc = "Trace sink enable/config. Stored bits use write mask
+                0xFFFF_FFDD (everything except the two write-1 pulses);
+                EN_DDR=0 additionally masks b0/b2, EN_PIB=0 masks
+                b4/b6/b[10:8]/b[13:12] (ct_trace_sinks.sv SINK_WR_MASK).";
+        field { sw = rw; hw = r; desc = "1: DDR4 sink enabled (writes beats
+                to PS DDR at DDR_BASE)."; }                                   ddr_en[0:0] = 0;
+        field { sw = rw; hw = r; desc = "Write-1 pulse (captured one cycle
+                after the write, NOT stored in this register -- always
+                reads back 0): reset DDR_WPTR/full/wrapped/err/drops and
+                SINK_STAT.ddr_cfg_rej. The hardware does not enforce
+                ddr_en=0 first."; }                                           ddr_clear[1:1] = 0;
+        field { sw = rw; hw = r; desc = "DDR capture mode: 0 = one shot
+                (stop when full), 1 = circular (wrap modulo DDR_SIZE, write
+                offset = DDR_WPTR % DDR_SIZE)."; }                            ddr_circ[2:2] = 0;
+        field { sw = rw; hw = r; desc = "URAM ring mode: 0 = circular
+                (default, keeps the most recent capacity), 1 = one shot
+                (stop when full, SINK_STAT.uram_stopped sets)."; }            uram_oneshot[3:3] = 0;
+        field { sw = rw; hw = r; desc = "1: PIB parallel trace port enabled
+                (pib_clk runs, beats serialized)."; }                         pib_en[4:4] = 0;
+        field { sw = rw; hw = r; desc = "Write-1 pulse (captured one cycle
+                after the write, NOT stored -- always reads back 0): reset
+                the PIB drop counter. The hardware does not enforce
+                pib_en=0 first (ct_trace_sinks.sv:125,142-146)."; }           pib_clear[5:5] = 0;
+        field { sw = rw; hw = r; desc = "1: PIB emits the calibration
+                pattern instead of trace (reference trPibCalibrate); the
+                trace input is not consumed while set."; }                    pib_calib[6:6] = 0;
+        field { sw = rw; hw = r; desc = "PIB port clock divider: pib_clk =
+                clk / 2^(div+1); 0 is clamped to 1 in the PIB module."; }     pib_div[10:8] = 0;
+        field { sw = rw; hw = r; desc = "PIB calibration pattern (reference
+                trPibCalibPattern).";
+                enum pib_pattern_e {
+                    STANDARD    = 0 { desc = "AA 55 00 FF."; };
+                    MOVING_ONE  = 1 { desc = "Walking 1."; };
+                    MOVING_ZERO = 2 { desc = "Walking 0."; };
+                };
+                encode = pib_pattern_e; }                                     pib_pattern[13:12] = 0;
+    } sink_ctrl @ 0x00;
+
+    reg {
+        desc = "DDR4 sink base address in PS DDR (byte address, 32-byte
+                aligned -- low 5 bits are masked). U9-1 (2026-08-16):
+                hardware-enforced WARL with an EMPTY set of legal software
+                values -- the register is hard-wired to the DDR_BASE_RST
+                elaboration parameter for the life of the bitstream, EVERY
+                write is discarded (not just while armed, as the earlier
+                U6 interlock did), and every discarded write latches
+                SINK_STAT.ddr_cfg_rej. To relocate the window: change
+                DDR_BASE_RST, rebuild the bitstream, move the
+                reserved-memory node with it (correspondence rule,
+                ct_trace_sinks.sv header). Reset value shown is the
+                DDR_BASE_RST default (0x5000_0000, address plan v4); tops
+                may instantiate ct_trace_sinks with a different
+                DDR_BASE_RST/DDR_SIZE_RST -- read the register, the
+                elaboration parameter is not visible over devmem.";
+        field { sw = r; hw = w; } value[31:0] = 32'h5000_0000;
+    } ddr_base @ 0x04;
+
+    reg {
+        desc = "DDR4 sink buffer size in bytes (4-byte aligned -- low 2
+                bits are masked). Same U9-1 hardware-enforced WARL as
+                DDR_BASE: fixed to DDR_SIZE_RST for the life of the
+                bitstream, every write discarded and latched in
+                SINK_STAT.ddr_cfg_rej.";
+        field { sw = r; hw = w; } value[31:0] = 32'h1000_0000;
+    } ddr_size @ 0x08;
+
+    reg {
+        desc = "DDR4 sink write pointer: TOTAL bytes written since the last
+                ddr_clear (monotonic, read-only). One shot: host reads
+                [DDR_BASE, DDR_BASE+min(WPTR,SIZE)). Circular: write offset
+                = WPTR % SIZE (same contract as the URAM ring).";
+        field { sw = r; hw = w; } value[31:0] = 0;
+    } ddr_wptr @ 0x0C;
+
+    reg {
+        desc = "Trace sink status flags (read-only; the DDR bits clear on
+                ddr_clear).";
+        field { sw = r; hw = w; desc = "1: DDR buffer full in one-shot mode;
+                further beats drop."; }                                       ddr_full[0:0] = 0;
+        field { sw = r; hw = w; desc = "1: an AXI write returned BRESP !=
+                OKAY (sticky, clears on ddr_clear)."; }                       ddr_axi_err[1:1] = 0;
+        field { sw = r; hw = w; desc = "1: circular DDR buffer wrapped at
+                least once (oldest bytes overwritten)."; }                    ddr_wrapped[2:2] = 0;
+        field { sw = r; hw = w; desc = "1: URAM one-shot capture stopped
+                (buffer full, first capacity kept)."; }                      uram_stopped[3:3] = 0;
+        field { sw = r; hw = w; desc = "1: a DDR_BASE/DDR_SIZE write was
+                REFUSED (U9-1: EVERY write is refused, armed or not; sticky
+                until ddr_clear)."; }                                         ddr_cfg_rej[4:4] = 0;
+    } sink_stat @ 0x10;
+
+    reg {
+        desc = "DDR4 sink dropped beats (FIFO overflow or buffer full;
+                saturating; read-only; clears on ddr_clear).";
+        field { sw = r; hw = w; } value[31:0] = 0;
+    } ddr_drops @ 0x14;
+
+    reg {
+        desc = "PIB sink dropped beats (FIFO overflow when the port rate is
+                below the trace rate; saturating; read-only; clears on
+                pib_clear).";
+        field { sw = r; hw = w; } value[31:0] = 0;
+    } pib_drops @ 0x18;
+
+    // Local 0x1C (absolute 0x34, CTRL index 13) is intentionally absent --
+    // reserved for the instantiating top (see file header). Declaring it
+    // here would claim an offset ct_trace_sinks.sv explicitly does not own.
+
+    reg {
+        desc = "Beats offered to the DDR sink while ddr_en (accepted = this
+                value - DDR_DROPS; cleared by ddr_clear; read-only) -- the
+                cheap proof that beats reach the sink at all. T2 addition:
+                this counter sat at CTRL 0x30 on the pre-T2 tgc5b2 C0B_DDR
+                build; since the shared three-sink subsystem it is here,
+                0x38 absolute, and 0x30 is PIB_DROPS.";
+        field { sw = r; hw = w; } value[31:0] = 0;
+    } ddr_beats @ 0x20;
+};

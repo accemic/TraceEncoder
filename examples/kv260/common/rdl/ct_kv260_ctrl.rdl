@@ -1,0 +1,90 @@
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// -----------------------------------------------------------------------------
+// Unified CTRL-window register map for the KV260 example SoCs (AS-Entscheid 5,
+// see README.md in this directory for the layout decisions).
+//
+// Every kv260 example top (mbv, duo, trio, tgc5b2_axis_wp, cva6_linux,
+// cva6_linux64, rocket_linux, rocket2, cva6_2) exposes a CTRL segment at the
+// base of its own PS AXI4-Lite aperture (0xA000_0000 + <top-specific offset>,
+// always the FIRST segment, byte-relative 0x0000_0000). Measured against the
+// nine as-built tops (README.md, "As-built drift"), that segment's first 0x38
+// bytes are meant to be the SAME across every design; today five of the nine
+// diverge (table 1/2 there). This file is the single source for what "the
+// same" means from here on -- the divergent tops are NOT retrofitted by this
+// change (out of scope, see README.md "As-built drift"), only the
+// target layout and the as-built drift against it are fixed here.
+//
+// Two address maps are described below:
+//
+//   ct_kv260_ctrl_periph  the ONE map `make rdl-kv260` turns into RTL
+//                         (peakrdl regblock -t ct_kv260_ctrl_periph ->
+//                         ct_kv260_ctrl_regs). Local offsets 0x00..0x38,
+//                         local 0x34 an intentional gap (reserved for the
+//                         instantiating top, e.g. FUNNEL_CTRL).
+//   ct_kv260_ctrl_window  documents where that block sits inside a top's own
+//                         aperture: always at the top of the CTRL segment,
+//                         CTRL segment always the first (0x00_0000) region
+//                         of the 22-bit PS aperture on every observed top.
+//                         The remaining segments (ENC*/RAM*/TRACE/AXIS/CON)
+//                         and the per-top extension registers beyond local
+//                         0x38 are NOT modelled here -- they differ by
+//                         design (single vs. multi-core, console or not,
+//                         window guard or not) and are each top's own
+//                         business; see README.md for their measured,
+//                         as-built layout and where they move to once a top
+//                         adopts this window.
+//
+// The two component regfiles (`include`-d from ct_kv260_ctrl/) split by
+// provenance, same reasoning as examples/kv260/common/tgc5b/rdl/ct_soc.rdl:
+//   ct_kv260_ctrl/ct_kv260_common.rdl  CONTROL/STATUS/TRACE_BEATS/
+//                                      TRACE_BYTES/AXIS_BEATS/TRACE_BUFSZ --
+//                                      hand-implemented per top today
+//                                      (documentation, like ct_ps_ctrl.rdl).
+//   ct_kv260_ctrl/ct_kv260_sinks.rdl   SINK_CTRL..DDR_BEATS -- transcribed
+//                                      1:1 from the real, already-shared
+//                                      ../../ct_trace_sinks.sv module.
+// -----------------------------------------------------------------------------
+
+`include "ct_kv260_ctrl/ct_kv260_common.rdl"
+`include "ct_kv260_ctrl/ct_kv260_sinks.rdl"
+
+// --- Generated CTRL block (CONTROL..DDR_BEATS), AXI4-Lite --------------------
+// `make rdl-kv260` generates this one (-t ct_kv260_ctrl_periph) into
+// ct_kv260_ctrl_regs, wrapped by a future ct_kv260_ctrl_periph.sv the same way
+// examples/kv260/common/tgc5b/rtl/ct_soc_periph.sv wraps ct_soc_regs (not written here
+// -- no top instantiates this block yet, see README.md). Instance
+// offsets here define the generated hwif; do not rename `common`/`sinks`
+// without updating any future wrapper.
+addrmap ct_kv260_ctrl_periph {
+    name = "KV260 example SoC - unified CTRL window (CONTROL..DDR_BEATS)";
+    desc = "The common, cross-top CTRL register block: CONTROL/STATUS/
+            TRACE_BEATS/TRACE_BYTES/AXIS_BEATS/TRACE_BUFSZ (0x00..0x14,
+            hand-implemented per top, documented here) followed by the
+            shared three-sink subsystem's own CTRL window (0x18..0x38,
+            ct_trace_sinks.sv, already real RTL). Byte 0x34 (CTRL index 13)
+            is a documented gap, reserved for the instantiating top.";
+
+    default regwidth = 32;
+
+    ct_kv260_common_rf common @ 0x00;
+    ct_kv260_sinks_rf  sinks  @ 0x18;
+};
+
+// --- Placement inside a top's PS aperture ------------------------------------
+// Every observed top places this window at the very base of its own 22-bit
+// PS AXI4-Lite aperture, which the KV260 block design/router in turn places
+// at 0xA000_0000 (M_AXI_HPM0_FPD). "top-specific extension" is everything
+// from local 0x3C onward (CON_x, WIN_ERR_x, PC/RETIRES, EXT_IRQ, FUNNEL_CTRL
+// where it does not fit the local-0x34 gap) -- deliberately undeclared here,
+// see README.md "As-built drift" for the per-top offsets.
+addrmap ct_kv260_ctrl_window {
+    name = "KV260 example SoC - CTRL window placement (documentation only)";
+    desc = "Relative view: byte 0 = the base of a top's own PS aperture
+            (absolute 0xA000_0000 + that top's own offset into the router,
+            where one exists). Not itself generated -- see
+            ct_kv260_ctrl_periph above for the block that is.";
+
+    ct_kv260_ctrl_periph ctrl @ 0x0000_0000;
+};

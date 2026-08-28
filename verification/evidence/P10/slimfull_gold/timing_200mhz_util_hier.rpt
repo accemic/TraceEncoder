@@ -1,0 +1,62 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2022.1.2 (win64) Build 3605665 Fri Aug  5 22:53:37 MDT 2022
+| Date         : Thu Aug  6 20:30:08 2026
+| Host         : <host> running 64-bit major release  (build 9200)
+| Command      : report_utilization -hierarchical -hierarchical_depth 3 -file <worktree>/bld/synth_ooc_t/util_hier.rpt
+| Design       : ct_encoder
+| Device       : xck26-sfvc784-2LV-c
+| Speed File   : -2LV
+| Design State : Synthesized
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Utilization Design Information
+
+Table of Contents
+-----------------
+1. Utilization by Hierarchy
+
+1. Utilization by Hierarchy
+---------------------------
+
++------------------------------------------------------+-------------------------------------------+------------+------------+---------+------+------+--------+--------+------+------------+
+|                       Instance                       |                   Module                  | Total LUTs | Logic LUTs | LUTRAMs | SRLs |  FFs | RAMB36 | RAMB18 | URAM | DSP Blocks |
++------------------------------------------------------+-------------------------------------------+------------+------------+---------+------+------+--------+--------+------+------------+
+| ct_encoder                                           |                                     (top) |       4290 |       4218 |      40 |   32 | 3985 |     10 |      0 |    0 |         16 |
+|   (ct_encoder)                                       |                                     (top) |          1 |          1 |       0 |    0 |    0 |      0 |      0 |    0 |          0 |
+|   ct_cs_cpuif_wb_inst                                |                            ct_cs_cpuif_wb |        397 |        397 |       0 |    0 |   83 |      0 |      0 |    0 |          0 |
+|     (ct_cs_cpuif_wb_inst)                            |                            ct_cs_cpuif_wb |          4 |          4 |       0 |    0 |    5 |      0 |      0 |    0 |          0 |
+|     genInstSyncReq.sync_req_pacer                    |                         ct_sync_req_pacer |          2 |          2 |       0 |    0 |    2 |      0 |      0 |    0 |          0 |
+|     genRdlCsr.ct_cs_cpuif_inst                       |                               ct_cs_cpuif |        391 |        391 |       0 |    0 |   76 |      0 |      0 |    0 |          0 |
+|   genNtrace.genCompactPacker.compact_packer_inst     |                      ct_L2_compact_packer |        546 |        514 |       0 |   32 |  349 |      0 |      0 |    0 |          0 |
+|     (genNtrace.genCompactPacker.compact_packer_inst) |                      ct_L2_compact_packer |        387 |        387 |       0 |    0 |  265 |      0 |      0 |    0 |          0 |
+|     genAtbFifo1clk.atb_cdc_fifo                      |                             fifo1clk_fwft |         63 |         31 |       0 |   32 |   38 |      0 |      0 |    0 |          0 |
+|     u_atb_flush_detect                               | ct_L2_mseo_mdo_formatter_atb_flush_detect |          3 |          3 |       0 |    0 |    5 |      0 |      0 |    0 |          0 |
+|     u_chunk_packer                                   | ct_L2_mseo_mdo_formatter_atb_chunk_packer |         93 |         93 |       0 |    0 |   41 |      0 |      0 |    0 |          0 |
+|   genNtrace.msg_gen_inst                             |                             ct_L2_msg_gen |        443 |        443 |       0 |    0 |  303 |      0 |      0 |    0 |          0 |
+|   preproc_inst                                       |                            ct_L23_preproc |       2903 |       2863 |      40 |    0 | 3250 |     10 |      0 |    0 |         16 |
+|     (preproc_inst)                                   |                            ct_L23_preproc |         29 |         29 |       0 |    0 |    6 |      0 |      0 |    0 |          0 |
+|     atb_syncreq_diag_cdc_inst                        |                                signal_cdc |          0 |          0 |       0 |    0 |    2 |      0 |      0 |    0 |          0 |
+|     cf_inst                                          |                         ct_L23_preproc_cf |          0 |          0 |       0 |    0 |    1 |      0 |      0 |    0 |          0 |
+|     composer_etip_inst                               |              ct_L23_preproc_composer_etip |       2697 |       2657 |      40 |    0 | 2977 |     10 |      0 |    0 |         16 |
+|       (composer_etip_inst)                           |              ct_L23_preproc_composer_etip |        472 |        472 |       0 |    0 |  508 |      0 |      0 |    0 |         16 |
+|       atb_afvalid_ack_lock_fsm                       |                     signal_ack_lock_fsm_5 |         10 |         10 |       0 |    0 |    5 |      0 |      0 |    0 |          0 |
+|       genEtipParallel.etip_cvs_cdc_fifo              |                             cvs_cdc_fifo2 |       2058 |       2058 |       0 |    0 | 2373 |     10 |      0 |    0 |          0 |
+|       genEtipParallel.etip_ovf_injector              |                              ovf_injector |         81 |         81 |       0 |    0 |   37 |      0 |      0 |    0 |          0 |
+|       genNextIaddrFifo1clk.next_iaddr_fifo           |             fifo1clk_fwft__parameterized0 |         76 |         36 |      40 |    0 |   54 |      0 |      0 |    0 |          0 |
+|     sync_inst                                        |                       ct_L23_preproc_sync |        103 |        103 |       0 |    0 |  164 |      0 |      0 |    0 |          0 |
+|       (sync_inst)                                    |                       ct_L23_preproc_sync |         21 |         21 |       0 |    0 |   21 |      0 |      0 |    0 |          0 |
+|       cnt_tipcycles_inst                             |                                   counter |         10 |         10 |       0 |    0 |   22 |      0 |      0 |    0 |          0 |
+|       cnt_tiphalfword_inst                           |                   counter__parameterized1 |         26 |         26 |       0 |    0 |   22 |      0 |      0 |    0 |          0 |
+|       cnt_tipinstructions_inst                       |                   counter__parameterized0 |         25 |         25 |       0 |    0 |   22 |      0 |      0 |    0 |          0 |
+|       cnt_wall_clk_clr_cdc_inst                      |                               vector_cdc2 |          1 |          1 |       0 |    0 |   10 |      0 |      0 |    0 |          0 |
+|       cnt_wall_clk_overflow_cdc_inst                 |                             vector_cdc2_0 |          0 |          0 |       0 |    0 |   10 |      0 |      0 |    0 |          0 |
+|       counter_wallclk_inst                           |                   counter__parameterized2 |          9 |          9 |       0 |    0 |   22 |      0 |      0 |    0 |          0 |
+|       do_sync_ack_lock_fsm                           |                       signal_ack_lock_fsm |         11 |         11 |       0 |    0 |    5 |      0 |      0 |    0 |          0 |
+|       genQuotaCdc.quota_byte_ovf_cdc_inst            |                             vector_cdc2_1 |          0 |          0 |       0 |    0 |   10 |      0 |      0 |    0 |          0 |
+|       genQuotaCdc.quota_cnt_clr_cdc_inst             |                             vector_cdc2_2 |          0 |          0 |       0 |    0 |   10 |      0 |      0 |    0 |          0 |
+|       genQuotaCdc.quota_msg_ovf_cdc_inst             |                             vector_cdc2_3 |          0 |          0 |       0 |    0 |   10 |      0 |      0 |    0 |          0 |
+|     tip_delay_inst                                   |                  ct_L23_preproc_tip_delay |         78 |         78 |       0 |    0 |  100 |      0 |      0 |    0 |          0 |
++------------------------------------------------------+-------------------------------------------+------------+------------+---------+------+------+--------+--------+------+------------+
+
+

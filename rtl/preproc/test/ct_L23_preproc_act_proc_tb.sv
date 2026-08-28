@@ -1,10 +1,13 @@
-// -*- indent-tabs-mode:t; tab-width:4 -*-
-// vim: tabstop=4:noexpandtab
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
+// -*- indent-tabs-mode: t; tab-width: 4 -*-
 
 /**
  * @file    ct_L23_preproc_act_proc_tb.sv
  * @brief   Directed routing and TE side-effect testbench for ct_L23_preproc_act_proc.
- * @description Validates ACT_ST priority over ACT_CAP, DAQ forwarding to
+ * @details Validates ACT_ST priority over ACT_CAP, DAQ forwarding to
  *   act_cap_st, dropping of unsupported commands, and trace-enable side
  *   effects on cs_tip.
  * @stimulus Drives simultaneous ACT_CAP and ACT_ST inputs, AXIS-routed and
@@ -282,7 +285,7 @@ module ct_L23_preproc_act_proc_tb;
 		// "no more outputs" section and flag valid outputs as unexpected.
 		wait (exp_out_q.size() > 0);
 
-		// We expect exactly exp_out_q.size() output pulses
+		// We expect exactly exp_out_q.size output pulses
 		while (exp_out_q.size() > 0) begin
 			@(posedge tip_clk);
 			#1ps; // sample after DUT NBAs

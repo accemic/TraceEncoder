@@ -30,24 +30,24 @@
  */
 
 module ct_env #(
-	bit    SPLIT_DATA_ACCESS = 0,
-	int    CYCLES_PER_INSTR  = 4,
+	bit    SPLIT_DATA_ACCESS  = 0,
+	int    CYCLES_PER_INSTR   = 4,
 	// REQUIRED: binary ATB trace output. This is the primary artifact
 	// of every test — the actual N-Trace byte stream produced by the
 	// encoder. Tests pass an explicit filename; the file lands in the
 	// simulator's CWD and the test prints the absolute path via
 	// $system("realpath ...").
-	string ATB_DUMP_PATH     = "",
+	string ATB_DUMP_PATH      = "",
 	// Optional: per-instruction TIP text dump (one CSV-ish line per
 	// retired control-flow event, source PC + type + target). Useful
 	// for cross-checking the cpu_model's drive against what the
 	// encoder ingested. Empty = no dump.
-	string TIP_DUMP_TXT_PATH = "",
+	string TIP_DUMP_TXT_PATH  = "",
 	// Optional: NexRv PCInfo file derived from the cpu_model event
 	// log. Same address-by-address format the original tip_generator
 	// emitted; suitable as input to the NexRv reference decoder.
 	// Empty = no file.
-	string NEXRV_INFO_PATH   = "",
+	string NEXRV_INFO_PATH    = "",
 	// Optional: execution-ordered list of PCs the cpu_model retired,
 	// one per line. Used as the reference by the NexRv decode-check
 	// script (the decoded .pcout should match this line-for-line).
@@ -70,24 +70,54 @@ module ct_env #(
 	// Default OFF: when 0 the env behaves exactly as before (always-ready
 	// AXIS sink, no decoder elaborated). HSI tests set this to 1 to tap
 	// the in-sim AXIS decoder.
-	bit ENABLE_DECODERS    = 0
+	bit    ENABLE_DECODERS    = 0,
+	// Optional: half periods (ns) of the free-running atb/proc clocks.
+	// Default 2 ns (= 250 MHz) keeps every existing test byte-identical.
+	// Equal-rate integrations (e.g. the MBV KV260 SoC: ALL encoder clocks
+	// tied to one 75 MHz pl_clk while CT_SINGLE_CLOCK=0) are modeled by
+	// setting these to the tip half period — the drain then no longer
+	// outpaces the retire side, which is the precondition for NATURAL
+	// (non-injector) eTIP overflow (see tests/overflow/02_natural_overflow).
+	int    ATB_CLK_HALF_NS    = 2,
+	int    PROC_CLK_HALF_NS   = 2,
+	// Optional: Device ID (TCODE 1, P4) payload of the DUT instance --
+	// the ct_encoder CT_DEVICE_ID elaboration parameter. Default 0 = the
+	// encoder default ("no ID assigned"); a test that exercises the
+	// message passes a recognizable value and checks the decoded field
+	// against it.
+	logic [31:0] DEVICE_ID    = 32'h0,
+	// P0-07: the CORE_XLEN declaration handed to the DUT. The default is the
+	// truth for this harness (the "hart" is the cpu_model below, see the
+	// instantiation), and it is a parameter only so that
+	// tests/instruction/38_core_xlen can drive the guard's REJECTING legs --
+	// a declaration that disagrees with the netlist, and the undeclared 0.
+	// No test may use it to make a real width mismatch elaborate: the guard
+	// is the thing under test, not an obstacle.
+	int unsigned CORE_XLEN    = ct_pkg::CT_XLEN
 ) ();
 
 	// ------------------------------------------------------------------
 	// Clock generation
-	//   tip_clk @ 100 MHz, atb/proc @ 250 MHz, wb/wall @ 100 MHz
+	//   default:      tip_clk @ 100 MHz, atb/proc @ 250 MHz, wb/wall @ 100 MHz
+	//   single-clock: with ct_pkg::CT_SINGLE_CLOCK the DUT contract is
+	//                 tip == proc == atb (one domain), so the env ties
+	//                 them to tip_clk -- matching what an integrator does
+	//                 (the downstream AXI(S) FIFO owns any real crossing).
 	// ------------------------------------------------------------------
-	logic tip_clk     = 0;
-	logic atb_atclk   = 0;
-	logic proc_clk    = 0;
-	logic wb_clk      = 0;
-	logic wall_clk    = 0;
+	logic tip_clk       = 0;
+	logic atb_clk_free  = 0;
+	logic proc_clk_free = 0;
+	logic wb_clk        = 0;
+	logic wall_clk      = 0;
 
-	initial forever #5ns  tip_clk   = ~tip_clk;
-	initial forever #2ns  atb_atclk = ~atb_atclk;
-	initial forever #2ns  proc_clk  = ~proc_clk;
-	initial forever #5ns  wb_clk    = ~wb_clk;
-	initial forever #5ns  wall_clk  = ~wall_clk;
+	initial forever #5ns  tip_clk       = ~tip_clk;
+	initial forever #(ATB_CLK_HALF_NS  * 1ns) atb_clk_free  = ~atb_clk_free;
+	initial forever #(PROC_CLK_HALF_NS * 1ns) proc_clk_free = ~proc_clk_free;
+	initial forever #5ns  wb_clk        = ~wb_clk;
+	initial forever #5ns  wall_clk      = ~wall_clk;
+
+	uwire logic atb_atclk = ct_pkg::CT_SINGLE_CLOCK ? tip_clk : atb_clk_free;
+	uwire logic proc_clk  = ct_pkg::CT_SINGLE_CLOCK ? tip_clk : proc_clk_free;
 
 	// ------------------------------------------------------------------
 	// Reset sequencer
@@ -117,18 +147,39 @@ module ct_env #(
 
 	tip_if  tip();
 	wb_if  #(.DATA_WIDTH(WB_DATA_WIDTH), .ADDR_WIDTH(WB_ADDR_WIDTH)) wb();
-	axis_if axis(.aclk(wb_clk), .aresetn(~wb_rst));
+	// C0a finding: this instance used the axis_if DEFAULT width (32) since
+	// the env was written -- the encoder's AXIS composer sized itself from
+	// axis.TDATA_WIDTH, so every multi-element beat (PC_CURR_LAST,
+	// DATA_DADDR, ...) was silently truncated to element 0 IN THE TB ENV
+	// (Verilator warned SELRANGE/WIDTHTRUNC, xsim folded the same way).
+	// The product width is ACT_CAP_AXIS_TDATA_WIDTH (96, ct_pkg) -- what
+	// the in-sim decoder and the docs always claimed.
+	axis_if #(.TDATA_WIDTH(ct_pkg::ACT_CAP_AXIS_TDATA_WIDTH))
+	        axis(.aclk(wb_clk), .aresetn(~wb_rst));
 	atb_if  atb_up();    // between DUT and stall injector
 	atb_if  atb_dn();    // between stall injector and sink
 
 	// ------------------------------------------------------------------
 	// DUT
 	// ------------------------------------------------------------------
-	ct_encoder #(.SPLIT_DATA_ACCESS(SPLIT_DATA_ACCESS)) dut (
+	// Framing advertisement of the compiled-in back end (0 = Nexus MSEO,
+	// 1 = E-Trace te_inst); observable so a test can assert it.
+	uwire logic atb_te_raw;
+
+	// CORE_XLEN (P0-07): the "hart" of this harness is the cpu_model below,
+	// whose addresses ARE tip_pkg types and therefore ct_pkg::CT_XLEN wide by
+	// construction -- there is no separate core whose width could disagree.
+	// Deriving the declaration from the netlist is the truth HERE and only
+	// here; an SoC integrator declares the width of the real hart instead
+	// (see the parameter comment in rtl/ct_encoder.sv), and
+	// scripts/check_core_xlen.py enumerates the derived instantiations so
+	// this waiver cannot spread unnoticed.
+	ct_encoder #(.SPLIT_DATA_ACCESS(SPLIT_DATA_ACCESS), .CT_DEVICE_ID(DEVICE_ID),
+	             .CORE_XLEN(CORE_XLEN)) dut (
 		.tip_clk,      .tip_rst,       .tip,
 		.wb_clk,       .wb_rst,        .wb,    .ct_cs_rst,
 		.axis,
-		.atb_atclk,    .atb_atresetn,  .atb (atb_up),
+		.atb_atclk,    .atb_atresetn,  .atb (atb_up),  .atb_te_raw,
 		.proc_clk,     .proc_rst,
 		.wall_clk,     .wall_clk_rst
 	);
@@ -155,6 +206,40 @@ module ct_env #(
 		.clk (wb_clk),
 		.wb  (wb.master)
 	);
+
+	// ------------------------------------------------------------------
+	// Watchpoint table bulk access over the INDIRECT path (C0b).
+	//
+	// The direct 0x4100 window is gone (1023 entries no longer fit under
+	// the df component). Entry convention matches the old helper:
+	// entry64 = {Cmd word, Addr word}. Streaming: set the index once,
+	// then one wp_write_next per slot -- the trWpDataHigh write commits
+	// and the hardware advances the index (wrap at NUM_ACT_ST-1).
+	// Writes require trTeControl.Enable=0 (swwel + commit gate).
+	// ------------------------------------------------------------------
+	task automatic wp_set_index(input logic [15:0] idx);
+		csr.Write_trWpIndex({16'h0, idx});
+	endtask
+
+	task automatic wp_read_index(output logic [15:0] idx);
+		logic [31:0] v;
+		csr.Read_trWpIndex(v);
+		idx = v[15:0];
+	endtask
+
+	task automatic wp_write_next(input logic [63:0] entry64);
+		csr.Write_trWpDataLow (entry64[31:0]);
+		csr.Write_trWpDataHigh(entry64[63:32]);
+	endtask
+
+	// Readback of the slot at the CURRENT index; the trWpReadHigh read
+	// advances the index (serial readback).
+	task automatic wp_read_next(output logic [63:0] entry64);
+		logic [31:0] lo, hi;
+		csr.Read_trWpReadLow (lo);
+		csr.Read_trWpReadHigh(hi);
+		entry64 = {hi, lo};
+	endtask
 
 	// ------------------------------------------------------------------
 	// ATB stall injector + always-ready sink

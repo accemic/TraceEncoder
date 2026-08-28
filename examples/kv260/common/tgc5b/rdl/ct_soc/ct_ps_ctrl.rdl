@@ -1,0 +1,49 @@
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// PS control-port registers (ct_soc_top CTRL region).
+//
+// These are hand-implemented in examples/kv260/common/tgc5b/ct_soc_top.sv (the
+// AXI4-Lite front-end there is not RDL-generated); they are described here so the
+// register map is complete. Keep this in sync with ct_soc_top.sv.
+regfile ct_ps_ctrl_rf {
+    name = "ct_soc_top control / status";
+
+    reg {
+        desc = "Control register, written over devmem to drive the SoC.";
+        field { sw = rw; hw = r; desc = "0 = hold core in reset, 1 = run."; } core_run[0:0] = 0;
+        field { sw = rw; hw = r; desc = "Level: while set, re-arm BOTH capture
+                buffers (ATB and AXIS)."; }                                  trace_clear[1:1] = 0;
+        field { sw = rw; hw = r; desc = "Request an encoder trace flush.";   } trace_flush[2:2] = 0;
+    } control @ 0x0;
+
+    reg {
+        desc = "Status register. An overflow bit latches when its buffer is full
+                and a further beat arrives — the capture is then truncated, not
+                complete. Cleared by trace_clear.";
+        field { sw = r; hw = w; desc = "ATB capture buffer full (>4096 beats).";  } trace_overflow[0:0] = 0;
+        field { sw = r; hw = w; desc = "AXIS capture buffer full (>256 beats)."; } axis_overflow[1:1] = 0;
+    } status @ 0x4;
+
+    reg {
+        desc = "ATB beats captured (one 32-bit word per beat), saturating at the
+                buffer depth of 4096 words = 16 KiB.";
+        field { sw = r; hw = w; } value[31:0] = 0;
+    } trace_beats @ 0x8;
+
+    reg {
+        desc = "Valid ATB bytes captured, saturating at 16384 (4 * 4096). Read
+                TRACE_BEATS words from the TRACE window and keep the first
+                TRACE_BYTES bytes — only the last beat can be partial.";
+        field { sw = r; hw = w; } value[31:0] = 0;
+    } trace_bytes @ 0xC;
+
+    reg {
+        desc = "AXIS instrumentation beats captured, saturating at the buffer
+                depth of 256 beats = 4 KiB. One 128-bit record — four 32-bit
+                words at AXIS+0x0..0xC — per beat: tdata elem0..2, then
+                {tlast, tid[7:0], tkeep[11:0]}; tid[5:0] is the ACT-CAP/ACT-ST
+                command.";
+        field { sw = r; hw = w; } value[31:0] = 0;
+    } axis_beats @ 0x10;
+};

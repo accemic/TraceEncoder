@@ -1,0 +1,41 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+#
+# SymbiYosys job for ct_L2_nexus_formatter (P-FMT-1..5, P3 DF address
+# compression / TCODE 13-14 re-anchor contract).
+#   bmc   : all properties, depth 40
+#   cover : non-vacuity witnesses (13 + 14 emission, XOR form, re-anchor
+#           after ERROR, DataTracing edge during a stall)
+#   prove : k-induction (the wrapper's contract mirror A_fmt4_pend_mirror
+#           is the induction anchor for the sticky flag)
+# Input build/nexus_formatter_formal.v is produced by run.sh.
+
+[tasks]
+bmc
+cover
+prove
+
+[options]
+bmc: mode bmc
+bmc: depth 40
+cover: mode cover
+cover: depth 25
+prove: mode prove
+prove: depth 15
+
+[engines]
+# bitwuzla: fastest on the msg_gen-class single-always modules.
+# Windows toolchain note (2026-08-04): this model's variable-index field
+# writes recurse deeper in the yosys backend writers (smt2/btor/ywmap)
+# than the suite yosys.exe's 2-MiB PE stack reserve -- every writer died
+# with 0xC00000FD until SizeOfStackReserve was patched to 128 MiB
+# (formal/README.md "Tool traps"; re-apply after a suite update, like the
+# smtio patch).
+smtbmc bitwuzla
+
+[script]
+read -formal nexus_formatter_formal.v
+prep -top f_fmt_check
+
+[files]
+build/nexus_formatter_formal.v

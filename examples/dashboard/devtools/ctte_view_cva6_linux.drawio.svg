@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1112" height="218" viewBox="0 0 1112 218" content="&lt;mxfile host=&quot;TraceEncoder&quot; agent=&quot;devtools/compact_layout.py&quot; version=&quot;24.7.5&quot;&gt;
+  &lt;diagram id=&quot;arch-cva6_linux&quot; name=&quot;cva6_linux&quot;&gt;
+    &lt;mxGraphModel dx=&quot;1400&quot; dy=&quot;900&quot; grid=&quot;1&quot; gridSize=&quot;10&quot; guides=&quot;1&quot; tooltips=&quot;1&quot; connect=&quot;1&quot; arrows=&quot;1&quot; fold=&quot;1&quot; page=&quot;1&quot; pageScale=&quot;1&quot; pageWidth=&quot;1112&quot; pageHeight=&quot;218&quot; math=&quot;0&quot; shadow=&quot;0&quot; background=&quot;#0b0f17&quot;&gt;
+      &lt;root&gt;
+        &lt;mxCell id=&quot;0&quot;/&gt;
+        &lt;mxCell id=&quot;1&quot; parent=&quot;0&quot;/&gt;
+        &lt;mxCell id=&quot;ct0&quot; value=&quot;CEDARtools.TraceEncoder · ENC0 · CVA6&quot; style=&quot;rounded=1;dashed=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#3c5270;fontColor=#C98500;verticalAlign=top;align=left;spacingLeft=6;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;362&quot; y=&quot;30&quot; width=&quot;564&quot; height=&quot;158&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cpu0&quot; value=&quot;Core&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#20293a;strokeColor=#C98500;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;30&quot; y=&quot;40&quot; width=&quot;190&quot; height=&quot;138&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;tip0&quot; value=&quot;Trace ingress&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;246&quot; y=&quot;86&quot; width=&quot;92&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;preproc0&quot; value=&quot;Preproc&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;382&quot; y=&quot;86&quot; width=&quot;84&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;fifo0&quot; value=&quot;FIFO&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;486&quot; y=&quot;78&quot; width=&quot;84&quot; height=&quot;62&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;msggen0&quot; value=&quot;MsgGen&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;590&quot; y=&quot;56&quot; width=&quot;84&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;nexusfmt0&quot; value=&quot;Nexus Fmt&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;694&quot; y=&quot;56&quot; width=&quot;92&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;mseomdo0&quot; value=&quot;MSEO/MDO&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;806&quot; y=&quot;56&quot; width=&quot;100&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;teinst0&quot; value=&quot;te_inst&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;590&quot; y=&quot;116&quot; width=&quot;84&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;tepktz0&quot; value=&quot;te Pktz&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;694&quot; y=&quot;116&quot; width=&quot;92&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;ddr&quot; value=&quot;Mem (DDR4)&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#18202c;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;970&quot; y=&quot;45&quot; width=&quot;112&quot; height=&quot;54&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;uram&quot; value=&quot;Mem (URAM)&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#18202c;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;970&quot; y=&quot;119&quot; width=&quot;112&quot; height=&quot;54&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cva6_linux_e0&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;cpu0&quot; target=&quot;tip0&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cva6_linux_e1&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;tip0&quot; target=&quot;preproc0&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cva6_linux_e2&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;preproc0&quot; target=&quot;fifo0&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cva6_linux_e3&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;fifo0&quot; target=&quot;msggen0&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cva6_linux_e4&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;msggen0&quot; target=&quot;nexusfmt0&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cva6_linux_e5&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;nexusfmt0&quot; target=&quot;mseomdo0&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cva6_linux_e6&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;fifo0&quot; target=&quot;teinst0&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cva6_linux_e7&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;teinst0&quot; target=&quot;tepktz0&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cva6_linux_e8&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;mseomdo0&quot; target=&quot;ddr&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cva6_linux_e9&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;mseomdo0&quot; target=&quot;uram&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cva6_linux_e10&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;tepktz0&quot; target=&quot;ddr&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cva6_linux_e11&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;tepktz0&quot; target=&quot;uram&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+      &lt;/root&gt;
+    &lt;/mxGraphModel&gt;
+  &lt;/diagram&gt;
+&lt;/mxfile&gt;">
+<rect width="100%" height="100%" fill="#0b0f17"/>
+<rect x="362" y="30" width="564" height="158" rx="10" fill="none" stroke="#3c5270" stroke-dasharray="5 4"/>
+<text x="372" y="25" font-family="Segoe UI" font-size="12" font-weight="600" fill="#C98500">CEDARtools.TraceEncoder · ENC0 · CVA6</text>
+<path d="M220,109 L236.4,109" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M244.1,109 L236.4,105.15 L236.4,112.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M338,109 L372.4,109" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M380.1,109 L372.4,105.15 L372.4,112.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M466,109 L476.4,109" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M484.1,109 L476.4,105.15 L476.4,112.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M570,109 L580,109 L580,79 L580.4,79" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M588.1,79 L580.4,75.15 L580.4,82.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M674,79 L684.4,79" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M692.1,79 L684.4,75.15 L684.4,82.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M786,79 L796.4,79" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M804.1,79 L796.4,75.15 L796.4,82.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M570,109 L580,109 L580,139 L580.4,139" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M588.1,139 L580.4,135.15 L580.4,142.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M674,139 L684.4,139" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M692.1,139 L684.4,135.15 L684.4,142.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M906,79 L940,79 L940,72 L960.4,72" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M968.1,72 L960.4,68.15 L960.4,75.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M906,79 L940,79 L940,146 L960.4,146" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M968.1,146 L960.4,142.15 L960.4,149.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M786,139 L940,139 L940,72 L960.4,72" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M968.1,72 L960.4,68.15 L960.4,75.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M786,139 L940,139 L940,146 L960.4,146" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M968.1,146 L960.4,142.15 L960.4,149.85 Z" fill="#5b6b85" stroke="none"/>
+<rect x="30" y="40" width="190" height="138" rx="6" fill="#20293a" stroke="#C98500"/>
+<text x="36" y="57" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Core</text>
+<rect x="246" y="86" width="92" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="252" y="103" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Trace ingress</text>
+<rect x="382" y="86" width="84" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="388" y="103" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Preproc</text>
+<rect x="486" y="78" width="84" height="62" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="492" y="95" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">FIFO</text>
+<rect x="590" y="56" width="84" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="596" y="73" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">MsgGen</text>
+<rect x="694" y="56" width="92" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="700" y="73" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Nexus Fmt</text>
+<rect x="806" y="56" width="100" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="812" y="73" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">MSEO/MDO</text>
+<rect x="590" y="116" width="84" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="596" y="133" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">te_inst</text>
+<rect x="694" y="116" width="92" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="700" y="133" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">te Pktz</text>
+<rect x="970" y="45" width="112" height="54" rx="6" fill="#18202c" stroke="#33445c"/>
+<text x="976" y="62" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Mem (DDR4)</text>
+<rect x="970" y="119" width="112" height="54" rx="6" fill="#18202c" stroke="#33445c"/>
+<text x="976" y="136" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Mem (URAM)</text>
+</svg>

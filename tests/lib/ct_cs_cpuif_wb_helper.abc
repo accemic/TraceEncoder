@@ -3,7 +3,7 @@
 
 # Wishbone CSR programming helper for tests. The committed
 # ct_cs_cpuif_wb_helper.sv is the source of truth at build time;
-# regeneration logic was stripped pending the CEDARtools.TraceEncoder path rewrites.
+# regeneration logic was stripped pending the CTTE path rewrites.
 
 import @rtl/pkg               : tip_pkg ct_cs_cpuif_wb_pkg
 import @rtl/external/wishbone : wb_package

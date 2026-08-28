@@ -1,0 +1,5 @@
+# Formal harnesses: every target directory holds its property wrapper as
+# wrapper.sv (formal/<target>/wrapper.sv declares f_<target>), and the stubs
+# are named after what they replace, not after the module they declare. The
+# filename-matches-module rule does not apply to this layout.
+-module-filename

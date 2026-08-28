@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+#
+# cva6_trace_wrap instantiates the upstream `cva6`, `cva6_rvfi` and
+# `cva6_iti` modules (the CVA6-with-ITI fork) plus their `rvfi_types.svh` /
+# `cvxif_types.svh` / `iti_types.svh` headers -- none of which are vendored
+# in this IP tree (consolidation-plan decision: reference cores are fetched,
+# not vendored; see examples/kv260/third_party/fetch.sh once that example
+# lands). This project therefore does NOT resolve/elaborate standalone here;
+# it is wired in wherever the fetched core sources are added to the search
+# path (an examples/ CVA6 top). See rtl/adapters/cva6/README.md and
+# rtl/adapters/README.md.
+
+read_sv	cva6_trace_wrap.sv

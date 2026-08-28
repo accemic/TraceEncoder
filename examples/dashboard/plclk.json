@@ -1,0 +1,72 @@
+{
+  "_comment": [
+    "pl_clk0 label per scenario. The dashboard server reads this in load_app()",
+    "and programs the clock BETWEEN `xmutil unloadapp` and `xmutil loadapp` --",
+    "the only point at which it may be changed: a frequency step underneath a",
+    "loaded design is a clock glitch in the middle of the logic, and",
+    "kv260_plclk.sh refuses the change while a slot is occupied for exactly",
+    "that reason.",
+    "",
+    "The label is NOT a frequency. pl_clk0 = 1500 MHz / DIVISOR0 with an",
+    "integer divider, so only a few values exist: 100 (15), 75 (20),",
+    "71.43 (21), 68.18 (22), 65.22 (23). kv260_plclk.sh accepts the three",
+    "labels 68, 75 and 100 and turns 68 into 1500000000/22 = 68181818 Hz --",
+    "not 68000000. A fourth value is an error, not a compromise, and",
+    "test_demo_assets.py fails on one.",
+    "",
+    "HOW THE VALUES ARE DERIVED. Every KV260 design in this repository is",
+    "constrained to clk_pl_0 = 71.114 MHz (period 14.062 ns) -- that is the",
+    "PS8 PL0 clock the block design asks for, and it is what the routed timing",
+    "report of each design signs off. 68 is the only label AT OR BELOW that",
+    "constraint, so it is the value that needs no further argument. 75 MHz",
+    "(13.333 ns) is 0.729 ns faster than the sign-off period, so a design only",
+    "survives it if its worst negative slack is at least 0.729 ns. Where a",
+    "board runner already programs 75 today, the entry says so and carries",
+    "that design's measured slack; where no runner exists, the entry stays at",
+    "68. A scenario without evidence gets no entry at all -- and then the",
+    "server leaves the clock alone and says so, instead of guessing.",
+    "",
+    "The `evidence` line of every entry names the file the number comes from.",
+    "The slack values below are the clk_pl_0 rows of those routed reports."
+  ],
+  "mbv": {
+    "mhz": 75,
+    "evidence": "examples/kv260/mbv/board/mbv_board_gate.sh:81 programs PL_MHZ=75, and the board gate passed at that clock (PREFIX_PASS 26772/26772). Constraint 71.114 MHz with WNS +2.331 ns (examples/kv260/mbv/fpga/proj_b/mbv_kv260.runs/impl_1/mbv_kv260_top_timing_summary_routed.rpt), i.e. 3.2x the 0.729 ns that 75 MHz costs."
+  },
+  "duo": {
+    "mhz": 75,
+    "evidence": "examples/kv260/duo/board/duo_board_gate.sh:74 programs PLMHZ=75. Constraint 71.114 MHz with WNS +2.188 ns (examples/kv260/duo/fpga/proj/duo_kv260.runs/impl_1/duo_kv260_top_timing_summary_routed.rpt), i.e. 3.0x the 0.729 ns that 75 MHz costs."
+  },
+  "tgc5b2_axis_wp": {
+    "mhz": 75,
+    "evidence": "examples/kv260/tgc5b2_axis_wp/board/wp_board_gate.sh:77 programs PLMHZ=75. Constraint 71.114 MHz with WNS +1.575 ns (examples/kv260/tgc5b2_axis_wp/fpga/reports/tgc5b2_axis_wp_timing_summary.rpt), i.e. 2.2x the 0.729 ns that 75 MHz costs."
+  },
+  "trio": {
+    "mhz": 68,
+    "evidence": "No board runner sets a clock for this design. Constraint 71.114 MHz with WNS +0.215 ns (examples/kv260/trio/fpga/trio_timing_summary.rpt) -- that is LESS than the 0.729 ns 75 MHz would cost, so 75 is not available here. 68 is the only label at or below the constraint."
+  },
+  "cva6_linux": {
+    "mhz": 68,
+    "evidence": "No board runner sets a clock for this design (examples/kv260/cva6_linux/board/cva6_linux_boot_trace.sh has no clock step). Constraint 71.114 MHz with WNS +2.265 ns (examples/kv260/cva6_linux/fpga/cva6_linux_timing_summary.rpt); 68 is the only label at or below the constraint."
+  },
+  "cva6_linux64": {
+    "mhz": 68,
+    "evidence": "Constraint 71.114 MHz with WNS +0.603 ns (examples/kv260/cva6_linux64/fpga/cva6_linux64_x64_timing_summary.rpt) -- LESS than the 0.729 ns 75 MHz would cost, so 75 is not available here. Matches PL_MHZ in this scenario's boot recipe (boot.json)."
+  },
+  "rocket64": {
+    "mhz": 75,
+    "evidence": "Constraint 71.114 MHz with WNS +2.114 ns (examples/kv260/rocket_linux/fpga/rocket_x64_timing_summary.rpt) -- 2.9x the 0.729 ns that 75 MHz costs, the same slack argument by which mbv, duo and tgc5b2_axis_wp already run at 75. Raised 68 -> 75 on 2026-08-21 so the clock matches the guest device tree, which declares clock-frequency = 75000000 (rocket_kv260_rv64.dts:104,118,187); at 68 the guest reckoned time 10 percent fast. Verified on the board that day: boots to buildroot login, WIN_ERR_CNT 0, and the capture decodes to 5,414,841 instructions against the PINNED demo/rocket64.pcinfo -- the same count as the 68 MHz run, i.e. the clock does not touch the decoded trace."
+  },
+  "rocket2": {
+    "mhz": 75,
+    "evidence": "Constraint 71.114 MHz with WNS +3.578 ns (examples/kv260/rocket2/fpga/rocket2_timing_summary.rpt) -- 4.9x the 0.729 ns that 75 MHz costs, the largest margin in the family. Carried PL_MHZ=68 from 2026-08-14 (package R2, finding P0-01) until 2026-08-21, when it was raised to 75 for the same reason as rocket64: the guest device tree declares 75 MHz and the guest reckoned time 10 percent fast. Verified on the board that day: M5_TWOHART_HW PASS with both harts retiring, 0 drops, WIN_ERR_CNT 0, boots to buildroot login, and the DDR sink decodes to 7,770,406 instructions against the PINNED demo/rocket2.pcinfo -- the same count as the 68 MHz run."
+  },
+  "cva6_2_rv32": {
+    "mhz": 68,
+    "evidence": "No board runner sets a clock for this design. Constraint 71.114 MHz with WNS +2.399 ns (examples/kv260/cva6_2/fpga/cva6_2_rv32_timing_summary.rpt); 68 is the only label at or below the constraint."
+  },
+  "cva6_2_rv64": {
+    "mhz": 68,
+    "evidence": "No board runner sets a clock for this design. Constraint 71.114 MHz with WNS +0.125 ns (examples/kv260/cva6_2/fpga/cva6_2_rv64_timing_summary.rpt) -- the smallest margin in the family and far LESS than the 0.729 ns 75 MHz would cost. 75 is not available here."
+  }
+}

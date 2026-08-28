@@ -1,0 +1,80 @@
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+//
+// BOOT-TIME device-tree overlay: reserviert das PL-DDR-Fenster
+// 0x5000_0000..0x6FFF_FFFF (512 MiB, Adressplan v4) fuer
+//   0x5000_0000 +256 MiB  ct_soc_ddr_sink -- seit U6 (2026-08-15) der
+//                         DDR_BASE/DDR_SIZE-Reset ALLER ct_trace_sinks-Designs
+//                         (tgc5b2_axis, duo, trio) und weiterhin der von
+//                         rocket2. AW: "eine zentrale DDR4 Implementierung ist
+//                         besser als mehrere verschiedene."
+//   0x6000_0000  +64 MiB  ABSTAND -- und zugleich das ALTE Trace-Fenster, das
+//                         nur noch die Tops mit EIGENER Sink-Verdrahtung
+//                         (rocket_soc_top, cva6_2, cva6_linux*) als
+//                         Reset-Default fahren, bis sie auf ct_trace_sinks
+//                         umziehen
+//   0x6400_0000 +192 MiB  Gast-Code/Daten  (CVA6 boot_addr / Rocket PS_BASE)
+//
+// AUFSTOCKUNG 256 -> 512 MiB am 2026-08-10 (AW: "Trace-Speicher 256 MB, sonst
+// rutscht der Schreibpointer so schnell durch"). Gemessen: bei 29,7 MB/s
+// wickelt ein 64-MiB-Fenster alle 2,3 s um, ein 256-MiB-Fenster alle 9,0 s.
+// Der Encoder-Hebel taugt dafuer NICHT -- InstSyncMax 6 -> 15 (Faktor 512 auf
+// die Synchronisationsperiode) aendert die Byterate um 0,3 %
+// (docs/handoffs/C1_sink_overrun.md §3.5).
+//
+// WARUM NACH UNTEN UND NICHT NACH OBEN: cachebarer Speicher oberhalb
+// 0x6800_0000 ist board-belegt mit einem Ausfall binnen ~5 s (D2/CVA6_PIN D5).
+// Den Gast hoeher zu legen liefe genau dort hinein. Nach unten kostet es nur
+// Host-Speicher (3647 -> ~3391 MB), und der Gast bleibt, wo er ist: Ladeweg,
+// Nutzlast, PS_BASE und WIN_SIZE bleiben unveraendert.
+//
+// DIE AENDERUNG IST STRIKT ADDITIV. Das alte Fenster 0x6000_0000 +64 MiB liegt
+// weiterhin in der Reservierung, es wird nur nicht mehr beschrieben. Jede App,
+// die auf dem alten Reset-Default steht, laeuft unveraendert weiter -- und der
+// frei gewordene Block ist genau der Abstand, der bisher fehlte: Trace-Fenster
+// und Gast stiessen ohne einen Byte Abstand aneinander (0x6000_0000 + 64 MiB
+// == 0x6400_0000 == Gastbasis).
+//
+// ⚠ WIRKT ERST NACH EINEM NEUSTART. reserved-memory ist eine
+// Boot-Zeit-Reservierung (memblock); ohne den Neustart gehoert
+// 0x5000_0000..0x5FFF_FFFF weiterhin dem Ubuntu-Kernel (`/proc/iomem`:
+// "00000000-5fffffff : System RAM"). Eine Senke, die dort ohne die
+// Reservierung mit 29,7 MB/s schreibt, verfaelscht den HOST statt des Gasts.
+// rocket2_linux_run.sh prueft das deshalb VOR dem Scharfstellen gegen den
+// LIVE-Devicetree und weigert sich sonst (Funktion ddr_window_setup).
+//
+// Aufstockung 128 -> 256 MiB am 2026-07-26 (PLAN_cva6_linux_ctrace L6): der
+// CVA6 soll Linux booten, und dafuer reichen 64 MiB nicht -- OpenSBI + Kernel +
+// das eingebettete Busybox-initramfs (38,6 MB komprimiert, entpackt deutlich
+// mehr) brauchen Arbeitsspeicher. 192 MiB ist die Obergrenze, die ohne neue
+// Kollision geht: 0x6FFF_FFFF liegt weiterhin unter der u-boot-Ramdisk-Zone
+// (~0x75fd_0000), die Plan v1 zum Verhaengnis wurde.
+// aus Sicht des Ubuntu-Kernels (no-map: der Kernel fasst den Bereich nie an).
+// Adressplan v2 (C6-Befund 2026-07-24): das urspruengliche obere low-DDR-Ende
+// 0x7800_0000 kollidiert mit dem u-boot-Staging (Ramdisk-Relocation endete
+// 0x78ff_fee2) -> "reserving fdt memory region failed". 0x6000_0000 liegt
+// sicher zwischen FIT-Staging (~0x1500_0000) und Ramdisk-Zone (~0x75fd_0000).
+//
+// WICHTIG: reserved-memory wirkt nur zur BOOT-Zeit (memblock). Dieses Overlay
+// darf deshalb NICHT (nur) ueber `xmutil loadapp` (Runtime-configfs-Overlay)
+// kommen -- es muss in den Boot-Devicetree, siehe
+// docs/SPEC_board_memory_map.md ("Anwendung auf dem Board"). Das App-Overlay
+// mbv_ctrace_kv260.dtso bleibt davon unberuehrt.
+//
+// Compile: dtc -@ -I dts -O dtb -o ctrace_resmem.dtbo ctrace_resmem.dtso
+
+/dts-v1/;
+/plugin/;
+
+&{/} {
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		ctrace_pl_ddr: ctrace-pl-ddr@50000000 {
+			reg = <0x0 0x50000000 0x0 0x20000000>;
+			no-map;
+		};
+	};
+};

@@ -1,17 +1,16 @@
-// vim: set ts=4 sw=4 et:
+// SPDX-FileCopyrightText: 2025 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
 // -*- indent-tabs-mode: t; tab-width: 4 -*-
 `default_nettype none
 /**
- * SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
- * Copyright (c) 2025 Accemic Technologies GmbH
- * Address: Kiefersfelden, Germany
- *
  * @file    vector_binary_search_2clk.sv
  * @brief   Pipelined vector search over a perfect binary decision tree.
  * @date    2025-10-31
  * @author  Alexander Weiss
  *
- * @description
+ * @details
  *   This module compares an input key against a sorted set of unique keys stored
  *   in per-level on-chip RAMs and returns a match flag and associated payload.
  *   It supports exact value matches or inclusive range matches depending on
@@ -120,53 +119,64 @@
 
 
 module vector_binary_search_2clk #(
-	parameter type K = logic [7:0],     // Key data type
-	parameter type R = logic [7:0],     // Return data type (if RETURN_VALUE == 1, valid on hit == 1)
+	parameter type   K                    = logic [7:0], // Key data type
+	parameter type   R                    = logic [7:0], // Return data type (if RETURN_VALUE == 1, valid on hit == 1)
 	// Number of values (sorted, unique) to search for
-	parameter int DIM = 4,				// total RAM size = (2**DIM)-1
-	parameter int LOG = 0,				// enable log outputs
-	localparam int N             = (2**DIM)-1,
-	localparam int NUM_MEMS      = DIM,
-	localparam int STAGES        = 4*NUM_MEMS,		// StageData 0: request (here is the RAM)
+	parameter int    DIM                  = 4,           // total RAM size = (2**DIM)-1
+	parameter int    LOG                  = 0,           // enable log outputs
+	localparam int   N                    = (2**DIM)-1,
+	localparam int   NUM_MEMS             = DIM,
+	localparam int   STAGES               = 4*NUM_MEMS,  // StageData 0: request (here is the RAM)
 													// StageData 1: Wait memory
 													// StageData 2: response
 													// StageData 3: process
-	parameter string SEARCH_MODE = "VALUE", // "VALUE", "RANGE"
-	localparam int NUM_KEYS = (SEARCH_MODE == "VALUE") ? 1 : 2,
-	parameter int RETURN_VALUE = 1, // 0: return value always '0; 1: return value read from memory on match
-	parameter int INTERNAL_DELAY_WIDTH = 8
+	parameter string SEARCH_MODE          = "VALUE",     // "VALUE", "RANGE"
+	localparam int   NUM_KEYS             = (SEARCH_MODE == "VALUE") ? 1 : 2,
+	parameter int    RETURN_VALUE         = 1,           // 0: return value always '0; 1: return value read from memory on match
+	parameter int    INTERNAL_DELAY_WIDTH = 8
 ) (
-	input  uwire                wr_clk,
-	input  uwire                rd_clk,
-	input  uwire                rst,
+	input  uwire                           wr_clk,
+	input  uwire                           rd_clk,
+	input  uwire                           rst,
 
 	// Input key and valid (one per cycle)
-	input  uwire                valid,
-	input  K                    data_in,
+	input  uwire                           valid,
+	input  K                               data_in,
 
 	// Flat external write port across all inner-node entries
 	// Address space size = TOTAL_ENTRIES (see below)
-	ocram_write_if.impl         wext,   // external write port with data width = NUM_KEYS*$bits(K) + RETURN_VALUE*$bits(R)
+	ocram_write_if.impl                    wext,          // external write port with data width = NUM_KEYS*$bits(K) + RETURN_VALUE*$bits(R)
 
 	// Exact-match result
-	output logic                hit_valid,
-	output logic                hit,
-	output R                    hit_value,
-	output logic[INTERNAL_DELAY_WIDTH-1:0] internal_delay         // delay of this component including all submodules
+	output logic                           hit_valid,
+	output logic                           hit,
+	output R                               hit_value,
+	output logic[INTERNAL_DELAY_WIDTH-1:0] internal_delay // delay of this component including all submodules
 );
 
-	assign internal_delay = INTERNAL_DELAY_WIDTH'(STAGES-1);	// DIM=4 -> internal_delay = (4*DIM)-1 = 15
+	// The report must FIT: a too-narrow INTERNAL_DELAY_WIDTH silently wraps
+	// the value (DIM=10 -> 39 cast to 5 bits reads 7), the consumer then
+	// budget-checks against the WRAPPED number and taps its alignment pipe
+	// 32 cycles early -- a silently mis-aligned ACT-ST, not an error
+	// (FINDINGS_axis_wp_analyse §1.3). Guard at elaboration; the
+	// undeclared-module poison keeps the violation fatal on backends that
+	// demote $fatal to a warning (Verilator under abc's blanket -Wno-fatal).
+	if ((STAGES-1) > ((1 << INTERNAL_DELAY_WIDTH) - 1)) begin : genDelayWidthGuard
+		$fatal(1, "vector_binary_search_2clk: internal delay %0d does not fit INTERNAL_DELAY_WIDTH=%0d bits -- widen delay_t (PREPROC_DELAY_MAX) before raising DIM", STAGES-1, INTERNAL_DELAY_WIDTH);
+		ct_elab_guard_violation poison ();
+	end
+	assign internal_delay = INTERNAL_DELAY_WIDTH'(STAGES-1);    // DIM=4 -> internal_delay = (4*DIM)-1 = 15
 
 	logic HitValid;
 	logic Hit;
 	R     HitValue;
 
 	localparam MEM_WIDTH = NUM_KEYS*$bits(K) + RETURN_VALUE*$bits(R);  // Memory entry width, e.g. 8 bit range low, 8 bit range high, 8 bit output value (2xK + R) = 24 Bits
-	typedef logic[MEM_WIDTH-1:0] 	M_t;
+	typedef logic[MEM_WIDTH-1:0]    M_t;
 
 	typedef struct packed {
 		logic   valid;
-		K 		key;
+		K       key;
 		R       value;
 		logic   found;
 		int     local_addr;
@@ -187,8 +197,8 @@ module vector_binary_search_2clk #(
 	// CDC for read reset
 	logic rd_rst;
 	reset_cdc reset_cdc_inst (
-		.clk 	 (rd_clk),
-		.rst_in	 (rst),
+		.clk     (rd_clk),
+		.rst_in  (rst),
 		.rst_out (rd_rst)
 	);
 
@@ -197,8 +207,8 @@ module vector_binary_search_2clk #(
 	// -----------------------------------------------------------------------------
 	generate
 
-		stage_data_pipe_t 	StageData  [STAGES:0];
-		kr_t				kr		   [NUM_MEMS];
+		stage_data_pipe_t   StageData  [STAGES:0];
+		kr_t                kr         [NUM_MEMS];
 
 		for (genvar i=0; i<=STAGES; i++) begin : STAGE
 
@@ -207,7 +217,7 @@ module vector_binary_search_2clk #(
 			stage_data_pipe_t curr_stage_data;
 
 			// STAGE_REQUEST stage with RAM and r_if, w_if
-			if (i[1:0] == STAGE_REQUEST) begin 		// i%4 = 0
+			if (i[1:0] == STAGE_REQUEST) begin      // i%4 = 0
 
 				// memory content with return value
 				ocram_write_if #(.A_BITS(A_BITS), .T(M_t)) w_if (wr_clk);
@@ -221,7 +231,7 @@ module vector_binary_search_2clk #(
 					ocram_sdp #(
 						.A_BITS     (A_BITS),
 						.T          (M_t),
-						.RAM_STYLE	("auto"),
+						.RAM_STYLE  ("auto"),
 						.USE_ADDITIONAL_OUTPUT_REG(1),
 						.ENABLE_INIT(1)
 					) ram (
@@ -240,12 +250,12 @@ module vector_binary_search_2clk #(
 						if (SEARCH_MODE == "RANGE" && RETURN_VALUE == 1) begin
 							// Struct: typedef struct packed { K key[2]; R value; }
 							// Bit vector: [key[1] | key[0] | value], highest Bit -> key[1],
-							kr[MEM_ID].value  = R'(r_if.q[0 				  +: $bits(R)]);
-							kr[MEM_ID].key[0] = K'(r_if.q[$bits(R) 			  +: $bits(K)]);
+							kr[MEM_ID].value  = R'(r_if.q[0                   +: $bits(R)]);
+							kr[MEM_ID].key[0] = K'(r_if.q[$bits(R)            +: $bits(K)]);
 							kr[MEM_ID].key[1] = K'(r_if.q[$bits(R) + $bits(K) +: $bits(K)]);
 						end
 						else if (SEARCH_MODE == "RANGE" && RETURN_VALUE == 0) begin
-							kr[MEM_ID].key[0] = K'(r_if.q[0 	   +: $bits(K)]);
+							kr[MEM_ID].key[0] = K'(r_if.q[0        +: $bits(K)]);
 							kr[MEM_ID].key[1] = K'(r_if.q[$bits(K) +: $bits(K)]);
 							kr[MEM_ID].value  = '0;
 						end
@@ -299,12 +309,12 @@ module vector_binary_search_2clk #(
 							StageData[i+1] <= StageData[i];
 						end
 						if (i == 0) begin
-							r_if.ce 	<= '1;
+							r_if.ce     <= '1;
 							r_if.addr   <= '0;
 						end
 						else if (i == STAGES) begin
 							HitValid    <=  StageData[i].valid;
-							Hit      	<= '0;
+							Hit         <= '0;
 							HitValue    <= '0;
 							if ((StageData[i].valid) && (StageData[i].found)) begin
 								Hit      <= 1;
@@ -323,7 +333,7 @@ module vector_binary_search_2clk #(
 				end
 			end
 			// STAGE_WAIT0
-			else if (i[1:0] == STAGE_WAIT0) begin		// i%4 = 1
+			else if (i[1:0] == STAGE_WAIT0) begin       // i%4 = 1
 				always_ff @(posedge rd_clk) begin
 					if (rd_rst) begin
 						if (i>1) begin
@@ -338,18 +348,18 @@ module vector_binary_search_2clk #(
 				end
 			end
 			// STAGE_WAIT1
-			else if (i[1:0] == STAGE_WAIT1) begin	// i%4 = 2
+			else if (i[1:0] == STAGE_WAIT1) begin   // i%4 = 2
 				always_ff @(posedge rd_clk) begin
 					if (rd_rst) begin
 						StageData[i+1] <= '0;
 					end
 					else begin
-						if (i == 2) begin 				// seed stage
+						if (i == 2) begin               // seed stage
 							StageData[3].valid              <= valid;
 							StageData[3].key                <= data_in;
 							StageData[3].found              <= 1'b0;
 							StageData[3].value              <= '0;
-							StageData[3].local_addr    	    <= '0;     // is root
+							StageData[3].local_addr         <= '0;     // is root
 						end
 						else begin
 							StageData[i+1] <= StageData[i];
@@ -358,7 +368,7 @@ module vector_binary_search_2clk #(
 				end
 			end
 			// STAGE_PROCESS
-			else if (i[1:0] == STAGE_PROCESS) begin		// i%4 = 3
+			else if (i[1:0] == STAGE_PROCESS) begin     // i%4 = 3
 				always_ff @(posedge rd_clk) begin
 					if (rd_rst) begin
 						if (i < STAGES) begin

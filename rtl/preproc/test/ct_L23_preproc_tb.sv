@@ -1,10 +1,13 @@
-// -*- indent-tabs-mode:t; tab-width:4 -*-
-// vim: tabstop=4:noexpandtab
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
+// -*- indent-tabs-mode: t; tab-width: 4 -*-
 
 /**
  * @file    ct_L23_preproc_tb.sv
  * @brief   Directed integration testbench for ct_L23_preproc.
- * @description Verifies that ACT_CAP commands propagate through the
+ * @details Verifies that ACT_CAP commands propagate through the
  *   preprocessor into the expected AXIS and ETIP DAQ outputs.
  * @environment Instantiates the full preprocessor, control/status interfaces,
  *   AXIS output, ETIP sources, ATB interface, and external memories across
@@ -66,8 +69,8 @@ module ct_L23_preproc_tb;
 	tip_if              tip    ();
 	ct_act_cap_if       act_st ();
 	ct_cs_tipclk_if     cs_tip ();
-	ct_cs_procclk_if	cs_proc();
-	ct_cs_atbclk_if		cs_atb ();
+	ct_cs_procclk_if    cs_proc();
+	ct_cs_atbclk_if     cs_atb ();
 	ct_cs_decclk_if     cs_dec ();
 
 	ocram_write_if #(.A_BITS(M0_STAGES), .T(m0_kr_t)) act_st_wext   (.clk(wb_clk));
@@ -80,7 +83,7 @@ module ct_L23_preproc_tb;
 		.aclk (tip_clk),
 		.aresetn(!tip_rst));
 
-	source_if #(.T(etip_msg_struct_t))      etip_q 	     (.clk(proc_clk), .rst(proc_rst));
+	source_if #(.T(etip_msg_struct_t))      etip_q       (.clk(proc_clk), .rst(proc_rst));
 	source_if #(.T(tip_iaddr_t))            next_iaddr_q (.clk(proc_clk), .rst(proc_rst));
 	wb_if #(.ADDR_WIDTH(32),.DATA_WIDTH(32)) wb();
 
@@ -110,12 +113,16 @@ module ct_L23_preproc_tb;
 		.tip_rst,
 		.wall_clk,
 		.wall_clk_rst,
+		.proc_clk,
+		.proc_rst,
 		.tip,
 		.axis,
 		.etip_q,
 		.next_iaddr_q,
 		.atb_afvalid (0), .atb_syncreq (0),
 		.synq_req_trace_byte_count,
+		.synq_req_trace_msg_count (1'b0),
+		.quota_cnt_clr            (),
 		.cs_tip,
 		.wext_clk       (wb_clk),
 		.act_st_wext,
@@ -142,14 +149,17 @@ module ct_L23_preproc_tb;
 		FilterSetDataComp  (cs_tip, 0, 0, 0);   // Filter 0: trTeFilterComp1 = 0
 
 		// enable CompFilter for data tracing
-		cs_tip.trTeDataTracingSet 	= 1;
-		cs_tip.trTeDataTracingClr 	= 0;
+		cs_tip.trTeDataTracingSet   = 1;
+		cs_tip.trTeDataTracingClr   = 0;
 		cs_tip.trTeDataTracing      = 1;
 
 		// enable CompFilter for control flow tracing
-		cs_tip.trTeInstTracingSet 	= 1;
-		cs_tip.trTeInstTracingClr 	= 0;
+		cs_tip.trTeInstTracingSet   = 1;
+		cs_tip.trTeInstTracingClr   = 0;
 		cs_tip.trTeInstTracing      = 1;
+
+		// no explicit sync request from the control bus (P8)
+		cs_tip.trTeInstSyncReq      = 0;
 
 	endtask
 
@@ -186,7 +196,7 @@ module ct_L23_preproc_tb;
 		item.tip                    = tipt;
 		act_cap_te.ctrl             = ACT_CAP_TE_INSTR_TRACING;
 		act_cap_te.data             = 16'h1;                        // trTeControl.InstTracing = 1;
-		cmd.DirectData.value 	    = act_cap_te;
+		cmd.DirectData.value        = act_cap_te;
 		cmd.Sink.value              = ct_cs_cpuif__trActCapStSink_e__ACT_CAP_ST_SINK_TE;
 		cmd.Cmd.value               = ct_cs_cpuif__trActCapStCmd_e__ACT_CAP_ST_TE;
 		item.tip.iretire            = '1;
@@ -204,7 +214,7 @@ module ct_L23_preproc_tb;
 		// ------------------------------------------------
 
 		item.tip                    = tipt;
-		cmd.DirectData.value 	    = '0;
+		cmd.DirectData.value        = '0;
 		cmd.Sink.value              = ct_cs_cpuif__trActCapStSink_e__ACT_CAP_ST_SINK_AXIS;
 		cmd.Cmd.value               = ct_cs_cpuif__trActCapStCmd_e__ACT_CAP_ST_DAQ_PC_CURR;
 		item.tip.data               = cmd_to_tip_data(cmd);
@@ -225,7 +235,7 @@ module ct_L23_preproc_tb;
 		// ------------------------------------------------
 
 		item.tip                    = tipt;
-		cmd.DirectData.value 	    = '0;
+		cmd.DirectData.value        = '0;
 		cmd.Sink.value              = ct_cs_cpuif__trActCapStSink_e__ACT_CAP_ST_SINK_NEXUS;
 		cmd.Cmd.value               = ct_cs_cpuif__trActCapStCmd_e__ACT_CAP_ST_DAQ_PC_CURR;
 		item.tip.data               = cmd_to_tip_data(cmd);
@@ -246,7 +256,7 @@ module ct_L23_preproc_tb;
 		// ------------------------------------------------
 
 		item.tip                    = tipt;
-		cmd.DirectData.value 	    = '0;
+		cmd.DirectData.value        = '0;
 		cmd.Sink.value              = ct_cs_cpuif__trActCapStSink_e__ACT_CAP_ST_SINK_AXIS_NEXUS;
 		cmd.Cmd.value               = ct_cs_cpuif__trActCapStCmd_e__ACT_CAP_ST_DAQ_PC_CURR;
 		item.tip.data               = cmd_to_tip_data(cmd);

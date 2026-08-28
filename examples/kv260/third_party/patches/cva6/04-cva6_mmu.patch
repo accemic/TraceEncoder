@@ -1,0 +1,27 @@
+--- a/core/cva6_mmu/cva6_mmu.sv
++++ b/core/cva6_mmu/cva6_mmu.sv
+@@ -160,6 +160,15 @@
+   pte_cva6_t                          itlb_g_content;
+   logic      [  CVA6Cfg.PtLevels-2:0] itlb_is_page;
+   logic                               itlb_lu_hit;
++  // ACCEMIC-DELTA D3 (2026-07-26, finding L1): with XLEN=32 the part-select
++  // [VLEN-1:GPLEN] is REVERSED (VLEN 32, GPLEN 34) and makes XSIM abort
++  // elaboration -- even though CVA6Cfg.IS_XLEN64 renders the enclosing term
++  // dead. It is elaborated regardless. So clamp the lower bound: RV64
++  // unchanged (41 <= 63), RV32 becomes [31:31] inside an expression that is
++  // unreachable anyway. UPSTREAM-WORTHY.
++  localparam int unsigned GPLEN_LO =
++      (CVA6Cfg.GPLEN <= CVA6Cfg.VLEN - 1) ? CVA6Cfg.GPLEN : CVA6Cfg.VLEN - 1;
++
+   logic      [     CVA6Cfg.GPLEN-1:0] itlb_gpaddr;
+   logic      [CVA6Cfg.ASID_WIDTH-1:0] itlb_lu_asid;
+ 
+@@ -397,7 +406,7 @@
+       // - in pure G stage (SV39x4 mode), [CVA6Cfg.VLEN-1:CVA6Cfg.GPLEN] must be zero.
+       // - in pure G stage (SV32x4 mode), no check is needed.
+       if ((enable_translation_i && (icache_areq_i.fetch_req && !((&icache_areq_i.fetch_vaddr[CVA6Cfg.VLEN-1:CVA6Cfg.SV-1]) == 1'b1 || (|icache_areq_i.fetch_vaddr[CVA6Cfg.VLEN-1:CVA6Cfg.SV-1]) == 1'b0)))
+-          || (enable_g_translation_i && !enable_translation_i && CVA6Cfg.IS_XLEN64 && (|icache_areq_i.fetch_vaddr[CVA6Cfg.VLEN-1:CVA6Cfg.GPLEN] != 1'b0))) begin
++          || (enable_g_translation_i && !enable_translation_i && CVA6Cfg.IS_XLEN64 && (|icache_areq_i.fetch_vaddr[CVA6Cfg.VLEN-1:GPLEN_LO] != 1'b0))) begin
+         icache_areq_o.fetch_exception.cause = riscv::INSTR_PAGE_FAULT;
+         icache_areq_o.fetch_exception.valid = 1'b1;
+         if (CVA6Cfg.TvalEn)

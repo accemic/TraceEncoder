@@ -1,0 +1,1194 @@
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CC-BY-4.0
+
+= Integration guide — dropping `ct_encoder` into an SoC
+
+NOTE: The product name is *CEDARtools.TraceEncoder*, abbreviated *CTTE*.
+The earlier name *C-Trace* is retired from prose; it survives only in the
+`ct_*` identifier prefix (the IP's public API), in board- and
+bundle-visible names (`*_ctrace_kv260`, `ctrace_resmem.dtso`,
+`ctrace-pl-ddr`, the `mbv_ctrace_soc` block design) and in recorded
+captures and evidence files, which are raw data with published checksums.
+See the naming note in the README.
+
+This is the integrator-facing contract: clocks, resets, the instruction
+ingress, the control interface, the trace egress, and the shutdown
+semantics. The architectural background lives in
+link:architecture.adoc[architecture], the on-wire format in
+link:trace-format.adoc[trace-format], and the register reference is
+generated from the SystemRDL source in link:../rdl/[`rdl/`].
+
+== Clocks and resets
+
+`ct_encoder` spans five clock domains; every domain has its own
+synchronous reset. All CDC crossings are internal (gray-pointer FIFOs +
+2-FF synchronizers) — the integrator only connects clocks:
+
+[cols="1,2,2", options="header"]
+|===
+| Clock | Drives | Notes
+
+| `tip_clk` | Instruction ingress (`tip_if`), preprocessor front
+| **Must be the core clock** — the `TRACE`/TIP bus is synchronous to
+  retirement.
+
+| `proc_clk` | Message generation, formatting
+| May equal `tip_clk` (1:1 is the proven board profile) or run faster
+  for headroom.
+
+| `atb_atclk` | ATB egress, `trTeControl.Empty` view
+| Sink-side clock. 1:1 with `tip_clk` is proven on hardware; a slower
+  drain simply raises the FIFO-overrun rate (announced loss, see below).
+
+| `wb_clk` | Wishbone CSR access | Any frequency.
+| `wall_clk` | Wall-clock timestamp source | Optional feature clock.
+|===
+
+A fully single-clock integration (all five tied to one clock, as on the
+KV260 reference design) is supported and is the configuration the
+hardware robustness campaign runs on.
+
+[#independent-resets]
+*Resetting one domain without the others is allowed, and what it costs.*
+The resets are independent inputs, so an integrator may hold the core
+(and with it `tip_rst`) in reset while the CSR domain keeps running —
+that is what makes the encoder programmable across a core reset. Two
+consequences are worth stating because they are contract, not accident:
+
+* *An explicit sync request survives a reset of the CONSUMER's domain.*
+  The request over `trTeControl.InstSyncReq` crosses as a four-phase
+  LEVEL handshake (`ct_sync_req_pacer`), for exactly this reason: a
+  `tip_rst` clears the generator's pending state without acknowledging
+  it, and a request that is still standing is simply seen again when the
+  domain comes back. The ATB sync request has the same property, by the
+  same means.
++
+The direction matters and the sentence is only true in it. A `wb_rst`
+resets the *launch* side, and there the request has nowhere to survive:
+`ct_sync_req_pacer` clears `Req` and `Queued` on its own reset
+(`rtl/pkg/ct_sync_req_pacer.sv`), so a request written but not yet
+served is **gone** — no message, no error, no status bit. That is the
+correct behaviour (a reset CSR domain has no pending software intent to
+honour), but it is not what "not lost" would mean if the word were left
+unqualified: what is claimed here is survival of a `tip_rst`, not of a
+`wb_rst`, and not of a reset of both. Software that resets the CSR
+domain re-issues its request.
++
+Proven for one clock as P-SYNC-12 (`formal/preproc_sync`, task
+`tereqrst`) and measured at two unrelated clocks by
+`scripts/cli_syncreqrst_test.sh`,
+  which also shows what a pulse-based request would do instead (the
+  request is dropped and the launch side waits for ever).
+* *It may cost one extra synchronization message.* If the reset lands
+  after the generator has served the request but before the launch side
+  has seen the acknowledgement, the request is asked for again. A
+  synchronization message is always safe to emit, and a reset re-anchors
+  the decoder anyway (`EXIT_FROM_SYS_RST`), so this is a byte, not a
+  hazard. Exactly-once across a one-sided reset is **not** claimed.
+
+Everything else in the encoder is reset per domain in the ordinary way:
+state in the domain that was reset is gone, and the trace stream
+re-anchors on the first qualifying retirement afterwards.
+
+== Instruction ingress (`tip_if`)
+
+One beat per retirement opportunity. The essentials that integrations
+get wrong (all are asserted or gate-tested):
+
+* `iretire=1` marks a retired instruction; `iaddr`/`ilastsize` must be
+  valid on that beat.
+* A synchronously faulting instruction (ecall/ebreak/illegal) does
+  **not** retire: `iretire=0`, `itype=EXCEPTION_TRAP`, and its PC never
+  appears in the decoded stream (1:1 retirement rule). Interrupts use
+  `itype=INTERRUPT` with `iretire=0`; the pre-empted instruction is
+  re-executed after `mret` and appears then.
+* `itype` must be valid **whenever it is non-OTHER**, even with
+  `iretire=0` (trap markers ride non-retiring beats).
+* Sideband levels (`debug_mode`, `power_down`) must rise after the last
+  pre-window retire and fall before the first post-window retire.
+
+[#block-ingress]
+=== Block ingress — more than one instruction per beat
+
+The rules above describe the *single-retirement* ingress, which is the
+default (`CT_EN_BLOCK_TIP = 0`, `iretire` one bit). A superscalar hart
+retires several instructions in one cycle and cannot use it without
+serialising its commit stream. `CT_EN_BLOCK_TIP = 1` switches `iretire`
+to the meaning the RISC-V trace ingress port gives it — the number of
+**halfwords** retired by the block reported on this beat — and widens
+the bus to `CT_IRETIRE_WIDTH`:
+
+[cols="1,3,3", options="header"]
+|===
+| Signal | Single-retirement (default) | Block ingress
+
+| `iretire`   | 1 = one instruction retired | halfwords retired by the block (0 = none)
+| `iaddr`     | that instruction's address  | address of the **first** instruction of the block
+| `ilastsize` | that instruction's size     | size of the **last** instruction of the block
+| `itype`     | that instruction's type     | how the block **terminated**
+|===
+
+Consequences an integrator has to honour:
+
+* Only the **last** instruction of a block may be a control-flow event —
+  that is what ends a block. Everything before it is linear. The encoder
+  derives the control-flow source address as
+  `iaddr + 2*(iretire - 2^ilastsize)` and the block's successor as
+  `iaddr + 2*iretire`.
+* `iretire` must not exceed `2^CT_IRETIRE_WIDTH - 1`. That width is
+  checked at elaboration and must lie in **2..8** — the lower bound
+  because a one-bit block bus cannot report even a single 32-bit
+  instruction, the upper because a beat that alone reaches the `ICNT`
+  pre-drain threshold (`2^NEXUS_MSG_I_CNT_WIDTH`) wedges the
+  indirect-branch history hold. A core whose block generator has
+  no bound of its own (CVA6's ITI accumulates until the next
+  control-flow instruction) must have its adapter split longer linear
+  runs into several `itype=OTHER` blocks. That is free on the wire: an
+  `OTHER` block raises no message, it only accumulates the count.
+* Trap beats are unchanged: a synchronously faulting instruction still
+  reports `iretire=0`.
+* The address comparators, the ACT watchpoint search and the
+  performance counters compare **one** address per beat and see the
+  block start. A block spans an address range, so instruction-granular
+  address filtering is not expressible on a block ingress at all — a
+  property of the port, not a shortfall of the filter. Use the
+  single-retirement ingress where per-instruction filtering matters.
+
+The switch adds no message **type** and no wire field, which is why it
+carries no capability bit: there is nothing a decoder would have to be
+told. In the reset configuration a block beat also produces exactly the
+messages a serialised beat sequence would produce, with the same `ICNT` —
+measured, not asserted (`scripts/cli_blocktip_test.sh`: one scenario driven
+both ways in the same build, identical reconstructed PC sequences against a
+per-instruction reference, and byte-identical ATB output).
+
+What that does *not* mean is that the stream is independent of how the
+adapter cuts its blocks. Two configurations make the cut visible, and both
+are the integrator's to reason about:
+
+* `trTeControl.InstSyncMode` = 6 counts *retirement beats*, not
+  instructions, so at a block ingress the periodic synchronisation lands
+  after a different amount of program. Mode 3 ("instruction half-words")
+  has a pre-existing defect of its own, unrelated to this switch and
+  documented at its source (`rtl/preproc/ct_L23_preproc_sync.sv`, finding
+  B-R13-1): the counter increments by one per beat, so it counts 32-bit
+  instructions and misses compressed ones entirely. The message-, byte- and
+  cycle-based cadences are unaffected either way, because they measure the
+  output rather than the ingress.
+* With an instruction filter armed, the comparator sees block starts only
+  (bullet above), so which instructions qualify depends on the block
+  boundaries.
+
+Neither is a decoding hazard — the emitted stream is well-formed and
+self-describing in every case — but "the same instructions produce the same
+bytes" holds for the reset configuration, not for every configuration.
+
+`tip_if` is deliberately the *only* ingress contract: everything
+core-specific lives in an adapter outside the encoder. Three adapter
+families exist today and are maintained with the SoC integration project
+rather than here — the AMD MicroBlaze V `TRACE` bus
+(`mbv_to_ctte_tip.sv`), the CVA6 instruction-trace interface fed from
+the core's RVFI probes (`cva6_iti_to_ctte_tip.sv`), and the Rocket
+`TraceCoreInterface` (`rocket_tci_to_ctte_tip.sv`). Writing a fourth
+means answering the same questions for the new core — which beat is a
+retirement, how a trap is signalled, whether the address is the
+instruction's or the next one's — and the answer belongs in a measured
+truth table before it belongs in RTL; see
+link:verification.adoc#rv64-cores[Verification — hardware-in-the-loop and
+SoC integration].
+
+== Control interface and programming contract
+
+CSR access is Wishbone (`wb_if`); an AXI-Lite bridge
+(`ct_axil_to_wb`) is available at integration level.
+
+* **Feature configuration is Enable-locked.** All `trTeInstFeatures`
+  and sync-mode fields are writable only while `trTeControl.Enable=0`
+  (the protocol is not among them — it is a synthesis parameter, see
+  <<protocol-parameter>>). Writes after arming are silently void — always
+  program in the order _Active → configuration → Enable+InstTracing_.
++
+NOTE: Until 2026-08-16 this sentence was true of the sync-mode fields and
+of `SrcID`/`SrcBits`, but *not* of the eight `trTeInstFeatures.InstEn*`
+bits: the RDL `swwel` list did not carry them, so they could be flipped
+mid-session (found by an external register-access audit, U10 F-1). They
+are locked now, like the rest of the register. Software that relied on
+programming them after `Enable` was relying on a documented-void write and
+must move those writes ahead of the arming step.
+* **Not everything is locked, and the exceptions are deliberate.** The
+  session handles themselves (`Active`, `Enable`, `InstTracing`,
+  `DataTracing`, `InstSyncReq`), the status clear bits (including the RW1C
+  overflow flags and the FIFO-histogram controls), the message-class
+  enables whose messages a decoder recognises by TCODE (`SendConfig`,
+  `Context`, `InstSeqSyncEnable`, `InstTrigEnable`), the timestamp unit's
+  own run control (`trTsControl`) and the two ACT stall thresholds
+  `trPerfCntControl.{IFetchThreshold,DataWrThreshold}` stay writable while
+  the trace runs. The thresholds are compared against a counter that
+  restarts at every retire, so a new value simply applies from the next
+  measurement window — while the perf-counter address *ranges* next to them
+  are locked, because a range is two registers and a mid-trace update is
+  observable as a nonsense interval made of the new `Low` and the old
+  `High`. The complete list with a reason per group is the header of the
+  `swwel` block in `rdl/ct_cs_cpuif.rdl`, and `make lint`
+  (`check-swwel-census`) fails if a field leaves that list without either
+  a lock or an entry.
+* `trTeControl.Active` gates the encoder's clock enables; keep it set
+  for the whole session, including shutdown polling.
+* The decoder must be invoked with flags matching the programmed
+  features (e.g. `-bp` iff `InstEnBranchPrediction` was set). With
+  `trTeSendConfig` the encoder emits a config message (TCODE 58) that
+  advertises the active configuration in-stream for auto-configuration.
+
+== Trace egress
+
+Trace bytes leave on ATB (`atb_if`) in the framing of the back end this
+encoder was built with — Nexus MDO/MSEO chunks for N-Trace, reference-raw
+`te_inst` packets for E-Trace. The output `atb_te_raw` advertises which of
+the two it is (0 = Nexus, 1 = `te_inst`), so a downstream funnel/sink
+parses what the netlist actually produces instead of a second,
+software-programmed copy of that truth; it is a constant of the
+`EN_ETRACE` parameter. Backpressure via `atready` is legal at any time:
+sustained backpressure raises FIFO-overrun episodes, which are
+**announced loss** — an ERROR message plus a recovery sync re-anchor
+the decoder; nothing is lost silently (verdict-tested across
+backpressure duty/random/burst profiles).
+
+[#protocol-parameter]
+=== Protocol choice — a synthesis parameter, per encoder instance
+
+Which protocol an encoder speaks is decided at synthesis, not at run
+time. `ct_encoder` takes two parameters, `EN_NTRACE` and `EN_ETRACE`,
+defaulting to the build profile (`CT_EN_NTRACE` / `CT_EN_ETRACE` in
+`rtl/pkg/ct_pkg.sv`). **Exactly one of them must be set** per instance;
+both-0 and both-1 abort elaboration with a `$fatal`. Only the selected
+back end is instantiated, so an unused protocol costs nothing.
+
+Because the choice is per *instance*, a multi-encoder SoC can mix: one
+encoder N-Trace, the next E-Trace, out of the same netlist sources. In
+that case set the profile switches so the netlist contains what both
+need — `CT_EN_ETRACE = 1` widens the internal eTIP sideband
+(ecause/tval/priv/ilastsize) that the E-Trace back end consumes — and
+give **every** instance an explicit `EN_NTRACE`/`EN_ETRACE`, since the
+default would then be ambiguous.
+
+NOTE: The `ct_L1_funnel` derives Nexus packet boundaries from the MSEO
+bits, which E-Trace bytes do not carry; merging a mixed set of channels
+therefore needs the raw-framing extension `EN_TE_RAW = 1`, with
+`chan_te_raw` selecting the framing **per channel** (an MSEO channel and a
+`te_inst` channel may share one session). The funnel then frames a te_raw
+channel by the packet's own header length and prefixes a source-tag byte
+(`8'h80 | channel index`) so the merged stream stays self-describing once
+ATID is gone. That container is called **CTMX**; splitting it yields
+per-source byte streams byte-identical to a single-core capture, so an
+unmodified E-Trace reference decoder consumes them
+(`examples/kv260/trio/tools/etrace_trio_demux.py`). At `EN_TE_RAW = 0` the
+te_raw inputs constant-fold away and the netlist is the historical
+N-Trace-only funnel. The encoder side advertises what it produces on
+`atb_te_raw` (0 = Nexus MSEO/MDO chunks, 1 = E-Trace reference-raw), so a
+sink parses the netlist's truth rather than a programmed copy of it.
+Bench: `rtl/test/ct_L1_funnel_teraw_tb.sv`; worked design:
+`examples/kv260/trio` (board leg pending).
+
+Software discovers the built-in protocol read-only, per instance:
+`trTeProtocolSel.Protocol` (0x030[0]: 0 = N-Trace, 1 = E-Trace) and
+`trTeImpl.ProtocolMajor` (0x004[19:16]: 1 = N-Trace 1.x, 2 = E-Trace
+2.x). Both are driven by the hardware parameter, so they stay truthful
+in a mixed SoC. There is no write path — the earlier dual build, in
+which `trTeProtocolSel` selected the active back end at run time, was
+removed in 2026-08; it was never used in a product and cost a full
+second back end in area. Software that used to *write* the register now
+only reads it; the field, its address and its encoding are unchanged.
+
+The gate for this is `scripts/cli_etrace_test.sh mixed`
+(`tests/instruction/24_protocol_param`): two differently parameterised
+encoders in one netlist, each checked for its own `atb_te_raw` framing
+advertisement and its own discovery values.
+
+[#quota-sync-live]
+=== Live / ring operation — bounded re-anchor distance
+
+A live consumer that cuts a window out of a ring buffer needs a sync
+message *inside* the window to anchor the decode. With the trace-quota
+cadence (`CT_EN_QUOTA_SYNC`; `trTeControl.InstSyncMode = 4`, trace
+bytes) the maximum distance between two syncs becomes a *programmed*
+number instead of a workload property: the egress counter requests a
+periodic sync every 2^(`InstSyncMax`+4)^ output bytes (16 B … 512 KiB),
+counted exactly as the ring sees them — whole ATB beats, including
+alignment padding and flush idle beats.
+
+Recipe for a window of W bytes: program `InstSyncMode = 4` and choose
+`InstSyncMax` so that `2^(Max+4) <= W/2`. Every W-byte window then
+contains at least one sync in steady state (the factor 2 absorbs the
+in-flight overshoot below plus the sync message itself). The
+16-KiB dashboard window, for example, takes `Max = 9` (8 KiB quota).
+Leaving `InstSyncMax` at its reset value 6 gives a 1 KiB quota, i.e. a
+2-KiB window — a usable default for a ring consumer, which is why the
+period is pre-set and only the mode has to be written.
+
+All distances below are counted in *raw ATB bytes* — whole output
+beats as the ring stores them, alignment padding and flush idle
+included. That is the scale the quota itself is defined on, and the
+only scale a ring consumer can act on.
+
+Measured (simulation, gate `29_sync_quota_bytes`: 64-B quota
+`Max = 2`, mixed compressible/incompressible workload): 12 syncs in
+1100 raw ATB bytes (133 messages, 335 idle/pad bytes), maximum
+re-anchor distance **96 B** = the 64-B quota + 32 B of in-flight/CDC
+overshoot. The analytic ceiling for the overshoot is +324 B
+(derivation in `scripts/check_sync_window.py`); the formal window bound
+is proven against the modelled egress counter (P-SYNC-5 family,
+`formal/preproc_sync`).
+
+Measured (board, KV260 ring-capture path, `InstSyncMode = 4`,
+`Max = 9` → 8192-B quota, 1-MiB URAM ring filled 3.08×, decoded
+16 631 920 PCs from 131 071 messages): sync-to-sync distance constant
+**8192 B** over 127 gaps — the programmed quota exactly. 40 randomly
+cut 16-KiB windows were **40/40 anchorable**, with a maximum distance
+from the window start to its first sync of **8111 B**. The three
+numbers order as designed:
+
+  8111 B measured  ≤  8192 B quota  ≤  8516 B quota + Δ
+
+so the measurement sits 81 B under the programmed quota and 405 B
+under the never-exceed bound. That headroom is *not* a proven reserve:
+the workload of this capture is highly repetitive, which is why the
+gaps come out constant; the guarantee is the bound, not the constancy.
+The cost of the cadence was **0.061 %** of the stream (640 sync bytes
+in 1 048 571 raw bytes). Discriminance was checked with the same
+capture path at `InstSyncMode = 0`: **0/40** windows anchorable.
+The raw capture and its re-analysis are not part of this repository.
+
+The message-count cadence (`InstSyncMode = 1`) works the same way with
+on-wire messages as the unit. The runtime cost of either cadence is the
+sync messages themselves; while modes 1/4 are not selected the counters
+hold at zero and add no trace bytes.
+
+== Pause, stop, flush — the shutdown contract
+
+These semantics are contract-tested (gate `11_pause_edge`, campaign
+verdicts V7/V8) and matter for integration software:
+
+* **Pause** (`InstTracing` 0→…→1 with Enable held): the encoder closes
+  the stream with a trace-off correlation (TCODE 33), suppresses
+  everything positionless, and re-anchors with a TRACE_ENABLE sync. Gap
+  re-anchors are side-effect-free on both sides. Pauses may be issued
+  asynchronously at any time — edge collisions with any retire type are
+  covered by the qualifier pipeline and the resume gate.
+* **Flush** (`afvalid` or the sink's flush control): drains all queued
+  trace. To reach `Empty=1` afterwards, **close the stream while the
+  core still retires**: with `InstTracing=1` and a stopped core, exactly
+  one control-flow event is permanently in flight (its successor address
+  can never be observed) and `Empty=0` is the *correct* report. The
+  proven shutdown order is: flush → `InstTracing=0` (core still
+  running) → stop the core → poll `trTeControl.Empty`.
+* **`trTeControl.Empty`** is a conservative, CDC-safe status: it rises
+  only after the entire chain (accumulators, formatter, packer, CDC
+  FIFOs, ATB queue) has been observably quiet, and falls immediately on
+  any visible substance.
+
+[#feature-flags]
+== Feature flags
+
+One reference for every `CT_EN_*` compile switch in
+link:../rtl/pkg/ct_pkg.sv[`rtl/pkg/ct_pkg.sv`]: its runtime-control CSR
+field (register offset within the `te` component at `0x0000`, unless
+prefixed), the field's reset value, its bit in the TCODE-58 CAPS/ENAB
+capability map, its default in the committed *full* profile and in the
+two slim reference profiles, and the measured LUT cost where an isolated
+measurement exists. Consistency of this table with `ct_pkg.sv`,
+`rdl/ct_cs_cpuif.rdl` and the CAPS map is machine-checked by
+`scripts/check_feature_flags.py` (`make check-flags`, CI stage 1).
+
+Profile definitions live in `scripts/ct_profiles.sh` — one definition,
+sourced by every measurement flow (`scripts/phase_d_matrix_v2.sh`, the
+gold-standard flow these numbers come from, and
+`scripts/p10_timing_matrix.sh`), so that no flow has to re-derive a
+profile by hand-editing `ct_pkg.sv`:
+*featparity* = DAQ/data-trace/ACT/filters/compression suite off,
+single-clock, `CT_TS_WIDTH=32`, slicer steps 1, compact packer on,
+serialize off; *featparity_gold* additionally switches the nine
+gold-standard feature switches on (debug/power/EVTI/trigger/seq-sync
+events, ownership, config message, IBHS, repeat instruction);
+*slimfull_gold* = featparity_gold plus `CT_ETIP_CDC_SLIM=1`,
+`CT_EN_ETIP_WATERMARK=0`, `CT_EN_TIMESTAMP=0`. `CT_EN_DF_ADDR_COMPRESS`
+and `CT_EN_DF_DROP` follow `CT_EN_DATA_TRACE` and are therefore **0** in
+the featparity-class profiles — not a preference but an elaboration
+dependency (`scripts/check_profile_deps.py`). What the profiles do *not*
+touch is `CT_EN_BTM`, `CT_EN_SYNC_STATUS`, `CT_EN_FIFO_HIST`,
+`CT_EN_QUOTA_SYNC`, `CT_EN_DEVICE_ID`, `CT_EN_TRIG_REGS` and
+`CT_EN_INST_SYNC_REQ`: those stay at their committed full-profile value
+1 in both gold profiles, which is why the slim profiles carry everything
+P2, P4, P7 and P8 added (see <<profile-timing>>).footnote:[An
+older featparity definition in `scripts/profile_matrix.sh` predates the
+compact-packer and slicer-step knobs and differs from the v2 profile;
+the `ct_profiles.sh` definitions — byte-identical to the sequences
+`phase_d_matrix_v2.sh` used to carry inline — are behind every number
+quoted here.]
+
+[cols="2,3,^1,^1,^1,^1,3", options="header"]
+|===
+| Build switch | Runtime control (RDL) | Reset | CAPS | Default full | featparity_gold / slimfull_gold | LUT cost (measured, see note)
+
+| `CT_EN_NTRACE` | `trTeProtocolSel.Protocol` 0x030[0] — read-only discovery (hw-driven by the `EN_NTRACE`/`EN_ETRACE` instance parameters, see <<protocol-parameter>>) | 0 | — | 1 | 1 / 1 | N-Trace-only CF backend: 6 842 LUTs (OOC, Vivado 2026.1)
+| `CT_EN_ETRACE` | `trTeProtocolSel.Protocol` 0x030[0] — read-only discovery | 0 ^(committed profile is N-Trace-only; an E-Trace instance reads `Protocol`=1 / `ProtocolMajor`=2)^ | — | 0 | 0 / 0 | E-Trace-only CF backend: 3 439 LUTs vs 6 842 N-Trace-only (OOC, Vivado 2026.1). ^HISTORICAL^ Adding the E-Trace backend to a *dual* build cost +5 526 LUTs / +3 055 FFs (in-design KV260, Vivado 2026.1) — that build no longer exists, the protocol is a synthesis parameter since 2026-08 and only one backend is instantiated per encoder.
+| `CT_EN_BLOCK_TIP` | — (build-time shape of the `tip_if` ingress: `iretire` becomes a halfword count of width `CT_IRETIRE_WIDTH`, see <<block-ingress>>) | — | — ^(no message type and no wire field — a block beat produces exactly the messages a serialised beat sequence would)^ | 0 | 0 / 0 | not measured yet (R1.3)
+| `CT_EN_BTM` | `trTeControl.InstMode` 0x000[6:4] (WARL — 3 legal iff compiled in, else legalized to 6) | 6 | — | 1 | 1 / 1 | switching **off** measured **+35 LUTs** in featparity (case-label restructuring of the msg_gen mux)
+| `CT_EN_CONFIG_MSG` | `trTeControl.SendConfig` 0x000[8:7] | 1 (CFG_ONCE) | — ^(by design)^ | 1 | 1 / 1 | +350 LUTs / +511 FFs / +5 BRAM (featparity_cfgonly − featparity_base_v2); full-profile delta +491 / +451^1^
+| `CT_EN_OWNERSHIP` | `trTeControl.Context` 0x000[9] | 0 | 7 | 1 | 1 / 1 | +113 LUTs / +23 FFs (full profile)^1^
+| `CT_EN_DATA_TRACE` | `trTeDataControl.DataTracing` 0x010[1] (hwset/hwclr) | 0 | 16 | 1 | 0 / 0 | **+2 859 LUTs / +3 750 FFs / +6 BRAM** (base *B*, see note — OOC, Vivado 2026.1)
+| `CT_EN_DF_ADDR_COMPRESS` | `trTeDataControl.DataAddrCompress` 0x010[19:18] (WARL — 1 = XOR legal iff compiled in; 2/3 always legalize to 0; Enable-locked; requires `CT_EN_DATA_TRACE` — formatter elaboration guard) | 0 | 21 | 1 | 0 / 0 (follows `CT_EN_DATA_TRACE`) | not measured yet (P3 stage 6)
+| `CT_EN_DF_DROP` | `trTeDataControl.DataDropEna` 0x010[6] (runtime policy — deliberately NOT Enable-locked; requires `CT_EN_DATA_TRACE` — composer elaboration guard). Sticky status `trTeDataControl.DataDrop` 0x010[5] and `DataStallOrOverflow` 0x010[3], both RW1C | 0 | 22 | 1 | 0 / 0 (follows `CT_EN_DATA_TRACE`) | see <<p7-cost>>
+| `CT_EN_DAQ` | — (ACT-CAP/ACT-ST command-driven via CPU CSR `0x0B10`) | — | 17 (shared with `CT_EN_ACT`) | 1 | 0 / 0 | **+8 965 LUTs / +10 514 FFs / +12.5 BRAM** (base *B*, see note — OOC, Vivado 2026.1). ^This is the cost of the **group** `CT_EN_DAQ` + `CT_EN_ACT` + `CT_EN_WATCHPOINT_MSG`: `CT_EN_DAQ` alone is functionally dead (its only producer sits behind `CT_EN_ACT`) and `CT_EN_WATCHPOINT_MSG` fails elaboration without `CT_EN_ACT`. Named drivers: <<daq-cost-drivers>>.^
+| `CT_EN_ACT` | indirect watchpoint table `trWpIndex` 0x400C / `trWpDataLow` 0x4010 / `trWpDataHigh` 0x4014 (Enable-locked; readback `trWpReadLow/High` 0x4018/0x401C, capacity `trWpCap` 0x4020 — see <<wp-indirect>>), `pc.trPerfCntControl` + range registers (no single enable bit) | — | 17 (shared with `CT_EN_DAQ`) | 1 | 0 / 0 | included in the `CT_EN_DAQ` group figure above — not separable by construction; ^measured at the historical 15-slot table — C0b grew it to 1023 slots, see <<daq-cost-drivers>>^
+| `CT_EN_FILTERS` | `trTeInstFilters.Filters` 0x00C, `trTeDataFilters.Filters` 0x01C, `trTeFilter[]` 0x400+, `trTeComp[]` 0x600+ | 0 | — | 1 | 0 / 0 | **+7 822 LUTs / +5 085 FFs** (base *A*, see note — OOC, Vivado 2026.1) — the largest single-switch cost in this table, and it scales with `NUM_TRACE_FILTER` / `NUM_TRACE_COMPARATORS` (16 / 8 here): <<filter-cost-drivers>>
+| `CT_EN_FILTER_SYNC` | none of its own — armed by `trTeInstFilters.Filters` 0x00C being non-zero (0 = "trace all", the reset value, and then the whole block is dead). Requires `CT_EN_FILTERS` | 0 ^(via `trTeInstFilters`)^ | — ^(no new message type and no new wire field: a filter pause looks exactly like a software trace pause — TCODE 33 `EVCODE=Program Trace Disabled` on region exit, `SYNC=5 Trace Enable` on region entry)^ | 1 | 0 / 0 (follows `CT_EN_FILTERS`) | not measured yet (W2 is sim-only)
+| `CT_EN_TIMESTAMP` | `trTsControl.Enable` 0x040[15] (+ `Type` / `Prescale` / `Width`) | 1 | 15 | 1 | 1 / 0 | switching off: −300 LUTs / −490 FFs (featparity single-clock context)
+| `CT_EN_AXIS_TS` | — (build-time shape of the AXIS beat: a `DAQ_PC_CURR` beat carries the selected timestamp as element 2, strobe 0xFFF instead of the historical 0xFF; the value follows the timestamp unit — `trTsControl.Type` / `Active` / `Count` / `Prescale` — while `trTsControl.Enable` keeps gating ONLY the wire TSTAMP fields, not this element; requires `CT_EN_TIMESTAMP` and `CT_EN_ACT` — composer elaboration guards) | — | — ^(the AXIS sink is not a Nexus wire format — the ATB byte stream is identical either way, same rule as `CT_EN_BLOCK_TIP`)^ | 1 | 0 / 0 (follows `CT_EN_ACT`) | not measured yet (C0a)
+| `CT_EN_DEBUG_EVENTS` | — (generic `tip.debug_mode` event port) | — | 10 | 1 | 1 / 1 | ≈ 0 (events group measured −5 LUTs / +22 FFs as a group)^1^
+| `CT_EN_POWER_EVENTS` | — (`tip.power_down` event port) | — | 11 | 1 | 1 / 1 | ≈ 0 (events group)^1^
+| `CT_EN_EVTI` | — (`tip.evti` event port) | — | 12 | 1 | 1 / 1 | ≈ 0 (events group)^1^
+| `CT_EN_TRIG_SYNC` | `trTeControl.InstTrigEnable` 0x000[11] | 0 | 13 | 1 | 1 / 1 | ≈ 0 (events group)^1^
+| `CT_EN_SEQ_SYNC` | `trTeControl.InstSeqSyncEnable` 0x000[10] | 0 | 14 | 1 | 1 / 1 | ≈ 0 (events group)^1^
+| `CT_EN_TRIG_REGS` | `trTeTrigExtInControl.ExtInAction0` 0x054[3:0] (WARL — 0/2/3 legal iff compiled in, 4 additionally iff `CT_EN_TRIG_SYNC`; everything else legalizes to 0; Enable-locked). Actions 2/3 (trace-on/-off) fire only while `trTeControl.InstTrigEnable` = 1 — the TCI couples the actions to that enable, so a pulse with `InstTrigEnable` = 0 is a no-op by design (see link:trace-format.adoc#extensions[trace format → extensions]). `ExtInActionN` 0x054[31:4], `trTeTrigDbgControl` 0x050 and `trTeTrigExtOutControl` 0x058 are read-only 0 in every profile ("trigger does not exist", TCI Tables 19–21) | 0 (no action) | — ^(no message type and no wire field — the notify's on-wire effect is CAPS bit 13)^ | 1 | 1 / 1 | see <<p7-cost>>
+| `CT_EN_QUOTA_SYNC` | `trTeControl.InstSyncMode` 0x000[19:16] (trace-output quota cadence modes 1 = trace messages / 4 = trace bytes) + `trTeControl.InstSyncMax` 0x000[23:20] | 0 | 18 | 1 | 1 / 1 | **+≈50 FFs; LUT cost below the resolution of both measurements.** Two independent runs agree on the flip-flops (+48 full profile / +52 base *A*) and disagree in *sign* on the LUTs (+138 full profile / −27 base *A*) — both magnitudes are inside the ±300 repacking band of rule ^1^, so neither is a cost. Quoting the LUT number would be quoting noise. ^Base *A* is measured **inverted** (switch off in the base): `scripts/ct_profiles.sh` does not touch this switch, so it otherwise stays at the committed value 1 and the naive delta is 0.^
+| `CT_EN_DEVICE_ID` | `trTeControl.SendDeviceId` 0x000[29:28] (WARL — 1 = `DID_ONCE` legal iff compiled in; 2/3 always legalize to 0; Enable-locked). Payload = the `CT_DEVICE_ID` elaboration parameter of `ct_encoder` | 0 (`DID_NONE`) | 19 | 1 | 1 / 1 | see <<p4-cost>>
+| `CT_EN_WATCHPOINT_MSG` | `trWpMask.WEM` 0x4008[15:0] (Enable-locked) + ACT-ST command `ACT_CAP_ST_WATCHPOINT`; requires `CT_EN_ACT` — composer elaboration guard | 0 (mask empty) | 20 | 1 | 0 / 0 (follows `CT_EN_ACT`) | see <<p4-cost>>
+| `CT_EN_IMPLICIT_RETURN` | `trTeInstFeatures.InstEnImplicitReturn` 0x008[3] | 0 | 0 | 1 | 0 / 0 | **+71 LUTs / +553 FFs** (base *A*) — the highest FF-to-LUT ratio in the table: `CT_RET_STACK_DEPTH` (16) × `tip_iaddr_t` (32 bit) = 512 register bits, i.e. 93 % of the FFs, with trivial push/pop logic
+| `CT_EN_REPEATED_HISTORY` | `trTeInstFeatures.InstEnRepeatedHistory` 0x008[8] | 0 | 1 | 1 | 0 / 0 | **+86 LUTs / +91 FFs** (base *A*)
+| `CT_EN_WIDE_ICNT` | `trTeInstFeatures.InstEnWideIcnt` 0x008[12] | 0 | 2 | 1 | 0 / 0 | **+66 LUTs / +29 FFs** (base *A*)
+| `CT_EN_REPEAT_BRANCH` | `trTeInstFeatures.InstEnRepeatBranch` 0x008[11] | 0 | 3 | 1 | 0 / 0 | **+31 LUTs / +162 FFs** (base *A*)
+| `CT_EN_JTC` | `trTeInstFeatures.InstEnJumpTargetCache` 0x008[5] | 0 | 4 | 1 | 0 / 0 | **+262 LUTs / +71 FFs** (base *A*)
+| `CT_EN_BP` | `trTeInstFeatures.InstEnBranchPrediction` 0x008[4] | 0 | 5 | 1 | 0 / 0 | **+618 LUTs / +56 FFs** (base *A*) — the most expensive of the six compression switches
+| `CT_EN_IBHS` | `trTeInstFeatures.InstEnIbhs` 0x008[13] | 0 | 8 | 1 | 1 / 1 | full-profile delta −446 LUTs — not causally isolable^1^
+| `CT_EN_REPEAT_INSTR` | `trTeInstFeatures.InstEnRepeatInstr` 0x008[14] | 0 | 9 | 1 | 1 / 1 | full-profile delta −381 LUTs — not causally isolable^1^
+| `CT_EN_INST_SYNC_REQ` | `trTeControl.InstSyncReq` 0x000[27] (TCI, write-1, self-clearing — always reads back 0; NOT Enable-locked and not tied to an `InstSyncMode`) | 0 | — ^(no message type and no wire field: SYNC = 14 exists either way — see below)^ | 1 | 1 / 1 | see <<p8-cost>>
+| `CT_EN_SYNC_STATUS` | `trTeSyncStatus.SyncReqSource` 0xE08[2:0] (RO; the whole register is omitted from the map when 0) | 0 | — | 1 | 1 / 1 | switching off: −44 LUTs (featparity, BTM-off base)
+| `CT_EN_FIFO_HIST` | `trTeTipFifoHistCtrl.HistClear` 0xE10[0] + `trTeTipFifoHistData` 0xE14 (registers omitted when 0) | 0 | — | 1 | 1 / 1 | **+213 LUTs / +12 FFs / 0 BRAM** (base *A*, measured inverted — see note; OOC, Vivado 2026.1). Timing untouched: WNS +1.196 → +1.197 ns. ^Unusually logic-heavy for a feature that keeps a histogram — where the counts live was not investigated, and ΔBRAM is 0, so not in an added block RAM.^
+| `CT_EN_ETIP_WATERMARK` | `trTeTipFifoStatus.trTeTipFifoMaxFill` 0xE04[14:0] (no RDL gate — the CSR reads 0 when off) | 0 | — | 1 | 1 / 0 | switching off: −24 LUTs / −32 FFs (featparity context)
+|===
+
+Timing is not a property of a switch but of the whole build, so it rows
+by profile instead: <<profile-timing>>.
+
+[NOTE]
+====
+All cost figures are OOC syntheses on `xck26-sfvc784-2LV-c`
+(`scripts/synth_encoder_ooc*.tcl`; profiles per
+`scripts/ct_profiles.sh`, which `scripts/phase_d_matrix_v2.sh` sources).
+
+*The tool version is not uniform across this column, and the difference
+is not cosmetic.* The seq-22/phase-D generation of these numbers was
+measured with Vivado 2025.1 at a 5 ns target; the `CT_EN_NTRACE` /
+`CT_EN_ETRACE` back-end comparison and the `CT_EN_QUOTA_SYNC` row with
+Vivado 2026.1; the P4, P7 and P8 rows (<<p4-cost>>, <<p7-cost>>,
+<<p8-cost>>) and the profile table in <<profile-timing>> with Vivado
+2022.1.2, the version `.abc.config` pins. Deltas are only comparable
+*inside* one of those groups — each block states its own version, and a
+row that does not is a seq-22 number. Re-measuring the older rows on the
+pinned version is not done here; it would be a measurement round of its
+own and the numbers below are quoted as what was actually run.
+^1^ *Interpretation rule:* full-profile deltas below roughly ±300 LUTs
+are restructuring-affected — the netlist repacks around the change, so a
+negative delta does *not* mean the feature is free. The featparity/slim-class
+measurements (small deterministic netlists) are the causally reliable
+per-feature costs. "not measured individually" = no isolated OOC
+measurement exists for this switch; the profile aggregates below bound
+it. *No switch in this table carries that marker any more.*
+
+*The two differential bases (2026-08-11/12, Vivado 2026.1, 5.0 ns
+target).* Eleven switches that previously read "not measured
+individually" now carry differential figures. They were measured against
+**two** bases, and the split is not a convenience — it is forced:
+
+[cols="1,4,3", options="header"]
+|===
+| Base | Profile | Anchor
+
+| *A* | `featparity` (compact packer *on*) | 3 552 LUTs / 3 598 FFs / 6.5 BRAM, WNS +1.196 ns
+| *B* | `featparity_noc` (compact packer *off*) | 4 570 LUTs / 4 221 FFs / 6.5 BRAM, WNS −0.718 ns
+|===
+
+`CT_EN_DATA_TRACE` and the `CT_EN_DAQ` group cannot be measured on base
+*A* at all: `ct_L2_compact_packer` stops elaboration with
+"`CT_COMPACT_PACKER` requires a CF-only profile" — the lean egress path
+and the DF/DAQ message formats are mutually exclusive by construction.
+That is precisely why these switches carried "not measured individually"
+for so long: the obvious differential measurement runs into an
+elaboration guard, not into a missing test.
+
+*Deltas must never be arithmetic across the two bases.* A by-product of
+the split is the cost of the egress path itself: the historical formatter
+path is **+1 018 LUTs / +623 FFs** over the compact packer in the same
+profile.
+
+*Two switches are measured **inverted*** — base with the switch *off*,
+variant with it *on*, sign flipped: `CT_EN_QUOTA_SYNC` and
+`CT_EN_FIFO_HIST`. `scripts/ct_profiles.sh` does not touch either, so
+both otherwise stay at the committed value 1 and the naive delta is 0.
+That is not a null result, it is a measurement that never happened — and
+one of the two produced exactly that silent zero on a first attempt.
+Whenever a switch is added to this table, check first whether the profile
+script sets it at all.
+
+[#filter-cost-drivers]
+*Where the `CT_EN_FILTERS` cost sits.* The switch gates two things: the
+`ct_L23_preproc_comp_filters` instance, and — through
+`CT_PROFILE_NO_FILTERS` — the entire CSR bank behind it, whose storage
+and write decode vanish with it. Counting the register bits directly:
+16 filters × 180 bits + 8 comparators × 206 bits + 16 bits =
+**4 544 register bits**, i.e. **89 %** of the measured +5 085 FFs. The
+remainder is per-filter exception stacks, two sets of 16 saturating
+trap-window counters, and a hit pipeline that also deepens because
+`PREPROC_DELAY_MAX` goes 2 → 4 with filters on. The LUT side is the match
+datapath: 8 dual 32-bit magnitude comparators feeding 16 parallel
+per-filter AND trees. `NUM_TRACE_FILTER` and `NUM_TRACE_COMPARATORS` are
+genuine RDL parameters, so the figure is the cost *of the default 16/8
+configuration* — the scaling law itself is not measured here.
+
+[#daq-cost-drivers]
+*Where the `CT_EN_DAQ` group cost sits.* Unlike the filters this one is
+**not** reconciled to a bit count, and it is quoted as a group for the
+reason given in the row. What is code-verified are five mechanisms that
+trip at the same threshold and compound inside the same P-wide compacting
+queue: the DAQ payload (3 × 32-bit elements + a 32-bit address = 128 bits)
+becomes the widest arm of the packed message union and is therefore paid
+by *every* queued message; the queue depth quadruples (32 → 128); the
+parallel slot count grows 3 → 4; the watchpoint CSR read-back shadow is an
+explicit block-RAM copy; and the ACT-ST engine is a pipelined binary
+search over the watchpoint table with 32-bit comparators per level.
+The first three multiply, which is the most plausible explanation for the
++12.5 BRAM appearing here while the filters — which have no such queue —
+stay at ΔBRAM = 0. *No bit-level accounting is claimed.*
+
+NOTE: The group figure above was measured at the historical table shape
+(`M0_DIM` = 4: a four-level tree, 15 slots). Since C0b the tree has
+**ten levels / 1023 slots** and the preproc alignment budget
+`PREPROC_DELAY_MAX` grew 20 → 44 for `CT_EN_ACT` profiles — every
+`EXTRA_DELAY_MAX`-deep alignment pipe in the preprocessor follows it.
+Measured cost of the 68× capacity step (full profile, OOC,
+Vivado 2022.1.2, `xck26-sfvc784-2LV-c`; verdict
+`verification/evidence/C0b/ooc_pair.log`):
+
+[cols="3,^1,^1,^1", options="header"]
+|===
+| C0b OOC pair | CLB LUTs | Register as FF | BRAM tiles
+
+| pre — `64ae043979`, `M0_DIM` = 4 (`verification/evidence/C0b/ooc_pre_util_flat.rpt`) | 26307 | 20743 | 9.5
+| post — `b4cc804692`, `M0_DIM` = 10 (`verification/evidence/C0b/ooc_post_util_flat.rpt`) | 30432 | 31204 | 14.5
+| delta | +4125 | +10461 | +5
+|===
+
+The FF side is the alignment pipes (predicted +8–11 k in the C0b
+analysis), the BRAM side is the ten-level tree plus the 1024 × 64
+readback shadow.
+
+[#wp-indirect]
+*Indirect watchpoint table access (C0b) — BREAKING CHANGE.* The direct
+64-bit memory window at `0x4100` is **removed**: 1023 entries × 8 B span
+`0x4100-0x60F7` and collide with the `df` component at `0x5000` (PeakRDL
+refuses the map), and a wider register space would drag the micro-CSR
+twin and every integrator window with it. Software that wrote
+`0x4100 + 8*slot` must switch to the indirect protocol:
+
+. write the start slot to `trWpIndex.Idx` (`0x400C`) once,
+. per slot: `trWpDataLow` (`0x4010`) = Addr, then `trWpDataHigh`
+  (`0x4014`) = Cmd — the High write *commits* the pair to slot `Idx` and
+  increments `Idx` (wrap at the last slot),
+. capacity discovery: `trWpCap.Entries` (`0x4020`, reads 0 in profiles
+  without `CT_EN_ACT`),
+. readback: `trWpReadLow`/`trWpReadHigh` (`0x4018`/`0x401C`) return the
+  shadow entry at `Idx`; the High read advances `Idx` (serial readback,
+  the `trTeTipFifoHistData` pattern). The shadow is zero-initialized at
+  configuration load and not cleared by a soft reset.
+
+All three load registers are Enable-locked (`swwel`), and the commit
+pulse is additionally suppressed while `trTeControl.Enable` = 1 — rule 4
+of the programming contract ("change the table only while disabled") is
+now hardware-enforced instead of procedural. The lock covers the *load*
+path only: the readback pair stays live while enabled, and a
+`trWpReadHigh` read still advances `Idx` (by design — a debugger can
+walk the table of a running session without unlocking it). The
+programming rules themselves (fill ALL slots, strictly ascending unique
+keys, odd addresses for padding slots) are unchanged and live in the RDL
+description of `trWpDataHigh`.
+
+[#profile-timing]
+*Timing per profile.* The table above rows by *switch*; timing is a
+property of the whole build, so this one rows by *profile*.
+Out-of-context synthesis of
+`ct_encoder` on `xck26-sfvc784-2LV-c`, **Vivado 2022.1.2** (the version
+`.abc.config` pins), commit `7a0b7b2`, 2026-08-06. Reproduce with
+
+  bash scripts/p10_timing_matrix.sh
+
+Two budgets, because a slack figure without its budget says nothing:
+**13.333 ns (75 MHz)** is the clock the KV260 reference design is
+*constrained* to and therefore the "slack in the target configuration";
+**5.0 ns (200 MHz)** is a headroom probe, and the budget the phase-D
+matrix used. What the PL is constrained to is not automatically what it
+is clocked at on the board — see the caution in
+link:verification.adoc#ooc-timing[verification, *Timing and resources*]
+before reading the 75 MHz column as a statement about silicon.
+
+[cols="4,^1,^1,^1,^1,^1", options="header"]
+|===
+| Profile | CLB LUTs | Register as FF | WNS @ 13.333 ns | WNS @ 5.0 ns | Fmax
+
+| `voll_gold` — the committed full profile | 25 784 | 20 168 | *+4.175 ns* | −4.158 ns | 109.2 MHz
+| `featparity_gold` — CF-only, compact packer, single clock | 4 938 | 4 824 | *+8.672 ns* | +0.339 ns | 214.5 MHz
+| `slimfull_gold` — `featparity_gold` + slim eTIP CDC, no watermark, no timestamp unit | 4 290 | 3 984 | *+8.695 ns* | +0.362 ns | 215.6 MHz
+| `nonly` — full profile, N-Trace back end (the same build as `voll_gold`) | 25 784 | 20 168 | *+4.175 ns* | −4.158 ns | 109.2 MHz
+| `eonly` — full profile, E-Trace back end | 26 372 | 16 953 | *+1.753 ns* | −6.580 ns | 86.4 MHz
+|===
+
+*At the board budget every profile meets timing*, the smallest margin
+being the E-Trace build's +1.753 ns; Vivado's own verdict line in those
+five reports is "All user specified timing constraints are met", with
+zero failing endpoints. At 200 MHz the two slim profiles still make it
+and the three full-profile builds do not (2 777 resp. 1 155 failing
+endpoints). 200 MHz is not a requirement anywhere in this project — the
+column is headroom information, and it is here as measured rather than
+dropped for being inconvenient.
+
+The reports these rows are read from are **in the tree**, one directory
+per profile under `verification/evidence/P10/`. LUTs and flip-flops come from
+link:../verification/evidence/P10/voll_gold/timing_75mhz_util_flat.rpt[`voll_gold`],
+link:../verification/evidence/P10/featparity_gold/timing_75mhz_util_flat.rpt[`featparity_gold`],
+link:../verification/evidence/P10/slimfull_gold/timing_75mhz_util_flat.rpt[`slimfull_gold`],
+link:../verification/evidence/P10/nonly/timing_75mhz_util_flat.rpt[`nonly`] and
+link:../verification/evidence/P10/eonly/timing_75mhz_util_flat.rpt[`eonly`]; the WNS
+figures from the `timing_<budget>_summary.rpt` next to each of them, and
+the verdict from `verification/evidence/P10/timing.log`.
+
+[NOTE]
+====
+*What this number is, and what it is not.* Out-of-context synthesis of
+`ct_encoder` alone, with one clock per clock port at the same budget and
+`set_clock_groups -asynchronous` between them — the encoder's CDC
+structures are exactly what a real SoC XDC decouples the same way, and
+cross-domain paths are consequently outside this analysis. It is a
+post-synthesis figure, not a placed-and-routed one; routing takes some
+of the margin back. The one P&R number this project has is the
+`mbv_kv260` reference design of 2026-08-01 further down, which predates
+P2..P9.
+
+*Two controls came out of the runs themselves.* `nonly` and `voll_gold`
+are the same build — the two profile definitions produce a
+byte-identical `ct_pkg.sv`, and the two independent synthesis runs then
+agree on every figure including TNS and the failing-endpoint count. And
+the two budgets of each profile agree on the critical path (budget minus
+WNS) to the picosecond, which is what makes the second run of a profile a
+control rather than a repetition.
+
+*The slim profiles are no longer the ~2.5 k-LUT builds of seq 22.* Those
+figures date from 2026-07-20; the gold profiles deliberately leave
+`CT_EN_BTM`, `CT_EN_SYNC_STATUS`, `CT_EN_FIFO_HIST`, `CT_EN_QUOTA_SYNC`,
+`CT_EN_DEVICE_ID`, `CT_EN_TRIG_REGS` and `CT_EN_INST_SYNC_REQ` at their
+full-profile value, so everything P2, P4, P7 and P8 added is inside the
+4 938 LUTs above. A build that wants the seq-22 size has to switch those
+off as well.
+====
+
+[#xlen-cost]
+*Address width (X2a).* What 64-bit addresses cost. OOC on
+`xck26-sfvc784-2LV-c`, **Vivado 2022.1.2**, the committed profile
+unchanged except for `ct_pkg::CT_XLEN`, commit **`efb715a22`**,
+2026-08-08. Reproduce with
+
+  bash scripts/r11_ooc_xlen_pair.sh both committed
+
+[cols="3,^1,^1,^1", options="header"]
+|===
+| `CT_XLEN` | CLB LUTs | Register as FF | Block RAM Tile
+
+| 32 (default) | 26 283 | 20 712 | 9.5
+| 64           | 30 180 | 22 564 | 11
+| *delta*      | *+3 897* | *+1 852* | *+1.5*
+|===
+
+Reports in the tree:
+link:../verification/evidence/R1_1/committed_xlen32/util_flat.rpt[`committed_xlen32/util_flat.rpt`]
+and
+link:../verification/evidence/R1_1/committed_xlen64/util_flat.rpt[`committed_xlen64/util_flat.rpt`],
+with the per-instance breakdown next to each of them in `util_hier.rpt`.
+
+Where it goes, from the hierarchical reports: **+2 418 LUTs / +1 655 FFs
+in `ct_L23_preproc`** — the comparator chain (twice the compare width),
+the two `vector_binary_search` trees of ACT-ST and the DF range filter,
+the composer's eTIP payload and the TIP delay line, i.e. every place
+that stores or compares an address. The remaining ~1 100 LUTs are spread
+over `msg_gen` (+507, JTC cache and the wider fold), the eTIP FIFOs and
+the formatter. The +1.5 BRAM tiles are **not** the jump-target cache — an
+earlier revision of this section said so and the report it cites
+contradicts it: `msg_gen`, which contains that cache, holds 0 RAMB in both
+builds (its cache is LUTRAM, 384 → 416). The step sits entirely in the
+clock-crossing FIFOs of the composer: `etip_cvs_cdc_fifo` (8/2 → 10/0
+RAMB36/RAMB18) and `next_iaddr_fifo` (0/1 → 1/0), i.e. the payload that
+crosses domains got wider, not the cache (R1.1 audit, B-2).
+
+One number deserves a caveat rather than a confident story: the
+generated register block grows by 858 LUTs *without a single additional
+flip-flop* (5 969 in both builds). The likely reason is that the
+comparator `*High` registers have no reader at 32 bit — their output
+logic folds away — and acquire one at 64; that is a plausible reading of
+two reports, not a measurement of its own, and it is written here as
+such.
+
+*What this measurement is not:* it is not the cost of "RV64 support" as
+a whole. The E-Trace back end is excluded by construction (elaboration
+guard), the reference decoder is a separate work package, and this is
+post-synthesis, not placed-and-routed.
+
+[#p4-cost]
+*Status messages (P4).* OOC on `xck26-sfvc784-2LV-c`, **Vivado
+2022.1.2**, full profile otherwise, five runs of
+`scripts/synth_encoder_ooc.tcl` differing only in the two switches (and,
+in the last row, in the slot formula). Reproduce with
+
+  vivado -mode batch -source scripts/synth_encoder_ooc.tcl \
+         -tclargs xck26-sfvc784-2LV-c
+
+after setting the two `localparam bit` lines in `rtl/pkg/ct_pkg.sv`. The
+two rows below were measured at commit **`28bb49e`**, and the reports
+they were read from are in the tree:
+link:../verification/evidence/P4/ooc_both_on_util_flat.rpt[`verification/evidence/P4/ooc_both_on_util_flat.rpt`]
+and
+link:../verification/evidence/P4/ooc_both_off_util_flat.rpt[`verification/evidence/P4/ooc_both_off_util_flat.rpt`].
+Per-run copies also land in `bld/p4_ooc_<tag>_util_flat.rpt` /
+`_util_hier.rpt`, but `bld/` is gitignored and its files are per-host and
+per-generation — the tree copies are the quotable ones. (The script
+itself always writes `bld/synth_ooc/util_flat.rpt`, which the NEXT run
+overwrites; never quote that path.)
+
+IMPORTANT: A resource figure is only meaningful together with the commit
+it was measured at. The full profile keeps growing while packages land:
+a run of the same `both_on` configuration at a later HEAD gave **25 787**
+CLB LUTs, +78 over the row below, and those 78 belong to P8's RTL between
+`28bb49e` and that HEAD (among others the new
+link:../rtl/pkg/ct_sync_req_pacer.sv[`rtl/pkg/ct_sync_req_pacer.sv`]) —
+not to P4. The **pair delta** below is the P4 statement and is unaffected
+by that drift, because both of its runs sit on the same commit.
+
+[cols="3,^1,^1,^1", options="header"]
+|===
+| `CT_EN_DEVICE_ID` / `CT_EN_WATCHPOINT_MSG` | `ETIP_PAR_MSG` | CLB LUTs | Register as FF
+
+| 1 / 1 (committed full profile, `both_on`) | 9 | 25 709 | 20 172
+| 0 / 0 (both compiled out, `both_off`)     | 8 | 25 454 | 20 199
+|===
+
+Both features together cost **+255 LUTs / −27 FFs** — inside the ±300-LUT
+restructuring band of the interpretation rule above, i.e. at this
+resolution they are close to indistinguishable from free. The Device ID
+takes the slot; the watchpoint arm shares the DAQ slot, which is why the
+pair moves the count by exactly one.
+
+.The rows this table used to carry, and why they are gone
+[NOTE]
+====
+An earlier revision of this table listed five rows measured at
+`ETIP_PAR_MSG` = 5/6/7 (`both_on` 25 635, `wp_off` 25 851, `devid_off`
+25 269, `both_off` 25 530, and a `both_on_p7` control at 7 slots giving
+25 722). Those numbers are still true *for the builds they were taken
+from*, but those builds carry a slot bound that has since been **refuted**
+(see <<slot-bound>>) — quoting them next to the current rows would invite
+a subtraction across two different designs. They are kept in the raw
+reports (`bld/p4_ooc_*`) and in the package handoff, not here.
+
+What the pair of measurements *does* say about the correction: the same
+committed profile went from 6 to 9 slots and from 25 635 to 25 709
+CLB LUTs, i.e. **+74 LUTs / −6 FFs for three additional slots** — the
+soundness fix is far below the restructuring band. The single-feature
+rows are not repeated: at this resolution they measure the netlist
+repacking, not the feature.
+====
+
+The sharing claim itself is checked against a design that really raises
+DAQ slots: the `wpdaq` leg of `tests/instruction/31_status_msgs` issues a
+DAQ command in place of the second watchpoint command, so ONE run carries
+two watchpoint messages *and* one Data Acquisition message. Before that
+leg no leg produced a DAQ message at all and `a_p4_wp_daq_exclusive` was
+vacuously true. Removing the exclusion `Cmd != ACT_CAP_ST_WATCHPOINT`
+from the DAQ arm makes the assertion fire and lifts the measured
+watermark from 1 to 2 slots per beat — the property is alive. The same
+mutation is the R-EXCL red cross-check of the formal gate.
+
+The Device ID slot is additive to the config slot of the *same* beat, and
+that is measured rather than argued: the composer's P4 telemetry prints
+"ONE beat carries Device ID (slot 0) AND Config (slot 1)" for every
+`did`/`both`/`src` leg of `tests/instruction/31_status_msgs`. An earlier
+reading of that leg — "four slots out of ONE trace-start beat" — was
+wrong and is retracted: the sync CF and the ownership message land in
+LATER beats, and the per-run watermark of that leg is **2**.
+
+[#slot-bound]
+.The slot bound is proven, not counted
+****
+`ETIP_PAR_MSG` is the number of eTIP slots one tip beat may allocate. An
+exceeded bound writes `etip_msg_next[]` out of range, which writes
+*nowhere*: messages are lost **silently**, with no error indication on
+the wire. Until the P4 re-audit the constant was a closed-form sum over
+five of the composer's **thirteen** allocation sites, described as a
+"structural worst case" — an argument, not a proof, and three allocation
+sources sat outside every term of it.
+
+It is now proven. `formal/composer_slots` (P-SLOT-1) checks the
+composer's own immediate assertion `a_p4_slot_bound` over the real module
+with a completely free environment — every tip beat, every sync verdict,
+every ACT-ST command and every CSR value the solver can construct — for
+`SPLIT_DATA_ACCESS` 0 **and** 1, by k-induction, i.e. unbounded. The
+proof refuted the previous value: the bound broke at BMC step 1 on a beat
+carrying **eight** slots (a trace-on edge with device ID and config, a
+still-pending sticky trace-off correlation from the previous beat, a
+low-power entry marker, a processed retire with a sync verdict giving CF
+and ownership, a qualified data access, and an ACT-ST watchpoint
+command). The corrected formula names every source, and the red
+cross-check shows one slot less is refuted — the value is the minimum,
+not padding.
+
+The one place where the constant is deliberately *not* minimal is the
+shipped `SPLIT_DATA_ACCESS = 0` build: there a bound of 8 also passes
+k-induction while the formula gives 9, because the same constant has to
+cover the `= 1` integration (see below). That single slot of margin is
+the price of not having a second source of truth for a module parameter,
+and it is stated rather than hidden — the tightness cross-check therefore
+runs in the `= 1` configuration, where the constant is exact.
+
+Two sources that had no term before:
+
+* the **trace-off correlation** (TCODE 33). `DoCorrDisable` is sticky
+  until the flush ack, so it can still be pending on the *next* trace-on
+  beat. This is why a control-flow-only profile needs three slots, not
+  two — the previous CF-only bound of 2 was unsound as well, and that is
+  older than P4.
+* the **second data-flow arm**. With `SPLIT_DATA_ACCESS = 1` the store
+  arm and the split-load response arm are independent `if` statements and
+  one beat can raise both. `SPLIT_DATA_ACCESS` is a parameter of
+  `ct_encoder` and a package constant cannot see it, so the constant now
+  budgets the worse of the two settings rather than introducing a second
+  source of truth for the same fact. Integrations with the parameter set
+  therefore need no special build.
+
+Two exclusions keep the constant down to the proven value, and both are
+*combinational* (which is why the induction goes through with free
+state): the ICNT pre-drain and the debug/low-power entry marker share one
+slot (the marker clears the cumulated halfword count first, after which
+the pre-drain condition cannot hold), and the watchpoint arm shares the
+DAQ slot (same beat qualifier, mutually exclusive command codes).
+
+The **measured** demand is a separate, weaker statement and is kept as
+one: reproduce it with
+
+  scripts/collect_slot_watermarks.sh [<log root>]
+
+which aggregates the composer's per-run watermark line ("eTIP max slots
+per beat") over the xsim logs under `bld/`. A measured maximum bounds
+nothing — it is a sanity check that the shipped configuration operates
+far from the bound, not evidence for the bound.
+****
+
+The absolute numbers above are NOT comparable with the older P4 table:
+they were taken at commit `c793942` (RTL-identical to `a04b37b`, which
+only adds test and script files), whose baseline already contains the P7
+register/drop-policy work. The Vivado version also differs from the rows
+above, so these figures must not be subtracted from the 2025.1 numbers
+either.
+
+NOTE: Several runs needed a repeat. Vivado 2022.1.2 aborts `synth_design`
+with `couldn't read file …: No error` on files of *its own* installation
+under host load — first seen with a second Vivado running, later
+reproduced with **no** second Vivado at all and only three `yosys`
+processes on the machine (`…/retarget/retarget_vhdl.tcl: No error`). The
+trigger is concurrent load on the installation directory, not
+specifically a second Vivado; the repeat under the same conditions then
+produces the report. Not a design property — `bld/p4_ooc_retry.log`
+records every attempt.
+
+Profile aggregates (same flow): featparity_base_v2 2 517 LUTs (~254 MHz) ·
+featparity_cfgonly 2 867 · featparity_gold 3 646 (~206 MHz) · slimfull_base_v2
+2 106 (~255 MHz) · slimfull_gold_v2 3 147 (~182 MHz) · voll_gold 24 354
+(~111 MHz). All nine gold-standard features together on the featparity base:
++1 129 LUTs / +1 142 FFs / +6.5 BRAM.
+
+[#p7-cost]
+*Trigger registers and the data-trace drop policy (P7) — measured as a
+pair.* OOC on `xck26-sfvc784-2LV-c`, **Vivado 2022.1.2**, full profile
+otherwise, two runs differing only in the two switches (both from the
+same detached worktree at commit `c793942`, RDL profile regenerated per
+run). Reproduce with
+
+  bash scripts/p7_ooc_pair.sh
+
+The reports these four rows are read from are **in the tree**, one per
+row:
+link:../verification/evidence/P7/ooc_on_util_flat.rpt[`ooc_on`] (1/1),
+link:../verification/evidence/P7/ooc_drop_off_util_flat.rpt[`ooc_drop_off`] (1/0),
+link:../verification/evidence/P7/ooc_trig_off_util_flat.rpt[`ooc_trig_off`] (0/1),
+link:../verification/evidence/P7/ooc_off_util_flat.rpt[`ooc_off`] (0/0), all under
+`verification/evidence/P7/` (+ the `_util_hier` twins). `scripts/p7_ooc_pair.sh`
+writes its per-run copies to `bld/p7_ooc_<tag>_util_*.rpt`, but `bld/` is
+gitignored and the next run overwrites them — never quote that path
+(P4 audit B-1 / P8 closing audit B-N2, checked by
+`scripts/check_doc_evidence.py`).
+
+NOTE: The absolute figures in this table belong to commit `c793942` and
+those in <<p4-cost>> to `28bb49e`; the full profile grew between them.
+Do not subtract a number in one table from a number in another — only
+the **pair delta** inside a single table is a statement about a feature,
+because both of its runs sit on the same commit.
+
+[cols="3,^1,^1", options="header"]
+|===
+| `CT_EN_TRIG_REGS` / `CT_EN_DF_DROP` | CLB LUTs | Register as FF
+
+| 1 / 1 (committed full profile) | 25 635 | 20 178
+| 1 / 0 (`drop_off`)             | 25 395 | 20 141
+| 0 / 1 (`trig_off`)             | 26 078 | 20 156
+| 0 / 0 (both compiled out)      | 25 641 | 20 119
+|===
+
+Both features together cost **−6 LUTs / +59 FFs**.
+
+*The flip-flop column attributes; the LUT column does not.* The FFs are
+exactly additive — `CT_EN_TRIG_REGS` +22, `CT_EN_DF_DROP` +37, and
+20 119 + 22 + 37 = 20 178, the measured 1/1 value. Those registers are
+the 4-bit action field with its clock-domain crossing, the two registered
+trace-on/off strobes, the drop-policy enable with its crossing, the
+watermark arm and episode latch, and the three sticky RW1C status bits
+with their event strobe synchronizers. The LUT deltas of the same four
+runs are −246 / +437 / −6 with no additive structure at all (a spread of
+~680 LUTs, one of them outside the ±300 band): that is the restructuring
+effect of the interpretation rule above, so **no per-switch LUT figure is
+quoted**, and the pair delta is quoted only as "in the noise". Neither
+switch raises `ETIP_PAR_MSG` (the drop marker takes the slot the
+suppressed data-trace message would have used), so the structural term
+that dominates <<p4-cost>> does not apply here — which is why the LUT
+count has no reason to move in the first place.
+
+NOTE: the `1 / 1` row reproduces, to the LUT and to the flip-flop, an
+independent earlier run of the same configuration in the main tree
+(`bld/p7_ooc_on_util_flat.rpt` was written twice, 2026-08-05 08:08 and
+10:10, from different trees) and equals the `both_on` row of
+<<p4-cost>>, which is the same profile.
+====
+
+[#p8-cost]
+*Explicit sync request over the TE register (P8).* OOC on
+`xck26-sfvc784-2LV-c`, **Vivado 2022.1.2**, full profile otherwise, two
+runs differing only in `CT_EN_INST_SYNC_REQ` (same detached worktree,
+commit `d0eba9b`; no RDL profile regeneration — the switch has no
+profile define, so both legs synthesize the identical CSR block).
+Reproduce with
+
+  bash scripts/p8_ooc_pair.sh both
+
+The reports these numbers are read from are **in the tree**:
+`verification/evidence/P8/ooc_off_util_flat.rpt` /
+`verification/evidence/P8/ooc_on_util_flat.rpt` (+ the `_util_hier` twins). They
+used to be named under `bld/`, where the next run of the same script
+overwrites them with a different configuration — a reader following the
+reference then arrived at numbers that contradicted this table
+(P8 closing audit B-N2, the same defect P4 had one commit earlier).
+
+[cols="3,^1,^1", options="header"]
+|===
+| `CT_EN_INST_SYNC_REQ` | CLB LUTs | Register as FF
+
+| 1 (committed full profile) | 25 784 | 20 168
+| 0                          | 25 707 | 20 156
+| *delta*                    | *+77*  | *+12*
+|===
+
+[NOTE]
+====
+*The flip-flops attribute exactly.* The 12 registers are the CSR-side
+pacing pair (`ct_sync_req_pacer`: `Req`, `Queued`), the two `signal_cdc`
+crossings — request out and acknowledge back, two flip-flops each in
+this profile, which builds multi-clock (`CT_SINGLE_CLOCK = 0`) — the
+generator's pending latch and its acknowledge level, and the third bit
+of `SyncReqSource` with the two data stages of its `vector_cdc2`.
+2 + 2 + 2 + 2 + 1 + 2 + 1 = 12, the last one being the `InstSyncReq`
+field storage itself, which had no consumer before and was therefore
+optimized away.
+
+*It got cheaper when it got safer.* The first P8 build crossed the
+request as a pair of paced STROBES and cost +80 LUTs / +16 flip-flops.
+Two `strobe_cdc` instances are four flip-flops each (edge flop, two-flop
+synchronizer, edge flop) where a `signal_cdc` is two, and the closing
+audit's B-N1 finding forced the change for a different reason
+altogether: a strobe cannot survive a reset of the consumer's domain
+alone, a held level can (see <<independent-resets>>). The four
+flip-flops the crossings give back are a side effect of doing it right,
+not the argument for it.
+
+*The LUT column is restructuring, and that is measured, not asserted.*
+An earlier run of the same pair, before the field moved to the
+`sw = w; singlepulse;` idiom and before the pacing became a module of
+its own, reported +3 LUTs at a +16 flip-flop delta. Two controls, run on
+the strobe-based build in the session that produced
+`verification/evidence/P8/ooc_resources.log`, pin down where the difference comes
+from — they are quoted here as the attribution of the LUT column, and
+they were NOT repeated for the level handshake (the flip-flop count is
+what this feature is quoted by, and it attributes exactly, above):
+
+* the pre-change commit `0eff631`, feature ON, re-synthesized there:
+  **25 622 / 20 194** — exactly the earlier number, so the session and
+  the tool were stable;
+* the same commit with the pacer body inlined back into the shim
+  (isolation build, never committed): **25 699 / 20 194** — exactly the
+  number of the extracted build, so extracting `ct_sync_req_pacer` costs
+  *nothing* (the hierarchical report shows the instance as 2 LUTs / 2
+  FFs and Vivado flattens it).
+
+What remains is the register-block idiom: behaviourally identical logic
+(the self-clear moved from a shim tie-off into the generated block), a
+different source shape, and the synthesizer restructures around it. No
+flip-flop moved, which is the number this feature is quoted by; the LUT
+delta stays inside the ±300 band described above.
+
+*Zero cost when off is measured, not assumed:* the OFF leg lands on
+25 707 LUTs / 20 156 flip-flops, bit for bit what the OFF leg of the
+earlier, strobe-based build reported — the B-N1 redesign touches only
+logic that `CT_EN_INST_SYNC_REQ = 0` removes, which is what "zero cost
+when off" has to mean. That includes the widened `SyncReqSource`: with
+the TE source compiled out, its third bit can never be written, so the
+bit and the extra `vector_cdc2` stage trim away with it.
+
+One thing the OFF build is *not*: the pre-P8 encoder. The one-cycle
+double-emission window in the shared sync arm was closed outside
+`CT_EN_INST_SYNC_REQ` (see the release notes), so the ATB request path
+behaves better in both builds. The flip-flop count is identical; the
+behaviour of that path is not.
+====
+
+=== Runtime fields without a build switch
+
+Fields that exist in every profile (base programming model and
+diagnostics):
+
+* `trTeControl` — `Active`, `Enable`, `InstTracing`, `Empty` (RO),
+  `InhibitSrc` (reset **1**), `InstSyncMode` (reset **0**, no periodic
+  cadence), `InstSyncMax` (reset **6** = a period of 1024 units in
+  whichever unit the mode selects), `Format` — the base programming
+  model (see the programming contract above).
+* `trTeInstFeatures.SrcID` (reset 10) / `SrcBits` (reset 4) — source-ID
+  configuration.
+* `trTeDataControl.DataImplemented` (RO, discovery),
+  `DataAddrCompress` (only `DTR_ADDR_FULL` implemented — XOR/DIFF modes
+  are stubbed), `DataSplitLoad` (RO, mirrors the `SPLIT_DATA_ACCESS`
+  elaboration parameter).
+* `trTsControl.Active` / `Count` / `Reset` — timestamp-unit runtime
+  control (subordinate to `CT_EN_TIMESTAMP`).
+* `trTeCsrControl` (te 0xE00, RO) — CSR-driven send-request mirror.
+* `trTeTipFifoStatus.trTeTipFifoNumOverflows` + the two clear bits —
+  overflow diagnostics, always present.
+
+=== Build switches without a runtime field
+
+Four `CT_EN_*` switches in the table above have no runtime CSR field at
+all — their Runtime cell is `—` (`CT_EN_DAQ`, `CT_EN_DEBUG_EVENTS`,
+`CT_EN_POWER_EVENTS`, `CT_EN_EVTI`); they are event- or command-driven
+at run time. (`CT_EN_ACT` likewise has no single enable *bit* — its
+runtime surface is the indirect watchpoint table (<<wp-indirect>>) and
+the command word.) The
+remaining build knobs configure structure rather than switchable
+features:
+
+* `CT_SIJUMP` — elaboration parameter of `ct_encoder` (sequential-jump
+  ingress convention of the attached core); advertised as CAPS bit 6.
+* `CT_XLEN` — architectural address width of the attached hart, 32
+  (default) or 64; advertised as CAPS bit 23 (`ADDR64`). Not a feature
+  and not a runtime mode: it sizes the TIP address ports, the Nexus
+  address fields, the address comparators, the JTC index fold and the
+  eTIP payload in one place. A decoder cannot infer the width from the
+  stream (variable-length address fields with leading zeros stripped),
+  which is why it is on the wire; see `doc/trace-format.adoc`. At 32 the
+  emitted bytes are identical to every earlier build. Constraints: the
+  comparator bounds and the ACT-ST / DF-range keys are CSR-programmable
+  in the low 4 GiB only (the CSR side stays a 32-bit word pair — the
+  compared address is full width), and `CT_EN_ETRACE` with `CT_XLEN` = 64
+  is rejected at elaboration (the te_inst address fields are sized by
+  `CT_ETRACE_ADDR_BITS` = 31; 64-bit E-Trace is a separate step).
+* `CT_CONTEXT_WIDTH` — width of the TIP context bus (`tip._context`), 2
+  (default) or as wide as the attached hart's context identifier: 16 for
+  a RISC-V `satp.ASID` under Sv39/Sv48, 9 under Sv32. Unlike `CT_XLEN`
+  this width is **not** advertised on the wire and needs no CAPS bit: the
+  Ownership message carries the value in the 44-bit `PROCESS` field,
+  which leaves the encoder as a variable-length field with leading zeros
+  stripped, so the whole value is on the wire and self-delimiting.
+  Legal range 1..44 (`NEXUS_MSG_PROCESS_WIDTH`), checked at elaboration
+  in `ct_encoder` — a wider bus would be truncated silently by the
+  composer's cast and the stream would name the wrong process. At 2 the
+  emitted bytes are identical to every earlier build; with the reset
+  configuration (`trTeControl.Context` = 0) no Ownership message is
+  emitted at any width.
+* `CT_SINGLE_CLOCK`, `CT_TS_WIDTH`, `CT_SLICER_STEPS`,
+  `CT_COMPACT_PACKER`, `CT_MICRO_CSR`, `CT_ETIP_SERIALIZE`,
+  `CT_ETIP_CDC_SLIM`, `CT_ETIP_FIFO_STYLE`, `CT_FIFO_HIST_BINS` —
+  structural sizing/architecture knobs, each documented at its
+  definition in `ct_pkg.sv`.
+* `CT_EN_COMPRESSION` — *derived* OR over the eight compression-suite
+  switches (`ct_pkg.sv`), not an independent switch.
+* `CT_RET_STACK_DEPTH`, `CT_JTC_ENTRIES`, `CT_BP_ENTRIES` — structure
+  constants advertised in the config message (`PARAM3`).
+
+== Resource footprint (measured)
+
+For the *current* per-profile figures — LUTs, flip-flops and the slack
+each profile reaches against the board budget — see <<profile-timing>>.
+The snapshot below is the only *placed-and-routed* measurement this
+project has, and it is **historical**: 2026-08-01, i.e. before P2..P9.
+
+*HISTORICAL (2026-08-01, pre-P2..P9).* Placed-and-routed on a Kria KV260
+(`xck26-sfvc784-2LV-c`, Vivado 2026.1, reference design `mbv_kv260`,
+full profile including all compression features, timestamps, DAQ/ACT and
+the V8 empty chain; WNS +2.679 ns at 75 MHz single-clock — that figure
+belongs to this design and this tool version, not to today's encoder.
+Corrected 2026-08-14: earlier revisions of this document quoted +2.186 ns,
+which is traceable in the artifacts only as Vivado's *router estimate*
+(`[Route 35-416]`, carrying the tool's own pre-signoff caveat). The value
+above is the one the routed timing summary reports
+(`impl_1/mbv_kv260_top_timing_summary_routed.rpt`: WNS 2.679, TNS 0.000,
+0 of 74 269 endpoints failing) — a router estimate must not be quoted as
+a placed-and-routed result):
+
+[cols="2,1,1,1", options="header"]
+|===
+| Instance | LUTs | FFs | BRAM
+
+| `ct_encoder` (total) | 23 428 | 19 065 | 8×RAMB36 + 3×RAMB18
+| — preprocessor (`ct_L23_preproc`) | 6 429 | 4 966 | 8×RAMB36 + 3×RAMB18
+| — CSR block (`ct_cs_cpuif_wb`) | 4 954 | 7 829 | —
+| — E-Trace generator (`ct_L2_te_inst_gen`) | 4 177 | 1 258 | —
+| — MSEO/MDO formatter | 4 005 | 2 712 | —
+| — message generator (`ct_L2_msg_gen`) | 3 760 | 737 | —
+| — E-Trace packetizer | 83 | 289 | —
+| `mbv_to_ctte_tip` adapter | 1 | 64 | —
+|===
+
+NOTE: This snapshot predates P9 (2026-08-04): the design was built with
+BOTH back ends instantiated, which is why an E-Trace generator and an
+N-Trace message generator appear side by side in one `ct_encoder`. That
+configuration no longer exists — an encoder now instantiates exactly one
+back end — so the total and the two unused-back-end rows are historical.
+The numbers are kept because they are what was measured; a rebuilt
+single-protocol encoder drops the second back end (the isolated cost of
+the second one was +5 526 LUTs / +3 055 FFs, same design and tool
+version). Re-measure before quoting a current figure.
+
+The full profile is the *maximum* configuration; compile-time profile
+switches (`ct_pkg::CT_EN_*`) shrink unused feature groups to zero. The
+~2.1–2.5 k-LUT class this section used to quote for the slim CF-only
+profile is a seq-22 figure (2026-07-20): the same profile measures
+4 938 LUTs today, because the gold profiles keep the P2/P4/P7/P8
+features on — see <<profile-timing>>, which is the table to quote from,
+and `scripts/p10_timing_matrix.sh` to re-measure per release.
+
+== Versioning caveat for core-specific adapters
+
+Adapters from non-standardized core trace buses (e.g. the AMD
+MicroBlaze V `TRACE` bus) are **pinned to a specific core/tool
+version** by construction — the bus is documented as not
+backward-compatible. Keep the adapter outside the encoder core and
+re-characterize it per core version; the characterization gate lives with
+the SoC integration project, not with the encoder.

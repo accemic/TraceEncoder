@@ -1,0 +1,35 @@
+# REF_FINAL manifest -- minted 2026-08-04 21:23:44, HEAD 4ee06f3
+# reason     : CAPS 22 -- P3 DF address compression (CT_EN_DF_ADDR_COMPRESS, CAPS bit 21 + reserved 19/20), commit db4211a; delta proven config-message-only (OFF build == REF_DF md5-exact, full-build delta == CAPS field 0x7ffbf -> 0x27ffbf); audit condition F3
+# supersedes : REF_FINAL_06: off=c1a94abce0ede2976d3fcfd72ae67223 on=62b9defff028ea57aa7eae9f3350edd9 nots=5bb8563fdd1c0d545cb9552128381e5a
+# previous   : bld/r2_final_manifest.prev.txt / bld/r2_final_mint.prev.log
+c2eff4ba02a6218de9fea492a4706bc3  branch_predict_tb/atb_off.bin
+740bcf5f52aa91b87fe18b9165175e13  branch_predict_tb/atb_on.bin
+af1acf77b00c4cfe91a447922dafae26  config_msg_tb/atb_bp.bin
+7f1732cb6507d26f72d728954a5eccc0  config_msg_tb/atb_bpneg.bin
+4a50f19697d9d61593cb20b97615cd5a  config_msg_tb/atb_none.bin
+5ad188760e7b93369fd5a603bc303907  config_msg_tb/atb_once.bin
+b7bdb89c969eab06f8d96ca5c9bdbc14  config_msg_tb/atb_onsync.bin
+3d39362110bb5c1f09c8d604fbdf3dbd  debug_events_tb/atb_dbg.bin
+c70941a3acba36eb6176cbd0b7bb0ac5  ibhs_tb/atb_off.bin
+92011d295a14a508f211ef6c9f0680a5  ibhs_tb/atb_on.bin
+d8661d27e971389070b0273efadd62a5  implicit_return_tb/atb_nots.bin
+39b1ae54ac46f2ae112ece05b26db81e  implicit_return_tb/atb_off.bin
+258464dd89f5f52dac8af892e6a618eb  implicit_return_tb/atb_on.bin
+06889476753e9dfe5181df305d142964  jtc_tb/atb_off.bin
+e56ed33a545381220430b2f7e1ccdf53  jtc_tb/atb_on.bin
+0ea62a1478f2982cd60bd4976c54c217  repeat_branch_tb/atb_off.bin
+db15784a7a8145b5804567a9962fbd82  repeat_branch_tb/atb_on.bin
+817544312e7cb0195bda652a36108abc  repeat_instr_tb/atb_off.bin
+24a8d91ff7936d012ce9a6765aa8a38c  repeat_instr_tb/atb_on.bin
+0a27faaae859ce4435e9951301a65983  repeat_instr_tb/atb_rh.bin
+6ac3b409b603becde0f6b66f66ff80c9  repeated_history_tb/atb_off.bin
+fb7efe974beca6d07167eb643478d467  repeated_history_tb/atb_on.bin
+3d6bb77b094fa8af3002fc1dc45dfddb  repeated_history_tb/atb_onw.bin
+dffce5d20dc225ce57ecdc339ac64ce9  robustness_tb/atb_all.bin
+dee5221b057a8fc193329e28e15f6790  robustness_tb/atb_bpf.bin
+b78bd339f0952d067e4e4f15fb4325b5  robustness_tb/atb_hist.bin
+ded17db418cfc48597bf818aa227f6fe  robustness_tb/atb_off.bin
+baeb4ec1343fb5efb17bf4b742aab5ee  trig_seq_own_tb/atb_off.bin
+24dbea3f88191b9a0fcc647bb2448467  trig_seq_own_tb/atb_own.bin
+4d20df04e8922eb2d57f8e989ab1eff2  trig_seq_own_tb/atb_seq.bin
+982218371cc1475ecf7f41d45b6a8d6c  trig_seq_own_tb/atb_trig.bin

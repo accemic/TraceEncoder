@@ -1,0 +1,55 @@
+# gate    : register_image_P8
+# package : P8 (audit fix round)
+# command : .venv-rdl-win/Scripts/python.exe -m peakrdl ip-xact rdl/ct_cs_cpuif.rdl -o bld/ipxact/ct_cs_cpuif.xml
+# HEAD    : 9a41049
+# when    : 2026-08-05 18:19:21 WEDT
+# superseded-by : verification/evidence/P8/reverify_at_294bf6d.log
+#           : the IP-XACT delivery path, re-run at 294bf6d on the pinned venv.
+#           : This tree (9a41049) was rebased away; the verdicts below
+#           : were never demonstrated on the branch (checked by
+#           : scripts/check_evidence_stamp.py).
+# note    : the delivery path of the register contract. Audit A-1 (the wording
+#           said the second write is absorbed; the hardware queues it) and
+#           audit B-4 (hw = rw; sw = w1; exports as writeOnce, which this field
+#           is not) both end up HERE -- in the IP-XACT a customer integrates
+#           against. Excerpt of the InstSyncReq field, pinned toolchain
+#           (peakrdl 1.5.0 / regblock 1.3.1 / systemrdl 1.32.2).
+# ----------------------------------------------------------------
+<ipxact:name>InstSyncReq</ipxact:name>
+              <ipxact:description>Explicit instruction-trace synchronization request (TCI trTeInstSyncReq).
+Write-1 semantics: the write raises ONE request and the field clears
+itself in the next cycle, so it always reads back 0. The request is
+served by the sync generator on the first qualifying retired
+instruction and appears on the wire as the explicit-request code
+SYNC = 14 -- the same code the ACT-CAP CF_SYNC command and the ATB
+sync-request input produce, because the source is irrelevant to a
+decoder (every synchronization message is a full re-anchor). For
+diagnosis the source is recorded in trTeSyncStatus.SyncReqSource
+(value 4, SYNC_REQ_TE).
+Deliberately NOT gated on trTeInstSyncMode: unlike the ATB request
+(mode 7) this field is itself the trigger and works in every cadence
+mode. A request written while instruction tracing is paused is
+DEFERRED, not dropped: it is served after the resume anchor.
+Request depth is one in flight plus one remembered: a write arriving
+while a request is still outstanding is NOT swallowed -- it is
+launched as its own request as soon as the outstanding one has been
+served and produces its OWN synchronization message. Only a write
+that arrives when a request is already waiting to be launched
+collapses into it (it asks for what is about to be asked anyway).
+Measured on the system test (scripts/cli_tesyncreq_test.sh, legs
+req/req2/req3): one write -&gt; 1 SYNC = 14, two writes back to back -&gt;
+2, three writes back to back -&gt; 2.
+Requires the CT_EN_INST_SYNC_REQ build switch; without it the write
+is still accepted and still auto-clears, but nothing consumes it
+(the pre-2026-08 behaviour). [CTTE]</ipxact:description>
+              <ipxact:bitOffset>27</ipxact:bitOffset>
+              <ipxact:resets>
+                <ipxact:reset>
+                  <ipxact:value>'h0</ipxact:value>
+                </ipxact:reset>
+              </ipxact:resets>
+              <ipxact:bitWidth>1</ipxact:bitWidth>
+              <ipxact:volatile>true</ipxact:volatile>
+              <ipxact:access>write-only</ipxact:access>
+--- before this round (audit quote, peakrdl ip-xact on the pre-fix RDL) ---
+InstSyncReq:  <ipxact:access>writeOnce</ipxact:access>

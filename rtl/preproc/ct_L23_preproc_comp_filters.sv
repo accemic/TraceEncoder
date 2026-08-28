@@ -11,7 +11,7 @@
  * @file    ct_L23_preproc_comp_filters.sv
  * @brief   Preprocessing stage for per-filter matching using comparator results, trap windows, and TIP sideband predicates.
  *
- * @description
+ * @details
  * This module implements a multi-filter trace-comparator engine for processor trace preprocessing.
  * It evaluates up to NUM_TRACE_FILTER filter entries against current TIP ingress signals and
  * comparator outcomes to assert a consolidated trace-filter hit for instruction or data streams.
@@ -82,32 +82,60 @@ module ct_L23_preproc_comp_filters #(
 	// Keep TB compatibility: other preproc modules use ct_pkg::EXTRA_DELAY_MAX.
 	int EXTRA_DELAY_MAX = ct_pkg::EXTRA_DELAY_MAX
 )(
-	input  uwire logic          clk,
-	input  uwire logic          rst,
-	ct_cs_tipclk_if.slave       cs_tip,
-	tip_if.slave                tip,
-	ct_hit_if.master            cf_filter,
-	ct_hit_if.master            df_filter,
-	output delay_t              internal_delay,         // delay of this component including all submodules
-	input uwire delay_t         extra_delay             // extra delay to be added for syncronizing preproc modules
+	input  uwire logic    clk,
+	input  uwire logic    rst,
+	ct_cs_tipclk_if.slave cs_tip,
+	tip_if.slave          tip,
+	ct_hit_if.master      cf_filter,
+	ct_hit_if.master      df_filter,
+	output delay_t        internal_delay, // delay of this component including all submodules
+	input uwire delay_t   extra_delay     // extra delay to be added for syncronizing preproc modules
 );
 
 	// ---------------------------------------------------------------------------
 	// Comparator engine
-	// - Per comparator j: select primary/secondary 32-bit values from tip_if
+	// - Per comparator j: select primary/secondary values from tip_if
 	// - Inclusive range match against P/S Low/High
 	// - Combine P/S according by MatchMode
 	// - Map comp_hit[0..2] to per-filter Comp1/2/3 checks
+	//
+	// Width (X2a): the comparator datapath is ct_trace_comp_data_t, i.e.
+	// ct_pkg::TRACE_COMPARATORS_WIDTH = CT_XLEN. The CSR side is unchanged --
+	// a bound is still a pair of 32-bit registers, joined by comp_join below.
+	// Before X2a everything here was a hard [31:0], so a 64-bit iaddr would
+	// have been truncated SILENTLY: the filter would have matched on the low
+	// half alone and happily fired on a completely different address.
 	// ---------------------------------------------------------------------------
 
-	// Select a 32-bit comparator input from tip- and cs-sources using a simple code
-	function automatic logic [31:0] comp_select_input(ct_cs_cpuif__te__trTeComp__Control__trTeCompInput_e_e sel_code);
+	// Join a {High,Low} CSR register pair into one comparator-wide value.
+	// The cast does the profile switch on its own: at CT_XLEN = 32 the
+	// concatenation is truncated back to the Low half (bit-identical to the
+	// historical code, which read Low only and left High unused), at 64 it is
+	// the full bound.
+	function automatic ct_trace_comp_data_t comp_join(input ct_trace_match_t hi,
+	                                                  input ct_trace_match_t lo);
+		comp_join = ct_trace_comp_data_t'({hi, lo});
+	endfunction
+
+	// Bit `ec` of the per-filter exception-cause bitmap, which spans the
+	// {MatchChoiceEcauseHigh, MatchChoiceEcauseLow} register pair (one bit
+	// per cause).
+	function automatic logic ecause_selected(input ct_trace_match_t hi,
+	                                         input ct_trace_match_t lo,
+	                                         input tip_ecause_t     ec);
+		tip_ecause_vector_t bitmap;
+		bitmap          = tip_ecause_vector_t'({hi, lo});
+		ecause_selected = bitmap[ec];
+	endfunction
+
+	// Select a comparator input from tip- and cs-sources using a simple code
+	function automatic ct_trace_comp_data_t comp_select_input(ct_cs_cpuif__te__trTeComp__Control__trTeCompInput_e_e sel_code);
 		unique case (sel_code)
-			ct_cs_cpuif__te__trTeComp__Control__trTeCompInput_e__TR_COMP_INPUT_IADDR:     comp_select_input = 32'h0 | tip.iaddr;
-			ct_cs_cpuif__te__trTeComp__Control__trTeCompInput_e__TR_COMP_INPUT_CONTEXT:   comp_select_input = 32'h0 | tip._context;
-			ct_cs_cpuif__te__trTeComp__Control__trTeCompInput_e__TR_COMP_INPUT_TVAL:      comp_select_input = 32'h0 | tip.tval;
-			ct_cs_cpuif__te__trTeComp__Control__trTeCompInput_e__TR_COMP_INPUT_DADDR:     comp_select_input = 32'h0 | tip.daddr;
-			default:                                                                comp_select_input = 32'h0;
+			ct_cs_cpuif__te__trTeComp__Control__trTeCompInput_e__TR_COMP_INPUT_IADDR:     comp_select_input = ct_trace_comp_data_t'(tip.iaddr);
+			ct_cs_cpuif__te__trTeComp__Control__trTeCompInput_e__TR_COMP_INPUT_CONTEXT:   comp_select_input = ct_trace_comp_data_t'(tip._context);
+			ct_cs_cpuif__te__trTeComp__Control__trTeCompInput_e__TR_COMP_INPUT_TVAL:      comp_select_input = ct_trace_comp_data_t'(tip.tval);
+			ct_cs_cpuif__te__trTeComp__Control__trTeCompInput_e__TR_COMP_INPUT_DADDR:     comp_select_input = ct_trace_comp_data_t'(tip.daddr);
+			default:                                                                comp_select_input = '0;
 		endcase
 	endfunction
 
@@ -116,8 +144,8 @@ module ct_L23_preproc_comp_filters #(
 	// - Primary: 0..5 compare, 6 reserved_match, 7 always_match
 	// - Secondary: 0..5 compare, 6 PMASK, 7 always_match
 	function automatic logic comp_eval_p(
-		input logic [31:0] val,
-		input logic [31:0] match,
+		input ct_trace_comp_data_t val,
+		input ct_trace_comp_data_t match,
 		input ct_cs_cpuif__te__trTeComp__Control__trTeCompPFunction_e_e func
 	);
 		unique case (func)
@@ -134,9 +162,9 @@ module ct_L23_preproc_comp_filters #(
 	endfunction
 
 	function automatic logic comp_eval_s(
-		input logic [31:0] val,
-		input logic [31:0] match,
-		input logic [31:0] mask,
+		input ct_trace_comp_data_t val,
+		input ct_trace_comp_data_t match,
+		input ct_trace_comp_data_t mask,
 		input ct_cs_cpuif__te__trTeComp__Control__trTeCompSFunction_e_e func
 	);
 		unique case (func)
@@ -154,8 +182,8 @@ module ct_L23_preproc_comp_filters #(
 
 	ct_trace_comp_t                                     comp_hit;           // Per‑comparator combined match result according to the selected match mode
 	logic                                               all_comps_hit;
-	ct_trace_comp_data_t    [NUM_TRACE_COMPARATORS-1:0] p_val;              // Primary 32‑bit input value per comparator
-	ct_trace_comp_data_t    [NUM_TRACE_COMPARATORS-1:0] s_val;              // Secondary 32‑bit input value per comparator
+	ct_trace_comp_data_t    [NUM_TRACE_COMPARATORS-1:0] p_val;              // Primary input value per comparator (CT_XLEN wide)
+	ct_trace_comp_data_t    [NUM_TRACE_COMPARATORS-1:0] s_val;              // Secondary input value per comparator (CT_XLEN wide)
 	ct_trace_comp_t                                     p_match;    // Primary match flag per comparator
 	ct_trace_comp_t                                     s_match;    // Secondary match flag per comparator
 
@@ -275,10 +303,20 @@ module ct_L23_preproc_comp_filters #(
 		intr_match   = '0;
 
 		for (int i = 0; i < NUM_TRACE_FILTER; i++) begin
+			// The bitmap is the {High,Low} CSR pair -- one bit per cause. The
+			// High half has existed in the RDL from the start and had no
+			// reader; wiring it makes a 6-bit ecause (X8b) a width change
+			// instead of a structural one. At the current 4-bit width the
+			// index never leaves the low 16 bits, so High constant-folds away
+			// and the netlist is unchanged.
+			// TipEcauseIsValid(itype) is the ecause validity qualifier -- the
+			// TIP contract has no separate valid line (X8a).
 			ecause_match[i]  = cs_tip.trTeFilterMatchEcause[i]
 							&& tip.iretire
-							&& (tip.itype == EXCEPTION_TRAP)
-							&& cs_tip.trTeFilterMatchChoiceEcauseLow[i][tip.ecause];
+							&& TipEcauseIsValid(tip.itype)
+							&& ecause_selected(cs_tip.trTeFilterMatchChoiceEcauseHigh[i],
+							                   cs_tip.trTeFilterMatchChoiceEcauseLow[i],
+							                   tip.ecause);
 
 			intr_match[i]    = cs_tip.trTeFilterMatchInterrupt[i]
 							&& tip.iretire
@@ -298,9 +336,16 @@ module ct_L23_preproc_comp_filters #(
 
 			p_val[j] = comp_select_input(cs_tip.trTeCompPInput[j]);
 			s_val[j] = comp_select_input(cs_tip.trTeCompSInput[j]);
-			p_match[j] = comp_eval_p(p_val[j], cs_tip.trTeCompPMatchLow[j], cs_tip.trTeCompPFunction[j]);
-			// SMatchHigh is used as mask for PMASK mode
-			s_match[j] = comp_eval_s(s_val[j], cs_tip.trTeCompSMatchLow[j], cs_tip.trTeCompSMatchHigh[j], cs_tip.trTeCompSFunction[j]);
+			// {High,Low} IS the bound (X2a, decision E-R-1). The PMASK mask
+			// used to be read out of SMatchHigh, which cost the secondary
+			// bound its high half -- it now has its own register pair.
+			p_match[j] = comp_eval_p(p_val[j],
+			                         comp_join(cs_tip.trTeCompPMatchHigh[j], cs_tip.trTeCompPMatchLow[j]),
+			                         cs_tip.trTeCompPFunction[j]);
+			s_match[j] = comp_eval_s(s_val[j],
+			                         comp_join(cs_tip.trTeCompSMatchHigh[j], cs_tip.trTeCompSMatchLow[j]),
+			                         comp_join(cs_tip.trTeCompSMaskHigh[j],  cs_tip.trTeCompSMaskLow[j]),
+			                         cs_tip.trTeCompSFunction[j]);
 
 			unique case (cs_tip.trTeCompMatchMode[j])
 				ct_cs_cpuif__te__trTeComp__Control__trTeCompMatchMode_e__TR_COMP_MATCH_MODE0: comp_hit[j] =   p_match[j];                                 // mode 0: primary result true
@@ -374,8 +419,10 @@ module ct_L23_preproc_comp_filters #(
 			// INCREMENT: Exception with matching ecause
 			cnt_ecause_inc[i] =     cs_tip.trTeFilterMatchEcause[i]
 								&&  tip.iretire
-								&& (tip.itype == EXCEPTION_TRAP)
-								&&  cs_tip.trTeFilterMatchChoiceEcauseLow[i][tip.ecause];
+								&&  TipEcauseIsValid(tip.itype)
+								&&  ecause_selected(cs_tip.trTeFilterMatchChoiceEcauseHigh[i],
+								                    cs_tip.trTeFilterMatchChoiceEcauseLow[i],
+								                    tip.ecause);
 
 			// DECREMENT: ONLY if returning exception was a MATCH (stack-based semantics)
 			// This ensures spec compliance: "stop matching upon return from the 1st matching exception"
@@ -503,7 +550,9 @@ module ct_L23_preproc_comp_filters #(
 				end
 			end
 
-			TipIretire   <= tip.iretire;
+			// TipBeatRetires: TipIretire is one bit (see tip_pkg -- a bare
+			// assignment would truncate a block iretire to its LSB).
+			TipIretire   <= TipBeatRetires(tip.iretire);
 			TipDretire   <= tip.dretire;
 
 			AnyMatchCf   <= any_match_cf_next;

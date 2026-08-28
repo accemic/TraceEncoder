@@ -1,0 +1,35 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+#
+# SymbiYosys job for ct_L2_mseo_mdo_formatter (P-MDO-1..7, last emission
+# stage: nexus message -> MDO/MSEO chunks -> ATB beats).
+#   bmc   : all properties incl. the RTL-internal I8, depth 40
+#   cover : non-vacuity witnesses (EOM alignment, flush beats, stalls)
+#   live  : bounded completion (EOM <= 64 cycles) on a free-flowing sink
+# Input build/mseo_mdo_formal.v is produced by run.sh.
+
+[tasks]
+bmc
+cover
+live
+
+[options]
+bmc: mode bmc
+bmc: depth 40
+cover: mode cover
+cover: depth 40
+live: mode bmc
+live: depth 120
+
+[engines]
+live: btor btormc
+smtbmc bitwuzla
+
+[script]
+read -formal mseo_mdo_formal.v
+bmc: prep -top f_mdo_check
+cover: prep -top f_mdo_check
+live: prep -top f_mdo_live
+
+[files]
+build/mseo_mdo_formal.v

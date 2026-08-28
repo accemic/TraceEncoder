@@ -1,26 +1,26 @@
-// -*- indent-tabs-mode:t; tab-width:4 -*-
-// vim: tabstop=4:noexpandtab
+// SPDX-FileCopyrightText: 2020 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
+// -*- indent-tabs-mode: t; tab-width: 4 -*-
 /**
- * Copyright (c) 2020 by Accemic Technologies GmbH Kiefersfelden Germany
- * SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+ * @author  Thomas B. Preußer <tpreusser@accemic.com>
  *
- * @author	Thomas B. Preußer <tpreusser@accemic.com>
- *
- * @brief	A compacting FIFO for a counted vector stream.
+ * @brief   A compacting FIFO for a counted vector stream.
  * @details
- *	Implements a FIFO capable to buffer data in the presence of backpressure.
+ *  Implements a FIFO capable to buffer data in the presence of backpressure.
  *
- *	If any data has been input to the FIFO, it will eventually be offered
- *	on the source side unconditionally and possibly as a partially utilized
- *	vector.
+ *  If any data has been input to the FIFO, it will eventually be offered
+ *  on the source side unconditionally and possibly as a partially utilized
+ *  vector.
  *
- *	Under the presence of backpressure, the input data will be compacted
- *	before resorting to the backing memory. This memory will only contain
- *	compact data so as to provide a predictable buffer capacity of
- *	P*MIN_DEPTH data items.
+ *  Under the presence of backpressure, the input data will be compacted
+ *  before resorting to the backing memory. This memory will only contain
+ *  compact data so as to provide a predictable buffer capacity of
+ *  P*MIN_DEPTH data items.
  *
  * @example
- *	T = byte; P = 4; MIN_DEPTH > 1
+ *  T = byte; P = 4; MIN_DEPTH > 1
  *
  *        Input          Output Offer   Ack
  *  ---------------------------------------------------------
@@ -39,52 +39,52 @@
  */
 
 module cvs_fifo #(
-	type			T = logic [7:0],
-	int unsigned	P,	// Input parallelism
-	int unsigned	MIN_DEPTH,
-	parameter		FIFO_STYLE = "auto"
+	type         T          = logic [7:0],
+	int unsigned P, // Input parallelism
+	int unsigned MIN_DEPTH,
+	parameter    FIFO_STYLE = "auto"
 )(
-	input	logic	clk,
-	input	logic	rst,
+	input   logic                           clk,
+	input   logic                           rst,
 
-	cvsink_if.impl		d,
-	cvsource_if.impl	q,
+	cvsink_if.impl                          d,
+	cvsource_if.impl                        q,
 
-	output	logic [$clog2(MIN_DEPTH+1)-1:0]  cnt_avail	// Available Px T FIFO slots
+	output  logic [$clog2(MIN_DEPTH+1)-1:0] cnt_avail // Available Px T FIFO slots
 );
 
 	//-----------------------------------------------------------------------
 	// Compacting Input Buffer
-	//	- Capacity of 2*P-1 items.
-	//	- Vector input is appended in each cycle without backpressure.
-	//	- Any full prefix of P items is either acked directly or forced into
-	//	  the backing memory.
-	T [2*P-2:0]				Buf = 'x;
-	logic [$clog2(2*P)-1:0]	Cnt =  0;
-	logic  Push = 0;	// iff Cnt >= P: needs to go out or into FIFO
+	//  - Capacity of 2*P-1 items.
+	//  - Vector input is appended in each cycle without backpressure.
+	//  - Any full prefix of P items is either acked directly or forced into
+	//    the backing memory.
+	T [2*P-2:0]             Buf = 'x;
+	logic [$clog2(2*P)-1:0] Cnt =  0;
+	logic  Push = 0;    // iff Cnt >= P: needs to go out or into FIFO
 
-	uwire ack_fast;	 // Direct ack bypassing the empty FIFO
+	uwire ack_fast;  // Direct ack bypassing the empty FIFO
 	uwire fifo_full; // from Bypass FIFO
 
 	// Load Buf with new items:
-	//	- preserve cnt_chop items possibly shifted by P positions after Push
-	//	- append rotated periodic pattern of input data beyond cnt_chop
-	uwire [$clog2(P+1)-1:0]	cnt_chop = (ack_fast && !Push)? 0 : Cnt%P;
-	for(genvar	i = 0; i < P-1; i++) begin
+	//  - preserve cnt_chop items possibly shifted by P positions after Push
+	//  - append rotated periodic pattern of input data beyond cnt_chop
+	uwire [$clog2(P+1)-1:0] cnt_chop = (ack_fast && !Push)? 0 : Cnt%P;
+	for(genvar  i = 0; i < P-1; i++) begin
 		uwire T  mux[0:P-1];
-		for(genvar	j = 0; j < P; j++)  assign  mux[j] = j <= i? d.d[i-j] : Buf[i+P];
+		for(genvar  j = 0; j < P; j++)  assign  mux[j] = j <= i? d.d[i-j] : Buf[i+P];
 		(* DIRECT_ENABLE = "YES" *) uwire  en = !fifo_full && ((cnt_chop <= i) || Push);
 		always_ff @(posedge clk) begin
 			if(en)  Buf[i] <= mux[cnt_chop];
 		end
 	end
-	for(genvar	i = P-1; i <= 2*P-2; i++) begin
+	for(genvar  i = P-1; i <= 2*P-2; i++) begin
 		uwire T  mux[0:P-1];
-		for(genvar	j = 0; j < P; j++) begin
+		for(genvar  j = 0; j < P; j++) begin
 			assign  mux[j] = i-j < P? d.d[i-j] : 'x;
 		end
 		always_ff @(posedge clk) begin
-			if (!fifo_full) Buf[i] <= mux[cnt_chop];	// never hold beyond first (P-1) items
+			if (!fifo_full) Buf[i] <= mux[cnt_chop];    // never hold beyond first (P-1) items
 		end
 	end
 
@@ -95,7 +95,20 @@ module cvs_fifo #(
 			Push <=  0;
 		end
 		else if (!fifo_full) begin
-			automatic type(Cnt)  cnt_nxt = cnt_chop + d.cnt;
+			// `var` here is not cosmetics but required by the LRM: a
+			// declaration whose type comes from a type reference `type(...)`
+			// carries NO implicit data type from which the lifetime class
+			// could be derived -- IEEE 1800-2023 6.8 demands the explicit
+			// `var` for that. Vivado tolerates leaving it out, LRM-strict
+			// frontends do not: yosys-slang aborts with
+			// "a type reference cannot be used in a variable declaration
+			// without a preceeding 'var' keyword" -- the only genuine source
+			// defect in the whole encoder (2026-08-08, while setting up the
+			// ASIC area flow).
+			// Mind the order: `var` MUST come before `automatic`.
+			// Nothing changes semantically -- an automatic variable in a
+			// procedural block, as before.
+			var automatic type(Cnt)  cnt_nxt = cnt_chop + d.cnt;
 			Cnt  <= cnt_nxt;
 			Push <= cnt_nxt >= P;
 		end
@@ -103,16 +116,16 @@ module cvs_fifo #(
 
 	//-----------------------------------------------------------------------
 	// Bypass FIFO
-	//	- only used when Push is required without having an ack
-	//	- exclusively contains full compacted item vectors
+	//  - only used when Push is required without having an ack
+	//  - exclusively contains full compacted item vectors
 	typedef T[P-1:0] fifo_t;
 
 	// Write
-	sink_if   #(.T(fifo_t))	fifo_d(.clk, .rst);
-	assign	fifo_full = fifo_d.full;
-	assign	fifo_d.wr = Push && !ack_fast && !fifo_d.full;
-	assign	fifo_d.d  = Buf[P-1:0];
-	assign	d.full    = fifo_d.full;
+	sink_if   #(.T(fifo_t)) fifo_d(.clk, .rst);
+	assign  fifo_full = fifo_d.full;
+	assign  fifo_d.wr = Push && !ack_fast && !fifo_d.full;
+	assign  fifo_d.d  = Buf[P-1:0];
+	assign  d.full    = fifo_d.full;
 	always_ff @(posedge clk iff !rst) begin
 		assert(!fifo_d.Overrun) else begin
 			$error("Internal FIFO overrun must not occur without external overrun.");
@@ -123,10 +136,10 @@ module cvs_fifo #(
 			$stop;
 		end
 	end
-	assign	cnt_avail = fifo_d.cnt_avail;
+	assign  cnt_avail = fifo_d.cnt_avail;
 
 	// Backing FIFO
-	source_if #(.T(fifo_t))	fifo_q(.clk, .rst);
+	source_if #(.T(fifo_t)) fifo_q(.clk, .rst);
 	fifo1clk_fwft #(
 		.T(fifo_t),
 		.DATA_WIDTH(P*$bits(T)),
@@ -137,7 +150,7 @@ module cvs_fifo #(
 	);
 
 	// Track exact FIFO use without any availability latency
-	logic [$clog2(MIN_DEPTH+1)+1:0]	FifoCnt = 0;	// neg. count, sign bit -> non-zero
+	logic [$clog2(MIN_DEPTH+1)+1:0] FifoCnt = 0;    // neg. count, sign bit -> non-zero
 	uwire fifo_empty = !FifoCnt[$left(FifoCnt)];
 	always_ff @(posedge clk) begin
 		if(rst) begin
@@ -149,9 +162,9 @@ module cvs_fifo #(
 	end
 
 	// Readout selection: bypass from input register vs. FIFO
-	assign	q.cnt = fifo_empty? (Push? P : Cnt%P) : (fifo_q.valid? P : 0);
-	assign	q.q   = fifo_empty? Buf[P-1:0] : fifo_q.q;
-	assign	fifo_q.ack	= q.ack && fifo_q.valid; // tolerate Acks for cnt == 0
-	assign	ack_fast	= q.ack && fifo_empty;
+	assign  q.cnt = fifo_empty? (Push? P : Cnt%P) : (fifo_q.valid? P : 0);
+	assign  q.q   = fifo_empty? Buf[P-1:0] : fifo_q.q;
+	assign  fifo_q.ack  = q.ack && fifo_q.valid; // tolerate Acks for cnt == 0
+	assign  ack_fast    = q.ack && fifo_empty;
 
 endmodule : cvs_fifo

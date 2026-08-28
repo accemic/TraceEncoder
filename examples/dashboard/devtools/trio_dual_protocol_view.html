@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<!-- SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+     SPDX-License-Identifier: ISC
+
+     Standalone visualization of the trio gold solution (3 CPUs, ONE trace
+     stream, two protocols selectable at runtime). Self-contained: no
+     external resources. Hand-written (like examples/dashboard/index.html) --
+     NO .md mirror, so it does not fall under the build_html.py rule.
+     The DATA block below is updated after every gate run. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C-Trace Trio Gold -- N-Trace + E-Trace from one build</title>
+<style>
+  :root{
+    --bg:#0f151d; --panel:#161e28; --panel2:#1c2532; --line:#2b3a4d;
+    --fg:#dfe8f3; --dim:#8fa3bb; --accent:#56B4E9; --n:#56B4E9; --e:#E69F00;
+    --ok:#009E73; --warn:#CC79A7; --mono:ui-monospace,"Cascadia Mono",Consolas,monospace;
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#f5f7fa; --panel:#ffffff; --panel2:#eef2f7; --line:#c9d4e2;
+           --fg:#16202c; --dim:#5b6b80; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:14px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+  header{padding:22px 24px 6px;max-width:1180px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px;letter-spacing:.2px}
+  h2{font-size:15px;margin:0 0 10px;color:var(--accent);letter-spacing:.3px;
+     text-transform:uppercase;font-weight:600}
+  .sub{color:var(--dim);font-size:13px}
+  main{max-width:1180px;margin:0 auto;padding:12px 24px 60px;display:grid;gap:18px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+  .row{display:grid;gap:18px;grid-template-columns:1fr}
+  @media(min-width:900px){ .row.two{grid-template-columns:1fr 1fr} }
+  .switch{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+  button.mode{background:var(--panel2);color:var(--fg);border:1px solid var(--line);
+    border-radius:999px;padding:6px 14px;font:inherit;font-size:13px;cursor:pointer}
+  button.mode[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);
+    box-shadow:inset 0 0 0 1px var(--accent)}
+  .scroll{overflow-x:auto}
+  svg{display:block;min-width:820px;width:100%;height:auto}
+  .blk{fill:var(--panel2);stroke:var(--line)}
+  .blk.n{stroke:var(--n)} .blk.e{stroke:var(--e)}
+  .lbl{fill:var(--fg);font:11px var(--mono)}
+  .lbl.s{font-size:9.5px;fill:var(--dim)}
+  .ctr{fill:none;stroke:var(--line);stroke-dasharray:4 3}
+  .wire{stroke:var(--line);stroke-width:1.4;fill:none;marker-end:url(#a)}
+  .wire.n{stroke:var(--n)} .wire.e{stroke:var(--e)}
+  .off{opacity:.18}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--dim);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.3px}
+  td.num{font-family:var(--mono);white-space:nowrap}
+  .pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11.5px;
+        font-family:var(--mono);border:1px solid currentColor}
+  .pill.ok{color:var(--ok)} .pill.n{color:var(--n)} .pill.e{color:var(--e)}
+  .pill.open{color:var(--warn)}
+  code,.mono{font-family:var(--mono);font-size:12.5px}
+  .bytes{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0 4px}
+  .by{border:1px solid var(--line);border-radius:5px;padding:5px 8px;font-family:var(--mono);
+      font-size:12px;background:var(--panel2);white-space:nowrap}
+  .by.tag{border-color:var(--e);color:var(--e)}
+  .by.hdr{border-color:var(--accent);color:var(--accent)}
+  .by.pay{color:var(--dim)}
+  ul{margin:6px 0 0 18px;padding:0} li{margin:3px 0}
+  footer{max-width:1180px;margin:0 auto;padding:0 24px 40px;color:var(--dim);font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>C-Trace Trio Gold -- three CPUs, one stream, two protocols</h1>
+  <div class="sub" id="stamp"></div>
+</header>
+
+<main>
+  <section class="card">
+    <h2>Architecture</h2>
+    <div class="switch" role="group" aria-label="protocol selection">
+      <button class="mode" data-m="n" aria-pressed="true">N-Trace (Nexus)</button>
+      <button class="mode" data-m="e" aria-pressed="false">E-Trace (te_inst)</button>
+      <button class="mode" data-m="x" aria-pressed="false">mixed</button>
+    </div>
+    <div class="scroll">
+      <svg viewBox="0 0 980 470" role="img" aria-label="Block diagram of the trio SoC">
+        <defs>
+          <marker id="a" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6"
+                  orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--line)"/></marker>
+        </defs>
+        <g id="diagram"></g>
+      </svg>
+    </div>
+    <p class="sub" style="margin:10px 0 0">
+      Each core has its own C-Trace instance. Up to and including the eTIP FIFO the
+      path is identical; after that <code>trTeProtocolSel</code> (CSR 0x030, writable only
+      when <code>Enable=0</code>) steers the demux to the N-Trace or the
+      E-Trace backend. The funnel merges the three ATB streams <em>message-atomically</em> into
+      ONE ring -- in E-Trace mode it parses the length framing instead of MSEO and
+      prepends the source tag.
+    </p>
+  </section>
+
+  <div class="row two">
+    <section class="card">
+      <h2>Wire format per protocol</h2>
+      <p class="sub" style="margin:0 0 8px"><b>N-Trace (Nexus/MSEO)</b> -- 4 bytes per ATB beat,
+        MSEO bits carry the packet boundary, the source sits as an SRC field <em>inside</em> the message.</p>
+      <div class="bytes">
+        <span class="by hdr">TCODE|SRC ...</span><span class="by pay">MDO/MSEO</span>
+        <span class="by pay">MDO/MSEO</span><span class="by pay">... END_IDLE</span>
+        <span class="by pay">Padding</span>
+      </div>
+      <p class="sub" style="margin:14px 0 8px"><b>E-Trace (CTMX container)</b> -- 1 byte per
+        ATB beat; packet length in the header, source as an inserted tag byte.</p>
+      <div class="bytes">
+        <span class="by tag">1sssssss<br><small>Tag: src</small></span>
+        <span class="by hdr">0mm lllll<br><small>msg_type|len</small></span>
+        <span class="by pay">payload[0]</span><span class="by pay">...</span>
+        <span class="by pay">payload[len-1]</span>
+        <span class="by hdr">0mm lllll<br><small>next packet</small></span>
+      </div>
+      <p class="sub" style="margin:8px 0 0">
+        Header bytes always have bit 7 set to <code>0</code>, tag bytes always to <code>1</code> -- at
+        a packet boundary the distinction is therefore <em>exact</em>, not heuristic.
+        Payload is consumed only via the length. The split
+        (<code>tools/etrace_trio_demux.py</code>) yields one stream per source that is
+        byte-identical to a single-core capture -- the reference decoder stays
+        unchanged.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Verification</h2>
+      <table id="gates"></table>
+      <p class="sub" style="margin:10px 0 0" id="gatenote"></p>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>What each mode costs</h2>
+    <table id="cmp"></table>
+    <p class="sub" style="margin:10px 0 0">
+      Two levels, deliberately separated: the <b>OOC rows</b> compare a
+      <em>single</em> encoder in the identical CF-only baseline profile (Vivado 2026.1,
+      dual-clock) -- "what replaces what". The <b>second backend in the SoC</b> row, by
+      contrast, is a post-implementation delta between two trio bitstreams from the same flow (full
+      profile, <code>PKT_MAX</code>=208) -- "what does it cost in addition". Neither is
+      comparable with the historical 2022.1/2025.1 number family.
+      Details: <code>docs/RESOURCE_COSTS_per_element.md</code> section 6.
+    </p>
+  </section>
+
+  <section class="card">
+    <h2>Open items / honest limitations</h2>
+    <ul id="limits"></ul>
+  </section>
+</main>
+
+<footer id="foot"></footer>
+
+<script>
+const DATA = {
+  stamp: "As of 2026-07-25 - CEDARtools.TraceEncoder - trio_soc_top + ct_L1_funnel (EN_TE_RAW) - all numbers measured (XSIM 2026.1 / Vivado 2026.1, xck26)",
+  gates: [
+    ["Funnel te_raw (unit)", "<span class='pill ok'>7/7</span> test cases, 148 assertions -- tag/backpressure/zero-length/mixed/resync"],
+    ["Funnel MSEO (unit, regression)", "<span class='pill ok'>4/4</span> + <span class='pill ok'>5/5</span> (117 + 391 assertions) on the same RTL"],
+    ["CTMX demux self-test", "<span class='pill ok'>5/5</span> cases (bit-7 payload, zero-length, source switch, truncation, missing tag)"],
+    ["Trio N-Trace (E2E)", "<span class='pill n'>20 112 - 15 229 - 1 112 PCs</span> gapless from ONE stream (19 024 B, 2 375 messages)"],
+    ["Trio E-Trace (E2E)", "<span class='pill e'>285 - 857 - 1 112 PCs</span> gapless + full coverage, from ONE container (892 B, 215 packets, 39 tags)"],
+    ["Sinks in E-mode", "<span class='pill ok'>PASS</span> -- DDR byte-identical (0 drops), PIB as subsequence, one-shot/circular/calib unchanged"],
+    ["Bitstream 3x DUAL", "<span class='pill open'>does not fit</span> -- 120 665 LUT post-synth (103.03 %), placer: 13 224 of 12 757 CLBs"],
+    ["Bitstream CVA6-DUAL", "<span class='pill ok'>BITSTREAM_OK</span> -- 100 599 LUT (85.89 %), WNS +1.524 ns @75 MHz, 0 failing endpoints"]
+  ],
+  gatenote: "Two independent gates per core: (1) decoded sequence == gapless subsequence of the retired PCs, (2) <b>coverage</b> -- everything except a final <i>inferable</i> infinite loop must be decoded. Without (2), a truncated stream would also pass.",
+  cmp: [
+    ["ATB beat", "4 bytes (32 bit)", "1 byte (atbytes=0)"],
+    ["Packet boundary", "MSEO bits in the chunk", "Length header"],
+    ["Source ID", "SRC field in the message", "Tag byte 0x80|src (funnel)"],
+    ["Decoder", "CTTD (multi-target)", "riscv-trace-spec reference, unchanged"],
+    ["L2 area (1 encoder, CF-only, OOC)", "3 723 LUT (msg_gen + formatter + MSEO)", "840 LUT (te_inst_gen + packetizer)"],
+    ["Encoder total (same OOC measurement)", "6 842 LUT / 4 976 FF", "3 439 LUT / 2 352 FF"],
+    ["Second backend in the SoC (post-impl, full profile)", "Reference", "+5 526 LUT / +3 055 FF, 0 BRAM/URAM"],
+    ["Stream of this run (36 453 instr, 3 cores)", "19 024 B", "892 B"]
+  ],
+  limits: [
+    "<b>1 byte per ATB beat in E-mode (P2).</b> Ring/DDR/PIB each transport a full 32-bit beat per payload byte; the 1-MiB URAM ring thus holds only 256 KiB of E-Trace payload. A fix would be a byte packer at the funnel output including flush semantics.",
+    "<b>Stream sizes are not a compression ratio.</b> 19 024 B vs. 892 B come from the same workload, but N-Trace keeps sending periodic syncs during the infinite loop while E-Trace stays silent there -- the ratio would be an artifact of this particular workload.",
+    "<b>Container resync after ring wrap.</b> The demux assumes a start at a packet boundary (board practice: URAM one-shot). There is deliberately no automatic resync heuristic.",
+    "<b>Three DUAL encoders do not fit on the xck26</b> (measured). Board configuration today: CVA6 = DUAL, MBV/TGC5B = N-Trace-only; the full configuration is the simulation proof.",
+    "<b>No third-party reference encoder for the container.</b> CTMX is Accemic's own; verified against its own demux + the unchanged reference <i>decoder</i> per source.",
+    "<b>Board run is still pending.</b> The bitstream is built but not yet deployed."
+  ],
+  foot: "Evidence: docs/HANDOVER_trio_dual_protocol.md (seq 31) - docs/RESOURCE_COSTS_per_element.md section 6 - docs/ANALYSIS_cva6_linux_boot.md -- Accemic-internal."
+};
+
+/* ---------- Diagram ---------- */
+const CORES = [
+  {y:  30, cpu:"MicroBlaze V", sub:"AMD TRACE bus", tip:"mbv_to_ctte_tip", src:"SRC 0"},
+  {y: 170, cpu:"MINRES TGC5B", sub:"H2E port",      tip:"ct_tip_adapter",    src:"SRC 1"},
+  {y: 310, cpu:"CVA6 cv32a60x", sub:"RVFI -> ITI",   tip:"iti_to_ctrace_tip", src:"SRC 2"}
+];
+function box(x,y,w,h,cls,t,s){
+  const g=[`<rect class="blk ${cls||''}" x="${x}" y="${y}" width="${w}" height="${h}" rx="4"/>`,
+           `<text class="lbl" x="${x+w/2}" y="${y+(s?h/2-1:h/2+4)}" text-anchor="middle">${t}</text>`];
+  if(s) g.push(`<text class="lbl s" x="${x+w/2}" y="${y+h/2+11}" text-anchor="middle">${s}</text>`);
+  return g.join("");
+}
+function wire(x1,y1,x2,y2,cls){
+  const mx=(x1+x2)/2;
+  return `<path class="wire ${cls||''}" d="M${x1},${y1} H${mx} V${y2} H${x2}"/>`;
+}
+function drawDiagram(){
+  let o=[];
+  CORES.forEach((c,i)=>{
+    const y=c.y, mid=y+38;
+    o.push(`<rect class="ctr" x="196" y="${y-6}" width="470" height="112" rx="8"/>`);
+    o.push(`<text class="lbl s" x="204" y="${y+7}">C-Trace #${i} -- ${c.src}</text>`);
+    o.push(box(20,  y+14, 96, 48, "", c.cpu, c.sub));
+    o.push(box(126, y+24, 62, 28, "", "TIP", c.tip.slice(0,9)));
+    o.push(box(206, y+24, 60, 28, "", "Preproc", "eTIP"));
+    o.push(box(276, y+24, 46, 28, "", "FIFO", "CDC"));
+    // N-Trace branch
+    o.push(box(340, y+10, 150, 26, "n nt", "msg_gen -> Formatter -> MSEO", null));
+    // E-Trace branch
+    o.push(box(340, y+46, 150, 26, "e et", "te_inst_gen -> Packetizer", null));
+    o.push(box(510, y+24, 62, 28, "", "MUX", "ProtocolSel"));
+    o.push(box(590, y+24, 62, 28, "", "ATB", "atb_te_raw"));
+    o.push(wire(116, mid, 126, mid));
+    o.push(wire(188, mid, 206, mid));
+    o.push(wire(266, mid, 276, mid));
+    o.push(wire(322, mid, 340, y+23, "n nt"));
+    o.push(wire(322, mid, 340, y+59, "e et"));
+    o.push(wire(490, y+23, 510, mid, "n nt"));
+    o.push(wire(490, y+59, 510, mid, "e et"));
+    o.push(wire(572, mid, 590, mid));
+    o.push(wire(652, mid, 700, 232));
+  });
+  o.push(box(700, 60, 62, 344, "", "ct_L1", "funnel"));
+  o.push(`<text class="lbl s" x="731" y="424" text-anchor="middle">MSEO | te_raw</text>`);
+  o.push(`<text class="lbl s" x="731" y="436" text-anchor="middle">+ source tag</text>`);
+  [["Ring (URAM 1 MiB)",120],["DDR4 sink (HP)",190],["PIB (4 bit DDR)",260],
+   ["AXI-Lite CSR / devmem",330]].forEach(([t,y],i)=>{
+    o.push(box(800, y, 160, 34, "", t, null));
+    o.push(wire(762, 232, 800, y+17));
+  });
+  document.getElementById("diagram").innerHTML = o.join("");
+}
+function setMode(m){
+  document.querySelectorAll("button.mode").forEach(b=>
+    b.setAttribute("aria-pressed", String(b.dataset.m===m)));
+  const nt=document.querySelectorAll(".nt"), et=document.querySelectorAll(".et");
+  nt.forEach(e=>e.classList.toggle("off", m==="e"));
+  et.forEach(e=>e.classList.toggle("off", m==="n"));
+  if(m==="x"){ // mixed: row 0 N-Trace, rows 1/2 E-Trace
+    nt.forEach((e,i)=>e.classList.toggle("off", i%3!==0));
+    et.forEach((e,i)=>e.classList.toggle("off", i%3===0));
+  }
+}
+/* ---------- Tables ---------- */
+function tbl(id, head, rows, fmt){
+  const t=document.getElementById(id);
+  t.innerHTML = `<thead><tr>${head.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>`
+    + rows.map(r=>`<tr>${r.map((c,i)=>fmt?fmt(c,i):`<td>${c}</td>`).join("")}</tr>`).join("")
+    + `</tbody>`;
+}
+function render(){
+  document.getElementById("stamp").textContent = DATA.stamp;
+  tbl("cmp", ["", "N-Trace 1.0 (Nexus)", "E-Trace 2.0 (te_inst)"], DATA.cmp,
+      (c,i)=> i===0 ? `<td>${c}</td>` : `<td class="${i?'num':''}">${c}</td>`);
+  tbl("gates", ["Gate", "Result"], DATA.gates.map(g=>[g[0], g[1]]),
+      (c,i)=> i===1 ? `<td>${c}</td>` : `<td>${c}</td>`);
+  document.getElementById("gatenote").innerHTML = DATA.gatenote || "";
+  document.getElementById("limits").innerHTML =
+    DATA.limits.map(l=>`<li>${l}</li>`).join("");
+  document.getElementById("foot").textContent = DATA.foot || "";
+  drawDiagram(); setMode("n");
+  document.querySelectorAll("button.mode").forEach(b=>
+    b.addEventListener("click", ()=>setMode(b.dataset.m)));
+}
+render();
+</script>
+</body>
+</html>

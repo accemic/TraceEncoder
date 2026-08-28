@@ -1,10 +1,13 @@
-// vim: set ts=4 et:
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
 // -*- indent-tabs-mode: t; tab-width: 4 -*-
 
 /**
  * @file    ct_nexus_decoder_tb.sv
  * @brief   Standalone replay test for ct_nexus_decoder against NexRv output.
- * @description Replays a captured ATB binary stream directly into
+ * @details Replays a captured ATB binary stream directly into
  *   `ct_nexus_decoder`, parses a checked-in NexRv `-dump` text file, and
  *   compares the decoded message sequence plus key fields.
  *
@@ -29,7 +32,7 @@ module ct_nexus_decoder_tb;
 
 	localparam int ATB_CLK_PERIOD = 5;
 	localparam int DEFAULT_DRAIN_CYCLES = 128;
-	// NOTE: this testbench is NOT runnable in the public CEDARtools.TraceEncoder repo as-is.
+	// NOTE: this testbench is NOT runnable in the public CTTE repo as-is.
 	// The default fixtures below point at an out-of-repo path
 	// (modules/ctrace/test/fixtures, from the internal repository) that was
 	// never imported here. Relocated for colocation with its DUT

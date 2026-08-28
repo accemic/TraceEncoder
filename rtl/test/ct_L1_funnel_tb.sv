@@ -1,9 +1,12 @@
-// vim: set ts=4 et:
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
 // -*- indent-tabs-mode: t; tab-width: 4 -*-
 /**
  * @file    ct_L1_funnel_tb.sv
  * @brief   Directed fixed-width reference testbench for ct_L1_funnel.
- * @description Exercises packet switching, strict priority, round-robin,
+ * @details Exercises packet switching, strict priority, round-robin,
  *   ATID/ATBYTES propagation, backpressure handling, repeated END_IDLE ignore
  *   behavior, and flush handling for the fixed 32-bit reference funnel.
  *
@@ -59,6 +62,13 @@ module ct_L1_funnel_tb;
 	string active_test_desc;
 	logic allow_unexpected_output;
 
+	// Dual-protocol inputs (AP1). This testbench is the fixed-width
+	// reference and runs at EN_TE_RAW = 0, where they are constant-folded
+	// away -- but the instance below connects ports by .name, so a new
+	// port is not implicitly tied. Tied off explicitly, because an
+	// unconnected input is an X waiting to reach the DUT.
+	logic tb_chan_te_raw [N_STREAMS] = '{default: 1'b0};
+
 	ct_L1_funnel #(
 		.N_STREAMS(N_STREAMS),
 		.MAX_PRIO(MAX_PRIO)
@@ -68,6 +78,9 @@ module ct_L1_funnel_tb;
 		.chan_prio,
 		.chan_flush_participate,
 		.chan_flush_req,
+		.chan_te_raw(tb_chan_te_raw),
+		.te_tag_always(1'b0),
+		.te_tag_resync(1'b0),
 		.global_flush_req,
 		.chan_flush_done,
 		.global_flush_done,
@@ -548,11 +561,28 @@ module ct_L1_funnel_tb;
 			@(posedge atclk);
 			if (atresetn) begin
 				for (i = 0; i < N_STREAMS; i = i + 1) begin
+					// The exemption mirrors the DUT's own invariant (see the
+					// "observed ATREADY outside idle-beat drop" assertion in
+					// ct_L1_funnel.sv): a pure-idle beat -- flush padding or a
+					// repeated END_IDLE outside a packet -- is consumed and
+					// dropped on every ACTIVE channel, selected or not.
+					//
+					// This monitor used to assert ready=0 unconditionally, and
+					// that is what it caught when the parameterised funnel
+					// landed (AP1). The old behaviour was not a contract but a
+					// defect: a stray END_IDLE that is never consumed sits in
+					// the source's ATB queue for as long as the channel is not
+					// selected, and wedges it. Dropping it is the fix; this
+					// testbench's real intent -- no output is produced, the
+					// priority-zero channel stays disabled, and a valid packet
+					// still works afterwards -- is unchanged and still checked.
 					if (!dut.SelectedValidQ || (dut.SelectedIdxQ != i)) begin
-						void'(tt_assert(mon_atready[i] == 1'b0, $sformatf(
-							"%0t: non-selected channel %0d must see ready=0 during %s",
-							$time, i, active_test_desc
-						)));
+						if (!(dut.in_atvalid[i] && !dut.preview_parse[i].has_data)) begin
+							void'(tt_assert(mon_atready[i] == 1'b0, $sformatf(
+								"%0t: non-selected channel %0d must see ready=0 during %s",
+								$time, i, active_test_desc
+							)));
+						end
 					end
 				end
 			end

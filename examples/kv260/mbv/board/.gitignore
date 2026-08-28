@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: ISC
+
+# mbv_board_gate.sh's default --work output (prog.hex/pcinfo, board_seq.sh,
+# board.err/trace.words, trace.bin/.pcout, pkg/, verdict.log -- one run's
+# worth of artifacts per invocation, the same class of by-product as
+# the predecessor repository's untracked vivado/kv260_app/board_run/).
+run/

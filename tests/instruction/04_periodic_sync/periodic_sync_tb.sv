@@ -110,7 +110,7 @@ module periodic_sync_tb;
 		env.csr.Set_te_trTeControl_Enable       (1'b1);
 		env.csr.Set_te_trTeControl_InstTracing  (1'b1);
 		env.csr.Set_te_trTeControl_Active       (1'b1);
-		env.wait_cycles(20);
+		env.cpu.idle(20);
 		$display("[periodic_sync_tb] %0t: driving %0d loop iters (body 0x%08h, branch 0x%08h)",
 			$time, N, BODY_PC, BRANCH_PC);
 
@@ -136,15 +136,15 @@ module periodic_sync_tb;
 		env.cpu.exit_trace();
 
 		// ---- Trace-off drain (flush residual ICNT/HIST, push last ATB bytes). ----
-		env.wait_cycles(50);
+		env.cpu.idle(50);
 		env.csr.Set_te_trTeControl_InstTracing (1'b0);
-		env.wait_cycles(200);
+		env.cpu.idle(200);
 		env.csr.Set_te_trTeControl_Enable      (1'b0);
 		env.atb_force_flush = 1'b1;
-		env.wait_cycles(4000);
+		env.cpu.idle(4000);
 		env.atb_force_flush = 1'b0;
 		env.csr.Set_te_trTeControl_Active(1'b0);
-		env.wait_cycles(20000);
+		env.cpu.idle(20000);
 
 		// ---- Liveness checks (the real gate is decode_and_check.sh) ----
 		if (env.cpu.event_count() == 0)

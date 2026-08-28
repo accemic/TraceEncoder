@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
 // SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
 
+// vim: set ts=4 noet:
+// -*- indent-tabs-mode: t; tab-width: 4 -*-
+
 // ============================================================================
 // Auto-generated Wishbone Register Access Helper Module
 // DO NOT EDIT MANUALLY - Changes will be overwritten!
@@ -95,8 +98,8 @@ module ct_cs_cpuif_wb_helper #(
 
 	// Multi-bit helper: overwrite a bitfield with a new value
 	task SetField(input logic [WB_ADDR_WIDTH-1:0] addr,
-		         input int msb, input int lsb,
-		         input logic [WB_DATA_WIDTH-1:0] value);
+				 input int msb, input int lsb,
+				 input logic [WB_DATA_WIDTH-1:0] value);
 		logic [WB_DATA_WIDTH-1:0] reg_data;
 		logic [WB_DATA_WIDTH-1:0] mask;
 		int width, i;
@@ -189,6 +192,21 @@ module ct_cs_cpuif_wb_helper #(
 		SetBitField(ADDR_TE_TRTECONTROL, BITPOS_te_trTeControl_Context, value);
 	endtask
 
+	// Single-bit field: te_trTeControl.InstSeqSyncEnable
+	task Set_te_trTeControl_InstSeqSyncEnable(input logic value);
+		SetBitField(ADDR_TE_TRTECONTROL, BITPOS_te_trTeControl_InstSeqSyncEnable, value);
+	endtask
+
+	// Single-bit field: te_trTeControl.InstTrigEnable
+	task Set_te_trTeControl_InstTrigEnable(input logic value);
+		SetBitField(ADDR_TE_TRTECONTROL, BITPOS_te_trTeControl_InstTrigEnable, value);
+	endtask
+
+	// Single-bit field: te_trTeControl.InstStallOrOverflow
+	task Set_te_trTeControl_InstStallOrOverflow(input logic value);
+		SetBitField(ADDR_TE_TRTECONTROL, BITPOS_te_trTeControl_InstStallOrOverflow, value);
+	endtask
+
 	// Single-bit field: te_trTeControl.InhibitSrc
 	task Set_te_trTeControl_InhibitSrc(input logic value);
 		SetBitField(ADDR_TE_TRTECONTROL, BITPOS_te_trTeControl_InhibitSrc, value);
@@ -254,6 +272,25 @@ module ct_cs_cpuif_wb_helper #(
 	// Single-bit field: te_trTeControl.InstSyncReq
 	task Set_te_trTeControl_InstSyncReq(input logic value);
 		SetBitField(ADDR_TE_TRTECONTROL, BITPOS_te_trTeControl_InstSyncReq, value);
+	endtask
+
+	// Multi-bit field: te_trTeControl.SendDeviceId
+	task Set_te_trTeControl_SendDeviceId(input logic [1:0] value);
+		SetField(ADDR_TE_TRTECONTROL, BITPOS_te_trTeControl_SendDeviceId_MSB, BITPOS_te_trTeControl_SendDeviceId_LSB, value);
+	endtask
+
+	task ClearMask_te_trTeControl_SendDeviceId(input logic [1:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TE_TRTECONTROL, reg_data);
+		reg_data[BITPOS_te_trTeControl_SendDeviceId_LSB +: 2] &= ~value;
+		write(ADDR_TE_TRTECONTROL, reg_data);
+	endtask
+
+	task SetMask_te_trTeControl_SendDeviceId(input logic [1:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TE_TRTECONTROL, reg_data);
+		reg_data[BITPOS_te_trTeControl_SendDeviceId_LSB +: 2] |= value;
+		write(ADDR_TE_TRTECONTROL, reg_data);
 	endtask
 
 	// Register: te_trTeImpl @ 0x0004
@@ -369,6 +406,46 @@ module ct_cs_cpuif_wb_helper #(
 		read(ADDR_TE_TRTEINSTFEATURES, data);
 	endtask
 
+	// Single-bit field: te_trTeInstFeatures.InstEnImplicitReturn
+	task Set_te_trTeInstFeatures_InstEnImplicitReturn(input logic value);
+		SetBitField(ADDR_TE_TRTEINSTFEATURES, BITPOS_te_trTeInstFeatures_InstEnImplicitReturn, value);
+	endtask
+
+	// Single-bit field: te_trTeInstFeatures.InstEnBranchPrediction
+	task Set_te_trTeInstFeatures_InstEnBranchPrediction(input logic value);
+		SetBitField(ADDR_TE_TRTEINSTFEATURES, BITPOS_te_trTeInstFeatures_InstEnBranchPrediction, value);
+	endtask
+
+	// Single-bit field: te_trTeInstFeatures.InstEnJumpTargetCache
+	task Set_te_trTeInstFeatures_InstEnJumpTargetCache(input logic value);
+		SetBitField(ADDR_TE_TRTEINSTFEATURES, BITPOS_te_trTeInstFeatures_InstEnJumpTargetCache, value);
+	endtask
+
+	// Single-bit field: te_trTeInstFeatures.InstEnRepeatedHistory
+	task Set_te_trTeInstFeatures_InstEnRepeatedHistory(input logic value);
+		SetBitField(ADDR_TE_TRTEINSTFEATURES, BITPOS_te_trTeInstFeatures_InstEnRepeatedHistory, value);
+	endtask
+
+	// Single-bit field: te_trTeInstFeatures.InstEnRepeatBranch
+	task Set_te_trTeInstFeatures_InstEnRepeatBranch(input logic value);
+		SetBitField(ADDR_TE_TRTEINSTFEATURES, BITPOS_te_trTeInstFeatures_InstEnRepeatBranch, value);
+	endtask
+
+	// Single-bit field: te_trTeInstFeatures.InstEnWideIcnt
+	task Set_te_trTeInstFeatures_InstEnWideIcnt(input logic value);
+		SetBitField(ADDR_TE_TRTEINSTFEATURES, BITPOS_te_trTeInstFeatures_InstEnWideIcnt, value);
+	endtask
+
+	// Single-bit field: te_trTeInstFeatures.InstEnIbhs
+	task Set_te_trTeInstFeatures_InstEnIbhs(input logic value);
+		SetBitField(ADDR_TE_TRTEINSTFEATURES, BITPOS_te_trTeInstFeatures_InstEnIbhs, value);
+	endtask
+
+	// Single-bit field: te_trTeInstFeatures.InstEnRepeatInstr
+	task Set_te_trTeInstFeatures_InstEnRepeatInstr(input logic value);
+		SetBitField(ADDR_TE_TRTEINSTFEATURES, BITPOS_te_trTeInstFeatures_InstEnRepeatInstr, value);
+	endtask
+
 	// Multi-bit field: te_trTeInstFeatures.SrcID
 	task Set_te_trTeInstFeatures_SrcID(input logic [11:0] value);
 		SetField(ADDR_TE_TRTEINSTFEATURES, BITPOS_te_trTeInstFeatures_SrcID_MSB, BITPOS_te_trTeInstFeatures_SrcID_LSB, value);
@@ -454,6 +531,21 @@ module ct_cs_cpuif_wb_helper #(
 		SetBitField(ADDR_TE_TRTEDATACONTROL, BITPOS_te_trTeDataControl_DataTracing, value);
 	endtask
 
+	// Single-bit field: te_trTeDataControl.DataStallOrOverflow
+	task Set_te_trTeDataControl_DataStallOrOverflow(input logic value);
+		SetBitField(ADDR_TE_TRTEDATACONTROL, BITPOS_te_trTeDataControl_DataStallOrOverflow, value);
+	endtask
+
+	// Single-bit field: te_trTeDataControl.DataDrop
+	task Set_te_trTeDataControl_DataDrop(input logic value);
+		SetBitField(ADDR_TE_TRTEDATACONTROL, BITPOS_te_trTeDataControl_DataDrop, value);
+	endtask
+
+	// Single-bit field: te_trTeDataControl.DataDropEna
+	task Set_te_trTeDataControl_DataDropEna(input logic value);
+		SetBitField(ADDR_TE_TRTEDATACONTROL, BITPOS_te_trTeDataControl_DataDropEna, value);
+	endtask
+
 	// Multi-bit field: te_trTeDataControl.DataAddrCompress
 	task Set_te_trTeDataControl_DataAddrCompress(input logic [1:0] value);
 		SetField(ADDR_TE_TRTEDATACONTROL, BITPOS_te_trTeDataControl_DataAddrCompress_MSB, BITPOS_te_trTeDataControl_DataAddrCompress_LSB, value);
@@ -504,6 +596,20 @@ module ct_cs_cpuif_wb_helper #(
 		read(ADDR_TE_TRTEDATAFILTERS, reg_data);
 		reg_data[BITPOS_te_trTeDataFilters_Filters_LSB +: 16] |= value;
 		write(ADDR_TE_TRTEDATAFILTERS, reg_data);
+	endtask
+
+	// Register: te_trTeProtocolSel @ 0x0030
+	task Write_te_trTeProtocolSel(input logic [WB_DATA_WIDTH-1:0] data);
+		write(ADDR_TE_TRTEPROTOCOLSEL, data);
+	endtask
+
+	task Read_te_trTeProtocolSel(output logic [WB_DATA_WIDTH-1:0] data);
+		read(ADDR_TE_TRTEPROTOCOLSEL, data);
+	endtask
+
+	// Single-bit field: te_trTeProtocolSel.Protocol
+	task Set_te_trTeProtocolSel_Protocol(input logic value);
+		SetBitField(ADDR_TE_TRTEPROTOCOLSEL, BITPOS_te_trTeProtocolSel_Protocol, value);
 	endtask
 
 	// Register: te_trTsControl @ 0x0040
@@ -646,6 +752,128 @@ module ct_cs_cpuif_wb_helper #(
 		read(ADDR_TE_TRTSCOUNTERHIGH, reg_data);
 		reg_data[BITPOS_te_trTsCounterHigh_Value_LSB +: 32] |= value;
 		write(ADDR_TE_TRTSCOUNTERHIGH, reg_data);
+	endtask
+
+	// Register: te_trTeTrigDbgControl @ 0x0050
+	task Write_te_trTeTrigDbgControl(input logic [WB_DATA_WIDTH-1:0] data);
+		write(ADDR_TE_TRTETRIGDBGCONTROL, data);
+	endtask
+
+	task Read_te_trTeTrigDbgControl(output logic [WB_DATA_WIDTH-1:0] data);
+		read(ADDR_TE_TRTETRIGDBGCONTROL, data);
+	endtask
+
+	// Multi-bit field: te_trTeTrigDbgControl.TrigDbgSetup
+	task Set_te_trTeTrigDbgControl_TrigDbgSetup(input logic [31:0] value);
+		SetField(ADDR_TE_TRTETRIGDBGCONTROL, BITPOS_te_trTeTrigDbgControl_TrigDbgSetup_MSB, BITPOS_te_trTeTrigDbgControl_TrigDbgSetup_LSB, value);
+	endtask
+
+	task ClearMask_te_trTeTrigDbgControl_TrigDbgSetup(input logic [31:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TE_TRTETRIGDBGCONTROL, reg_data);
+		reg_data[BITPOS_te_trTeTrigDbgControl_TrigDbgSetup_LSB +: 32] &= ~value;
+		write(ADDR_TE_TRTETRIGDBGCONTROL, reg_data);
+	endtask
+
+	task SetMask_te_trTeTrigDbgControl_TrigDbgSetup(input logic [31:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TE_TRTETRIGDBGCONTROL, reg_data);
+		reg_data[BITPOS_te_trTeTrigDbgControl_TrigDbgSetup_LSB +: 32] |= value;
+		write(ADDR_TE_TRTETRIGDBGCONTROL, reg_data);
+	endtask
+
+	// Register: te_trTeTrigExtInControl @ 0x0054
+	task Write_te_trTeTrigExtInControl(input logic [WB_DATA_WIDTH-1:0] data);
+		write(ADDR_TE_TRTETRIGEXTINCONTROL, data);
+	endtask
+
+	task Read_te_trTeTrigExtInControl(output logic [WB_DATA_WIDTH-1:0] data);
+		read(ADDR_TE_TRTETRIGEXTINCONTROL, data);
+	endtask
+
+	// Multi-bit field: te_trTeTrigExtInControl.ExtInAction0
+	task Set_te_trTeTrigExtInControl_ExtInAction0(input logic [3:0] value);
+		SetField(ADDR_TE_TRTETRIGEXTINCONTROL, BITPOS_te_trTeTrigExtInControl_ExtInAction0_MSB, BITPOS_te_trTeTrigExtInControl_ExtInAction0_LSB, value);
+	endtask
+
+	task ClearMask_te_trTeTrigExtInControl_ExtInAction0(input logic [3:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TE_TRTETRIGEXTINCONTROL, reg_data);
+		reg_data[BITPOS_te_trTeTrigExtInControl_ExtInAction0_LSB +: 4] &= ~value;
+		write(ADDR_TE_TRTETRIGEXTINCONTROL, reg_data);
+	endtask
+
+	task SetMask_te_trTeTrigExtInControl_ExtInAction0(input logic [3:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TE_TRTETRIGEXTINCONTROL, reg_data);
+		reg_data[BITPOS_te_trTeTrigExtInControl_ExtInAction0_LSB +: 4] |= value;
+		write(ADDR_TE_TRTETRIGEXTINCONTROL, reg_data);
+	endtask
+
+	// Multi-bit field: te_trTeTrigExtInControl.ExtInActionN
+	task Set_te_trTeTrigExtInControl_ExtInActionN(input logic [27:0] value);
+		SetField(ADDR_TE_TRTETRIGEXTINCONTROL, BITPOS_te_trTeTrigExtInControl_ExtInActionN_MSB, BITPOS_te_trTeTrigExtInControl_ExtInActionN_LSB, value);
+	endtask
+
+	task ClearMask_te_trTeTrigExtInControl_ExtInActionN(input logic [27:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TE_TRTETRIGEXTINCONTROL, reg_data);
+		reg_data[BITPOS_te_trTeTrigExtInControl_ExtInActionN_LSB +: 28] &= ~value;
+		write(ADDR_TE_TRTETRIGEXTINCONTROL, reg_data);
+	endtask
+
+	task SetMask_te_trTeTrigExtInControl_ExtInActionN(input logic [27:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TE_TRTETRIGEXTINCONTROL, reg_data);
+		reg_data[BITPOS_te_trTeTrigExtInControl_ExtInActionN_LSB +: 28] |= value;
+		write(ADDR_TE_TRTETRIGEXTINCONTROL, reg_data);
+	endtask
+
+	// Register: te_trTeTrigExtOutControl @ 0x0058
+	task Write_te_trTeTrigExtOutControl(input logic [WB_DATA_WIDTH-1:0] data);
+		write(ADDR_TE_TRTETRIGEXTOUTCONTROL, data);
+	endtask
+
+	task Read_te_trTeTrigExtOutControl(output logic [WB_DATA_WIDTH-1:0] data);
+		read(ADDR_TE_TRTETRIGEXTOUTCONTROL, data);
+	endtask
+
+	// Multi-bit field: te_trTeTrigExtOutControl.ExtOutEvent0
+	task Set_te_trTeTrigExtOutControl_ExtOutEvent0(input logic [3:0] value);
+		SetField(ADDR_TE_TRTETRIGEXTOUTCONTROL, BITPOS_te_trTeTrigExtOutControl_ExtOutEvent0_MSB, BITPOS_te_trTeTrigExtOutControl_ExtOutEvent0_LSB, value);
+	endtask
+
+	task ClearMask_te_trTeTrigExtOutControl_ExtOutEvent0(input logic [3:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TE_TRTETRIGEXTOUTCONTROL, reg_data);
+		reg_data[BITPOS_te_trTeTrigExtOutControl_ExtOutEvent0_LSB +: 4] &= ~value;
+		write(ADDR_TE_TRTETRIGEXTOUTCONTROL, reg_data);
+	endtask
+
+	task SetMask_te_trTeTrigExtOutControl_ExtOutEvent0(input logic [3:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TE_TRTETRIGEXTOUTCONTROL, reg_data);
+		reg_data[BITPOS_te_trTeTrigExtOutControl_ExtOutEvent0_LSB +: 4] |= value;
+		write(ADDR_TE_TRTETRIGEXTOUTCONTROL, reg_data);
+	endtask
+
+	// Multi-bit field: te_trTeTrigExtOutControl.ExtOutEventN
+	task Set_te_trTeTrigExtOutControl_ExtOutEventN(input logic [27:0] value);
+		SetField(ADDR_TE_TRTETRIGEXTOUTCONTROL, BITPOS_te_trTeTrigExtOutControl_ExtOutEventN_MSB, BITPOS_te_trTeTrigExtOutControl_ExtOutEventN_LSB, value);
+	endtask
+
+	task ClearMask_te_trTeTrigExtOutControl_ExtOutEventN(input logic [27:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TE_TRTETRIGEXTOUTCONTROL, reg_data);
+		reg_data[BITPOS_te_trTeTrigExtOutControl_ExtOutEventN_LSB +: 28] &= ~value;
+		write(ADDR_TE_TRTETRIGEXTOUTCONTROL, reg_data);
+	endtask
+
+	task SetMask_te_trTeTrigExtOutControl_ExtOutEventN(input logic [27:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TE_TRTETRIGEXTOUTCONTROL, reg_data);
+		reg_data[BITPOS_te_trTeTrigExtOutControl_ExtOutEventN_LSB +: 28] |= value;
+		write(ADDR_TE_TRTETRIGEXTOUTCONTROL, reg_data);
 	endtask
 
 	// Register array: te_trTeFilter_Control[16] @ 0x0400, stride 0x20
@@ -1078,6 +1306,64 @@ module ct_cs_cpuif_wb_helper #(
 		SetBitField(ADDR_TE_TRTECOMP_CONTROL + id * 32'h00000020, BITPOS_te_trTeComp_Control_SNotify, value);
 	endtask
 
+	// Register array: te_trTeComp_SMaskLow[8] @ 0x0608, stride 0x20
+	// Register: te_trTeComp_SMaskLow @ 0x0608
+	task Write_te_trTeComp_SMaskLow(input int id, input logic [WB_DATA_WIDTH-1:0] data);
+		write(ADDR_TE_TRTECOMP_SMASKLOW + id * 32'h00000020, data);
+	endtask
+
+	task Read_te_trTeComp_SMaskLow(input int id, output logic [WB_DATA_WIDTH-1:0] data);
+		read(ADDR_TE_TRTECOMP_SMASKLOW + id * 32'h00000020, data);
+	endtask
+
+	// Multi-bit field: te_trTeComp_SMaskLow.Value
+	task Set_te_trTeComp_SMaskLow_Value(input int id, input logic [31:0] value);
+		SetField(ADDR_TE_TRTECOMP_SMASKLOW + id * 32'h00000020, BITPOS_te_trTeComp_SMaskLow_Value_MSB, BITPOS_te_trTeComp_SMaskLow_Value_LSB, value);
+	endtask
+
+	task ClearMask_te_trTeComp_SMaskLow_Value(input int id, input logic [31:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TE_TRTECOMP_SMASKLOW + id * 32'h00000020, reg_data);
+		reg_data[BITPOS_te_trTeComp_SMaskLow_Value_LSB +: 32] &= ~value;
+		write(ADDR_TE_TRTECOMP_SMASKLOW + id * 32'h00000020, reg_data);
+	endtask
+
+	task SetMask_te_trTeComp_SMaskLow_Value(input int id, input logic [31:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TE_TRTECOMP_SMASKLOW + id * 32'h00000020, reg_data);
+		reg_data[BITPOS_te_trTeComp_SMaskLow_Value_LSB +: 32] |= value;
+		write(ADDR_TE_TRTECOMP_SMASKLOW + id * 32'h00000020, reg_data);
+	endtask
+
+	// Register array: te_trTeComp_SMaskHigh[8] @ 0x060C, stride 0x20
+	// Register: te_trTeComp_SMaskHigh @ 0x060C
+	task Write_te_trTeComp_SMaskHigh(input int id, input logic [WB_DATA_WIDTH-1:0] data);
+		write(ADDR_TE_TRTECOMP_SMASKHIGH + id * 32'h00000020, data);
+	endtask
+
+	task Read_te_trTeComp_SMaskHigh(input int id, output logic [WB_DATA_WIDTH-1:0] data);
+		read(ADDR_TE_TRTECOMP_SMASKHIGH + id * 32'h00000020, data);
+	endtask
+
+	// Multi-bit field: te_trTeComp_SMaskHigh.Value
+	task Set_te_trTeComp_SMaskHigh_Value(input int id, input logic [31:0] value);
+		SetField(ADDR_TE_TRTECOMP_SMASKHIGH + id * 32'h00000020, BITPOS_te_trTeComp_SMaskHigh_Value_MSB, BITPOS_te_trTeComp_SMaskHigh_Value_LSB, value);
+	endtask
+
+	task ClearMask_te_trTeComp_SMaskHigh_Value(input int id, input logic [31:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TE_TRTECOMP_SMASKHIGH + id * 32'h00000020, reg_data);
+		reg_data[BITPOS_te_trTeComp_SMaskHigh_Value_LSB +: 32] &= ~value;
+		write(ADDR_TE_TRTECOMP_SMASKHIGH + id * 32'h00000020, reg_data);
+	endtask
+
+	task SetMask_te_trTeComp_SMaskHigh_Value(input int id, input logic [31:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TE_TRTECOMP_SMASKHIGH + id * 32'h00000020, reg_data);
+		reg_data[BITPOS_te_trTeComp_SMaskHigh_Value_LSB +: 32] |= value;
+		write(ADDR_TE_TRTECOMP_SMASKHIGH + id * 32'h00000020, reg_data);
+	endtask
+
 	// Register array: te_trTeComp_PMatchLow[8] @ 0x0610, stride 0x20
 	// Register: te_trTeComp_PMatchLow @ 0x0610
 	task Write_te_trTeComp_PMatchLow(input int id, input logic [WB_DATA_WIDTH-1:0] data);
@@ -1278,6 +1564,119 @@ module ct_cs_cpuif_wb_helper #(
 	// Single-bit field: te_trTeTipFifoStatus.trTeTipFifoNumOverflowsClear
 	task Set_te_trTeTipFifoStatus_trTeTipFifoNumOverflowsClear(input logic value);
 		SetBitField(ADDR_TE_TRTETIPFIFOSTATUS, BITPOS_te_trTeTipFifoStatus_trTeTipFifoNumOverflowsClear, value);
+	endtask
+
+	// Register: te_trTeSyncStatus @ 0x0E08
+	task Write_te_trTeSyncStatus(input logic [WB_DATA_WIDTH-1:0] data);
+		write(ADDR_TE_TRTESYNCSTATUS, data);
+	endtask
+
+	task Read_te_trTeSyncStatus(output logic [WB_DATA_WIDTH-1:0] data);
+		read(ADDR_TE_TRTESYNCSTATUS, data);
+	endtask
+
+	// Multi-bit field: te_trTeSyncStatus.SyncReqSource
+	task Set_te_trTeSyncStatus_SyncReqSource(input logic [2:0] value);
+		SetField(ADDR_TE_TRTESYNCSTATUS, BITPOS_te_trTeSyncStatus_SyncReqSource_MSB, BITPOS_te_trTeSyncStatus_SyncReqSource_LSB, value);
+	endtask
+
+	task ClearMask_te_trTeSyncStatus_SyncReqSource(input logic [2:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TE_TRTESYNCSTATUS, reg_data);
+		reg_data[BITPOS_te_trTeSyncStatus_SyncReqSource_LSB +: 3] &= ~value;
+		write(ADDR_TE_TRTESYNCSTATUS, reg_data);
+	endtask
+
+	task SetMask_te_trTeSyncStatus_SyncReqSource(input logic [2:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TE_TRTESYNCSTATUS, reg_data);
+		reg_data[BITPOS_te_trTeSyncStatus_SyncReqSource_LSB +: 3] |= value;
+		write(ADDR_TE_TRTESYNCSTATUS, reg_data);
+	endtask
+
+	// Register: te_trTeTipFifoHistCtrl @ 0x0E10
+	task Write_te_trTeTipFifoHistCtrl(input logic [WB_DATA_WIDTH-1:0] data);
+		write(ADDR_TE_TRTETIPFIFOHISTCTRL, data);
+	endtask
+
+	task Read_te_trTeTipFifoHistCtrl(output logic [WB_DATA_WIDTH-1:0] data);
+		read(ADDR_TE_TRTETIPFIFOHISTCTRL, data);
+	endtask
+
+	// Single-bit field: te_trTeTipFifoHistCtrl.HistClear
+	task Set_te_trTeTipFifoHistCtrl_HistClear(input logic value);
+		SetBitField(ADDR_TE_TRTETIPFIFOHISTCTRL, BITPOS_te_trTeTipFifoHistCtrl_HistClear, value);
+	endtask
+
+	// Single-bit field: te_trTeTipFifoHistCtrl.RdRewind
+	task Set_te_trTeTipFifoHistCtrl_RdRewind(input logic value);
+		SetBitField(ADDR_TE_TRTETIPFIFOHISTCTRL, BITPOS_te_trTeTipFifoHistCtrl_RdRewind, value);
+	endtask
+
+	// Multi-bit field: te_trTeTipFifoHistCtrl.RdIdx
+	task Set_te_trTeTipFifoHistCtrl_RdIdx(input logic [4:0] value);
+		SetField(ADDR_TE_TRTETIPFIFOHISTCTRL, BITPOS_te_trTeTipFifoHistCtrl_RdIdx_MSB, BITPOS_te_trTeTipFifoHistCtrl_RdIdx_LSB, value);
+	endtask
+
+	task ClearMask_te_trTeTipFifoHistCtrl_RdIdx(input logic [4:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TE_TRTETIPFIFOHISTCTRL, reg_data);
+		reg_data[BITPOS_te_trTeTipFifoHistCtrl_RdIdx_LSB +: 5] &= ~value;
+		write(ADDR_TE_TRTETIPFIFOHISTCTRL, reg_data);
+	endtask
+
+	task SetMask_te_trTeTipFifoHistCtrl_RdIdx(input logic [4:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TE_TRTETIPFIFOHISTCTRL, reg_data);
+		reg_data[BITPOS_te_trTeTipFifoHistCtrl_RdIdx_LSB +: 5] |= value;
+		write(ADDR_TE_TRTETIPFIFOHISTCTRL, reg_data);
+	endtask
+
+	// Register: te_trTeTipFifoHistData @ 0x0E14
+	task Write_te_trTeTipFifoHistData(input logic [WB_DATA_WIDTH-1:0] data);
+		write(ADDR_TE_TRTETIPFIFOHISTDATA, data);
+	endtask
+
+	task Read_te_trTeTipFifoHistData(output logic [WB_DATA_WIDTH-1:0] data);
+		read(ADDR_TE_TRTETIPFIFOHISTDATA, data);
+	endtask
+
+	// Multi-bit field: te_trTeTipFifoHistData.Lo
+	task Set_te_trTeTipFifoHistData_Lo(input logic [15:0] value);
+		SetField(ADDR_TE_TRTETIPFIFOHISTDATA, BITPOS_te_trTeTipFifoHistData_Lo_MSB, BITPOS_te_trTeTipFifoHistData_Lo_LSB, value);
+	endtask
+
+	task ClearMask_te_trTeTipFifoHistData_Lo(input logic [15:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TE_TRTETIPFIFOHISTDATA, reg_data);
+		reg_data[BITPOS_te_trTeTipFifoHistData_Lo_LSB +: 16] &= ~value;
+		write(ADDR_TE_TRTETIPFIFOHISTDATA, reg_data);
+	endtask
+
+	task SetMask_te_trTeTipFifoHistData_Lo(input logic [15:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TE_TRTETIPFIFOHISTDATA, reg_data);
+		reg_data[BITPOS_te_trTeTipFifoHistData_Lo_LSB +: 16] |= value;
+		write(ADDR_TE_TRTETIPFIFOHISTDATA, reg_data);
+	endtask
+
+	// Multi-bit field: te_trTeTipFifoHistData.Hi
+	task Set_te_trTeTipFifoHistData_Hi(input logic [15:0] value);
+		SetField(ADDR_TE_TRTETIPFIFOHISTDATA, BITPOS_te_trTeTipFifoHistData_Hi_MSB, BITPOS_te_trTeTipFifoHistData_Hi_LSB, value);
+	endtask
+
+	task ClearMask_te_trTeTipFifoHistData_Hi(input logic [15:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TE_TRTETIPFIFOHISTDATA, reg_data);
+		reg_data[BITPOS_te_trTeTipFifoHistData_Hi_LSB +: 16] &= ~value;
+		write(ADDR_TE_TRTETIPFIFOHISTDATA, reg_data);
+	endtask
+
+	task SetMask_te_trTeTipFifoHistData_Hi(input logic [15:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TE_TRTETIPFIFOHISTDATA, reg_data);
+		reg_data[BITPOS_te_trTeTipFifoHistData_Hi_LSB +: 16] |= value;
+		write(ADDR_TE_TRTETIPFIFOHISTDATA, reg_data);
 	endtask
 
 	// Register: atb_trAtbBridgeControl @ 0x1000
@@ -1970,98 +2369,276 @@ module ct_cs_cpuif_wb_helper #(
 		write(ADDR_TRWPIMPL, reg_data);
 	endtask
 
-	// Register: Addr @ 0x4100
-	task Write_Addr(input logic [WB_DATA_WIDTH-1:0] data);
-		write(ADDR_ADDR, data);
+	// Register: trWpMask @ 0x4008
+	task Write_trWpMask(input logic [WB_DATA_WIDTH-1:0] data);
+		write(ADDR_TRWPMASK, data);
 	endtask
 
-	task Read_Addr(output logic [WB_DATA_WIDTH-1:0] data);
-		read(ADDR_ADDR, data);
+	task Read_trWpMask(output logic [WB_DATA_WIDTH-1:0] data);
+		read(ADDR_TRWPMASK, data);
 	endtask
 
-	// Multi-bit field: Addr.Value
-	task Set_Addr_Value(input logic [31:0] value);
-		SetField(ADDR_ADDR, BITPOS_Addr_Value_MSB, BITPOS_Addr_Value_LSB, value);
+	// Multi-bit field: trWpMask.WEM
+	task Set_trWpMask_WEM(input logic [15:0] value);
+		SetField(ADDR_TRWPMASK, BITPOS_trWpMask_WEM_MSB, BITPOS_trWpMask_WEM_LSB, value);
 	endtask
 
-	task ClearMask_Addr_Value(input logic [31:0] value);
+	task ClearMask_trWpMask_WEM(input logic [15:0] value);
 		logic [WB_DATA_WIDTH-1:0] reg_data;
-		read(ADDR_ADDR, reg_data);
-		reg_data[BITPOS_Addr_Value_LSB +: 32] &= ~value;
-		write(ADDR_ADDR, reg_data);
+		read(ADDR_TRWPMASK, reg_data);
+		reg_data[BITPOS_trWpMask_WEM_LSB +: 16] &= ~value;
+		write(ADDR_TRWPMASK, reg_data);
 	endtask
 
-	task SetMask_Addr_Value(input logic [31:0] value);
+	task SetMask_trWpMask_WEM(input logic [15:0] value);
 		logic [WB_DATA_WIDTH-1:0] reg_data;
-		read(ADDR_ADDR, reg_data);
-		reg_data[BITPOS_Addr_Value_LSB +: 32] |= value;
-		write(ADDR_ADDR, reg_data);
+		read(ADDR_TRWPMASK, reg_data);
+		reg_data[BITPOS_trWpMask_WEM_LSB +: 16] |= value;
+		write(ADDR_TRWPMASK, reg_data);
 	endtask
 
-	// Register: Cmd @ 0x4104
-	task Write_Cmd(input logic [WB_DATA_WIDTH-1:0] data);
-		write(ADDR_CMD, data);
+	// Register: trWpIndex @ 0x400C
+	task Write_trWpIndex(input logic [WB_DATA_WIDTH-1:0] data);
+		write(ADDR_TRWPINDEX, data);
 	endtask
 
-	task Read_Cmd(output logic [WB_DATA_WIDTH-1:0] data);
-		read(ADDR_CMD, data);
+	task Read_trWpIndex(output logic [WB_DATA_WIDTH-1:0] data);
+		read(ADDR_TRWPINDEX, data);
 	endtask
 
-	// Multi-bit field: Cmd.Cmd
-	task Set_Cmd_Cmd(input logic [5:0] value);
-		SetField(ADDR_CMD, BITPOS_Cmd_Cmd_MSB, BITPOS_Cmd_Cmd_LSB, value);
+	// Multi-bit field: trWpIndex.Idx
+	task Set_trWpIndex_Idx(input logic [15:0] value);
+		SetField(ADDR_TRWPINDEX, BITPOS_trWpIndex_Idx_MSB, BITPOS_trWpIndex_Idx_LSB, value);
 	endtask
 
-	task ClearMask_Cmd_Cmd(input logic [5:0] value);
+	task ClearMask_trWpIndex_Idx(input logic [15:0] value);
 		logic [WB_DATA_WIDTH-1:0] reg_data;
-		read(ADDR_CMD, reg_data);
-		reg_data[BITPOS_Cmd_Cmd_LSB +: 6] &= ~value;
-		write(ADDR_CMD, reg_data);
+		read(ADDR_TRWPINDEX, reg_data);
+		reg_data[BITPOS_trWpIndex_Idx_LSB +: 16] &= ~value;
+		write(ADDR_TRWPINDEX, reg_data);
 	endtask
 
-	task SetMask_Cmd_Cmd(input logic [5:0] value);
+	task SetMask_trWpIndex_Idx(input logic [15:0] value);
 		logic [WB_DATA_WIDTH-1:0] reg_data;
-		read(ADDR_CMD, reg_data);
-		reg_data[BITPOS_Cmd_Cmd_LSB +: 6] |= value;
-		write(ADDR_CMD, reg_data);
+		read(ADDR_TRWPINDEX, reg_data);
+		reg_data[BITPOS_trWpIndex_Idx_LSB +: 16] |= value;
+		write(ADDR_TRWPINDEX, reg_data);
 	endtask
 
-	// Multi-bit field: Cmd.Sink
-	task Set_Cmd_Sink(input logic [1:0] value);
-		SetField(ADDR_CMD, BITPOS_Cmd_Sink_MSB, BITPOS_Cmd_Sink_LSB, value);
+	// Register: trWpDataLow @ 0x4010
+	task Write_trWpDataLow(input logic [WB_DATA_WIDTH-1:0] data);
+		write(ADDR_TRWPDATALOW, data);
 	endtask
 
-	task ClearMask_Cmd_Sink(input logic [1:0] value);
+	task Read_trWpDataLow(output logic [WB_DATA_WIDTH-1:0] data);
+		read(ADDR_TRWPDATALOW, data);
+	endtask
+
+	// Multi-bit field: trWpDataLow.Value
+	task Set_trWpDataLow_Value(input logic [31:0] value);
+		SetField(ADDR_TRWPDATALOW, BITPOS_trWpDataLow_Value_MSB, BITPOS_trWpDataLow_Value_LSB, value);
+	endtask
+
+	task ClearMask_trWpDataLow_Value(input logic [31:0] value);
 		logic [WB_DATA_WIDTH-1:0] reg_data;
-		read(ADDR_CMD, reg_data);
-		reg_data[BITPOS_Cmd_Sink_LSB +: 2] &= ~value;
-		write(ADDR_CMD, reg_data);
+		read(ADDR_TRWPDATALOW, reg_data);
+		reg_data[BITPOS_trWpDataLow_Value_LSB +: 32] &= ~value;
+		write(ADDR_TRWPDATALOW, reg_data);
 	endtask
 
-	task SetMask_Cmd_Sink(input logic [1:0] value);
+	task SetMask_trWpDataLow_Value(input logic [31:0] value);
 		logic [WB_DATA_WIDTH-1:0] reg_data;
-		read(ADDR_CMD, reg_data);
-		reg_data[BITPOS_Cmd_Sink_LSB +: 2] |= value;
-		write(ADDR_CMD, reg_data);
+		read(ADDR_TRWPDATALOW, reg_data);
+		reg_data[BITPOS_trWpDataLow_Value_LSB +: 32] |= value;
+		write(ADDR_TRWPDATALOW, reg_data);
 	endtask
 
-	// Multi-bit field: Cmd.DirectData
-	task Set_Cmd_DirectData(input logic [23:0] value);
-		SetField(ADDR_CMD, BITPOS_Cmd_DirectData_MSB, BITPOS_Cmd_DirectData_LSB, value);
+	// Register: trWpDataHigh @ 0x4014
+	task Write_trWpDataHigh(input logic [WB_DATA_WIDTH-1:0] data);
+		write(ADDR_TRWPDATAHIGH, data);
 	endtask
 
-	task ClearMask_Cmd_DirectData(input logic [23:0] value);
+	task Read_trWpDataHigh(output logic [WB_DATA_WIDTH-1:0] data);
+		read(ADDR_TRWPDATAHIGH, data);
+	endtask
+
+	// Multi-bit field: trWpDataHigh.Cmd
+	task Set_trWpDataHigh_Cmd(input logic [5:0] value);
+		SetField(ADDR_TRWPDATAHIGH, BITPOS_trWpDataHigh_Cmd_MSB, BITPOS_trWpDataHigh_Cmd_LSB, value);
+	endtask
+
+	task ClearMask_trWpDataHigh_Cmd(input logic [5:0] value);
 		logic [WB_DATA_WIDTH-1:0] reg_data;
-		read(ADDR_CMD, reg_data);
-		reg_data[BITPOS_Cmd_DirectData_LSB +: 24] &= ~value;
-		write(ADDR_CMD, reg_data);
+		read(ADDR_TRWPDATAHIGH, reg_data);
+		reg_data[BITPOS_trWpDataHigh_Cmd_LSB +: 6] &= ~value;
+		write(ADDR_TRWPDATAHIGH, reg_data);
 	endtask
 
-	task SetMask_Cmd_DirectData(input logic [23:0] value);
+	task SetMask_trWpDataHigh_Cmd(input logic [5:0] value);
 		logic [WB_DATA_WIDTH-1:0] reg_data;
-		read(ADDR_CMD, reg_data);
-		reg_data[BITPOS_Cmd_DirectData_LSB +: 24] |= value;
-		write(ADDR_CMD, reg_data);
+		read(ADDR_TRWPDATAHIGH, reg_data);
+		reg_data[BITPOS_trWpDataHigh_Cmd_LSB +: 6] |= value;
+		write(ADDR_TRWPDATAHIGH, reg_data);
+	endtask
+
+	// Multi-bit field: trWpDataHigh.Sink
+	task Set_trWpDataHigh_Sink(input logic [1:0] value);
+		SetField(ADDR_TRWPDATAHIGH, BITPOS_trWpDataHigh_Sink_MSB, BITPOS_trWpDataHigh_Sink_LSB, value);
+	endtask
+
+	task ClearMask_trWpDataHigh_Sink(input logic [1:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TRWPDATAHIGH, reg_data);
+		reg_data[BITPOS_trWpDataHigh_Sink_LSB +: 2] &= ~value;
+		write(ADDR_TRWPDATAHIGH, reg_data);
+	endtask
+
+	task SetMask_trWpDataHigh_Sink(input logic [1:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TRWPDATAHIGH, reg_data);
+		reg_data[BITPOS_trWpDataHigh_Sink_LSB +: 2] |= value;
+		write(ADDR_TRWPDATAHIGH, reg_data);
+	endtask
+
+	// Multi-bit field: trWpDataHigh.DirectData
+	task Set_trWpDataHigh_DirectData(input logic [23:0] value);
+		SetField(ADDR_TRWPDATAHIGH, BITPOS_trWpDataHigh_DirectData_MSB, BITPOS_trWpDataHigh_DirectData_LSB, value);
+	endtask
+
+	task ClearMask_trWpDataHigh_DirectData(input logic [23:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TRWPDATAHIGH, reg_data);
+		reg_data[BITPOS_trWpDataHigh_DirectData_LSB +: 24] &= ~value;
+		write(ADDR_TRWPDATAHIGH, reg_data);
+	endtask
+
+	task SetMask_trWpDataHigh_DirectData(input logic [23:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TRWPDATAHIGH, reg_data);
+		reg_data[BITPOS_trWpDataHigh_DirectData_LSB +: 24] |= value;
+		write(ADDR_TRWPDATAHIGH, reg_data);
+	endtask
+
+	// Register: trWpReadLow @ 0x4018
+	task Write_trWpReadLow(input logic [WB_DATA_WIDTH-1:0] data);
+		write(ADDR_TRWPREADLOW, data);
+	endtask
+
+	task Read_trWpReadLow(output logic [WB_DATA_WIDTH-1:0] data);
+		read(ADDR_TRWPREADLOW, data);
+	endtask
+
+	// Multi-bit field: trWpReadLow.Value
+	task Set_trWpReadLow_Value(input logic [31:0] value);
+		SetField(ADDR_TRWPREADLOW, BITPOS_trWpReadLow_Value_MSB, BITPOS_trWpReadLow_Value_LSB, value);
+	endtask
+
+	task ClearMask_trWpReadLow_Value(input logic [31:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TRWPREADLOW, reg_data);
+		reg_data[BITPOS_trWpReadLow_Value_LSB +: 32] &= ~value;
+		write(ADDR_TRWPREADLOW, reg_data);
+	endtask
+
+	task SetMask_trWpReadLow_Value(input logic [31:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TRWPREADLOW, reg_data);
+		reg_data[BITPOS_trWpReadLow_Value_LSB +: 32] |= value;
+		write(ADDR_TRWPREADLOW, reg_data);
+	endtask
+
+	// Register: trWpReadHigh @ 0x401C
+	task Write_trWpReadHigh(input logic [WB_DATA_WIDTH-1:0] data);
+		write(ADDR_TRWPREADHIGH, data);
+	endtask
+
+	task Read_trWpReadHigh(output logic [WB_DATA_WIDTH-1:0] data);
+		read(ADDR_TRWPREADHIGH, data);
+	endtask
+
+	// Multi-bit field: trWpReadHigh.Cmd
+	task Set_trWpReadHigh_Cmd(input logic [5:0] value);
+		SetField(ADDR_TRWPREADHIGH, BITPOS_trWpReadHigh_Cmd_MSB, BITPOS_trWpReadHigh_Cmd_LSB, value);
+	endtask
+
+	task ClearMask_trWpReadHigh_Cmd(input logic [5:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TRWPREADHIGH, reg_data);
+		reg_data[BITPOS_trWpReadHigh_Cmd_LSB +: 6] &= ~value;
+		write(ADDR_TRWPREADHIGH, reg_data);
+	endtask
+
+	task SetMask_trWpReadHigh_Cmd(input logic [5:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TRWPREADHIGH, reg_data);
+		reg_data[BITPOS_trWpReadHigh_Cmd_LSB +: 6] |= value;
+		write(ADDR_TRWPREADHIGH, reg_data);
+	endtask
+
+	// Multi-bit field: trWpReadHigh.Sink
+	task Set_trWpReadHigh_Sink(input logic [1:0] value);
+		SetField(ADDR_TRWPREADHIGH, BITPOS_trWpReadHigh_Sink_MSB, BITPOS_trWpReadHigh_Sink_LSB, value);
+	endtask
+
+	task ClearMask_trWpReadHigh_Sink(input logic [1:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TRWPREADHIGH, reg_data);
+		reg_data[BITPOS_trWpReadHigh_Sink_LSB +: 2] &= ~value;
+		write(ADDR_TRWPREADHIGH, reg_data);
+	endtask
+
+	task SetMask_trWpReadHigh_Sink(input logic [1:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TRWPREADHIGH, reg_data);
+		reg_data[BITPOS_trWpReadHigh_Sink_LSB +: 2] |= value;
+		write(ADDR_TRWPREADHIGH, reg_data);
+	endtask
+
+	// Multi-bit field: trWpReadHigh.DirectData
+	task Set_trWpReadHigh_DirectData(input logic [23:0] value);
+		SetField(ADDR_TRWPREADHIGH, BITPOS_trWpReadHigh_DirectData_MSB, BITPOS_trWpReadHigh_DirectData_LSB, value);
+	endtask
+
+	task ClearMask_trWpReadHigh_DirectData(input logic [23:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TRWPREADHIGH, reg_data);
+		reg_data[BITPOS_trWpReadHigh_DirectData_LSB +: 24] &= ~value;
+		write(ADDR_TRWPREADHIGH, reg_data);
+	endtask
+
+	task SetMask_trWpReadHigh_DirectData(input logic [23:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TRWPREADHIGH, reg_data);
+		reg_data[BITPOS_trWpReadHigh_DirectData_LSB +: 24] |= value;
+		write(ADDR_TRWPREADHIGH, reg_data);
+	endtask
+
+	// Register: trWpCap @ 0x4020
+	task Write_trWpCap(input logic [WB_DATA_WIDTH-1:0] data);
+		write(ADDR_TRWPCAP, data);
+	endtask
+
+	task Read_trWpCap(output logic [WB_DATA_WIDTH-1:0] data);
+		read(ADDR_TRWPCAP, data);
+	endtask
+
+	// Multi-bit field: trWpCap.Entries
+	task Set_trWpCap_Entries(input logic [15:0] value);
+		SetField(ADDR_TRWPCAP, BITPOS_trWpCap_Entries_MSB, BITPOS_trWpCap_Entries_LSB, value);
+	endtask
+
+	task ClearMask_trWpCap_Entries(input logic [15:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TRWPCAP, reg_data);
+		reg_data[BITPOS_trWpCap_Entries_LSB +: 16] &= ~value;
+		write(ADDR_TRWPCAP, reg_data);
+	endtask
+
+	task SetMask_trWpCap_Entries(input logic [15:0] value);
+		logic [WB_DATA_WIDTH-1:0] reg_data;
+		read(ADDR_TRWPCAP, reg_data);
+		reg_data[BITPOS_trWpCap_Entries_LSB +: 16] |= value;
+		write(ADDR_TRWPCAP, reg_data);
 	endtask
 
 	// Register: trDfControl @ 0x5000
@@ -2203,37 +2780,6 @@ module ct_cs_cpuif_wb_helper #(
 	// ========================================================================
 	// Memory Access Tasks (external mem)
 	// ========================================================================
-
-	// Memory: Watchpoints_Memory_ACT_ST @ 0x4100
-	task Write_Watchpoints_Memory_ACT_ST(input int index, input logic [63:0] data);
-		for (int word_idx = 0; word_idx < 2; word_idx++) begin
-			write(ADDR_WATCHPOINTS_MEMORY_ACT_ST + index * 8 + word_idx * (WB_DATA_WIDTH/8),
-				data[word_idx * WB_DATA_WIDTH +: WB_DATA_WIDTH]);
-		end
-	endtask
-
-	task Read_Watchpoints_Memory_ACT_ST(input int index, output logic [63:0] data);
-		logic [WB_DATA_WIDTH-1:0] word_data;
-		data = '0;
-		for (int word_idx = 0; word_idx < 2; word_idx++) begin
-			read(ADDR_WATCHPOINTS_MEMORY_ACT_ST + index * 8 + word_idx * (WB_DATA_WIDTH/8), word_data);
-			data[word_idx * WB_DATA_WIDTH +: WB_DATA_WIDTH] = word_data;
-		end
-	endtask
-
-	task ClearMask_Watchpoints_Memory_ACT_ST(input int index, input logic [63:0] mask);
-		logic [63:0] entry;
-		Read_Watchpoints_Memory_ACT_ST(index, entry);
-		entry &= ~mask;
-		Write_Watchpoints_Memory_ACT_ST(index, entry);
-	endtask
-
-	task SetMask_Watchpoints_Memory_ACT_ST(input int index, input logic [63:0] mask);
-		logic [63:0] entry;
-		Read_Watchpoints_Memory_ACT_ST(index, entry);
-		entry |= mask;
-		Write_Watchpoints_Memory_ACT_ST(index, entry);
-	endtask
 
 	// Memory: DF_RangeFilter_Memory @ 0x6000
 	task Write_DF_RangeFilter_Memory(input int index, input logic [63:0] data);

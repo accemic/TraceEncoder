@@ -1,9 +1,10 @@
-// -*- indent-tabs-mode:t; tab-width:4 -*-
-// vim: tabstop=4:noexpandtab
+// SPDX-FileCopyrightText: 2018-2021 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
+// -*- indent-tabs-mode: t; tab-width: 4 -*-
 /**
- * Copyright (c) 2018-2021 by Accemic Technologies GmbH Kiefersfelden Germany
- * SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
- * @author	Alexander Lange   <alange@accemic.com>, Thomas B. Preußer <tpreusser@accemic.com>
+ * @author  Alexander Lange   <alange@accemic.com>, Thomas B. Preußer <tpreusser@accemic.com>
  *
  * @brief FIFO - an elastic buffer within a single clock region with generic
  *               data source semantics offering a first word fall through (FWFT)
@@ -16,34 +17,38 @@
  *    are identical.
  */
 module fifo1clk_fwft #(
-	type T = logic [7:0],			// Element Type
-	int unsigned  MIN_DEPTH,		// Minimum FIFO Depth
-	bit           STATE_REGS = 1,	// ful/vld directly from Registers
-	bit           EXTRA_FABRIC_REGS = 0,	// Extra data output regs in fabric for more flexible routing
+	type         T                 = logic [7:0], // Element Type
+	int unsigned MIN_DEPTH,                       // Minimum FIFO Depth
+	bit          STATE_REGS        = 1,           // ful/vld directly from Registers
+	bit          EXTRA_FABRIC_REGS = 0,           // Extra data output regs in fabric for more flexible routing
 
-	parameter NAME = "",	// Optional name for easier instance identification.
+	parameter    NAME              = "",          // Optional name for easier instance identification.
 
 	/**
 	 * Type of backing on-chip memory.
 	 *   Options: "distributed", "register(s)", "block", "ultra", and
-	 *			"shift" as a custom extension for typically small SRL-based FIFOs.
+	 *          "shift" as a custom extension for typically small SRL-based FIFOs.
 	 */
-	parameter FIFO_STYLE	= "auto",
+	parameter    FIFO_STYLE        = "auto",
 
 	/**
 	 * Permit an explicit data width override in cases where Vivado has trouble
 	 * inferring the bit width of T. Use carefully.
 	 */
-	int unsigned  DATA_WIDTH	= $bits(T)
+	int unsigned DATA_WIDTH        = $bits(T)
 )(
-  sink_if.impl    d,
-  source_if.impl  q
+  sink_if.impl   d,
+  source_if.impl q
 );
 
+	// "auto" considers the TOTAL storage (depth x width), not depth alone:
+	// a shallow-but-wide FIFO (e.g. 128 x 237 bit) belongs in block RAM,
+	// which the depth-only rule used to map into thousands of LUTRAMs.
 	localparam STYLE =
 		FIFO_STYLE != "auto"? FIFO_STYLE :
 		MIN_DEPTH <=   4? "registers"   :
-		MIN_DEPTH <=  32? "shift"       :
+		(MIN_DEPTH <= 32 && MIN_DEPTH*DATA_WIDTH <= 4096)? "shift" :
+		(MIN_DEPTH*DATA_WIDTH >= 8192)? "block" :
 		MIN_DEPTH <= 128? "distributed" :
 		/* else */        "block";
 
@@ -81,32 +86,32 @@ module fifo1clk_fwft #(
 	//-----------------------------------------------------------------------
 	// Minimal Pointer-Free Register-Based FIFO Separating Enable Domains
 	if(MIN_DEPTH == 2) begin : genMinimal
-		T		A	= 'x;	// Output Reg
-		logic	Vld	=  0;
-		T		B	= 'x;	// Buffer Reg
-		logic	Ful	=  0;
+		T       A   = 'x;   // Output Reg
+		logic   Vld =  0;
+		T       B   = 'x;   // Buffer Reg
+		logic   Ful =  0;
 
 		always_ff @(posedge clk) begin
 			if(rst) begin
-				A	<= 'x;
-				Vld	<=  0;
-				B	<= 'x;
-				Ful	<=  0;
+				A   <= 'x;
+				Vld <=  0;
+				B   <= 'x;
+				Ful <=  0;
 			end
 			else begin
-				if(q.ack || !Vld)	A <= Ful? B : d.d;
-				Vld	<= (Vld && !q.ack) || Ful || d.wr;
+				if(q.ack || !Vld)   A <= Ful? B : d.d;
+				Vld <= (Vld && !q.ack) || Ful || d.wr;
 
-				if(!Ful)			B <= d.d;
+				if(!Ful)            B <= d.d;
 				Ful <= (Ful || (Vld && d.wr)) && !q.ack;
 			end
 		end
-		assign	d.full		= Ful;
-		assign	d.cnt_avail = Ful? 0 : Vld? 1 : 2;
+		assign  d.full      = Ful;
+		assign  d.cnt_avail = Ful? 0 : Vld? 1 : 2;
 
-		assign	q.q			= A;
-		assign	q.valid		= Vld;
-		assign	q.cnt_avail = Ful? 2 : Vld? 1 : 0;
+		assign  q.q         = A;
+		assign  q.valid     = Vld;
+		assign  q.cnt_avail = Ful? 2 : Vld? 1 : 0;
 
 		// Sanity Check
 		always_ff @(posedge clk) begin
@@ -121,36 +126,36 @@ module fifo1clk_fwft #(
 	else if((DATA_WIDTH) && (STYLE != "SHIFT") && (STYLE != "shift")) begin : genRegular
 
 		// Memory State
-		uwire	ful;	// all space taken
-		uwire	avl;	// data available but not yet in memory output register
+		uwire   ful;    // all space taken
+		uwire   avl;    // data available but not yet in memory output register
 
 		// Match Readout Latency with appropriate valid Signal Propagation
-		//	Stages: #(READOUT_LATENCY-1) .. #0
-		localparam int unsigned	READOUT_LATENCY = (STYLE == "BLOCK") || (STYLE == "ULTRA") || (STYLE == "block") || (STYLE == "ultra")? 2+EXTRA_FABRIC_REGS : 1;
-		logic [READOUT_LATENCY-1:0]	Vld = 0;
-		uwire [READOUT_LATENCY-1:0]	load;
-		for(genvar	i = 0; i < READOUT_LATENCY; i++) begin
-			assign	load[i] = |{ ~Vld[i:0], q.ack };
+		//  Stages: #(READOUT_LATENCY-1) .. #0
+		localparam int unsigned READOUT_LATENCY = (STYLE == "BLOCK") || (STYLE == "ULTRA") || (STYLE == "block") || (STYLE == "ultra")? 2+EXTRA_FABRIC_REGS : 1;
+		logic [READOUT_LATENCY-1:0] Vld = 0;
+		uwire [READOUT_LATENCY-1:0] load;
+		for(genvar  i = 0; i < READOUT_LATENCY; i++) begin
+			assign  load[i] = |{ ~Vld[i:0], q.ack };
 			always_ff @(posedge clk) begin
-				if(rst)	Vld[i] <= 0;
-				else	Vld[i] <= !load[i] || (i == READOUT_LATENCY-1? avl : Vld[i+1]);
+				if(rst) Vld[i] <= 0;
+				else    Vld[i] <= !load[i] || (i == READOUT_LATENCY-1? avl : Vld[i+1]);
 			end
 		end
-		assign	q.valid = Vld[0];
-		assign	d.full	= ful;
+		assign  q.valid = Vld[0];
+		assign  d.full  = ful;
 
 		// Memory Control
-		localparam int unsigned	A_BITS	= $clog2(MIN_DEPTH - READOUT_LATENCY);
-		localparam int unsigned	DEPTH	= 2**A_BITS + READOUT_LATENCY;
-		uwire  we = !ful && d.wr;				// Write Data
-		uwire  re =  avl && load[$left(load)];	// Read Data to Output Latch
+		localparam int unsigned A_BITS  = $clog2(MIN_DEPTH - READOUT_LATENCY);
+		localparam int unsigned DEPTH   = 2**A_BITS + READOUT_LATENCY;
+		uwire  we = !ful && d.wr;               // Write Data
+		uwire  re =  avl && load[$left(load)];  // Read Data to Output Latch
 
 		// Write and Read Pointers
-		logic [A_BITS-1:0]	WPtr = 0;
-		logic [A_BITS-1:0]	RPtr = 0;
+		logic [A_BITS-1:0]  WPtr = 0;
+		logic [A_BITS-1:0]  RPtr = 0;
 		// ... and their Increments
-		uwire [A_BITS-1:0]	WPtr_inc = WPtr + 1;
-		uwire [A_BITS-1:0]	RPtr_inc = RPtr + 1;
+		uwire [A_BITS-1:0]  WPtr_inc = WPtr + 1;
+		uwire [A_BITS-1:0]  RPtr_inc = RPtr + 1;
 
 		always_ff @(posedge clk) begin
 			if(rst) begin
@@ -158,8 +163,8 @@ module fifo1clk_fwft #(
 				RPtr <= 0;
 			end
 			else begin
-				if(we)	WPtr <= WPtr_inc;
-				if(re)	RPtr <= RPtr_inc;
+				if(we)  WPtr <= WPtr_inc;
+				if(re)  RPtr <= RPtr_inc;
 			end
 		end
 
@@ -177,10 +182,10 @@ module fifo1clk_fwft #(
 
 			// Output Register of the value read
 			data_t ReadLatch[READOUT_LATENCY] = '{ default: 'x };
-			always_ff @(posedge clk)	if(we)	Mem[WPtr]						<= d.d;
-			always_ff @(posedge clk)	if(re)  ReadLatch[READOUT_LATENCY-1]	<= Mem[RPtr];
+			always_ff @(posedge clk)    if(we)  Mem[WPtr]                       <= d.d;
+			always_ff @(posedge clk)    if(re)  ReadLatch[READOUT_LATENCY-1]    <= Mem[RPtr];
 
-			for(genvar	i = 0; i < READOUT_LATENCY-1; i++) begin
+			for(genvar  i = 0; i < READOUT_LATENCY-1; i++) begin
 				always_ff @(posedge clk) begin
 // synthesis translate_off
 					if(rst)     ReadLatch[i] <= 'x; else
@@ -188,15 +193,15 @@ module fifo1clk_fwft #(
 					if(load[i]) ReadLatch[i] <= ReadLatch[i+1];
 				end
 			end
-			uwire data_t	rd = ReadLatch[0];
-			assign	q.q = rd[$bits(T)-1:0];
+			uwire data_t    rd = ReadLatch[0];
+			assign  q.q = rd[$bits(T)-1:0];
 		end : blkMemory
 
 		// Ring Buffer State Computation
 		if(STATE_REGS) begin
 			// Registered Ring Buffer State (default)
-			//	requires an extra comparator over the combinational computation
-			//	but improves the timing of state-derived signals significantly.
+			//  requires an extra comparator over the combinational computation
+			//  but improves the timing of state-derived signals significantly.
 			logic Ful = 0;
 			logic Avl = 0;
 
@@ -215,12 +220,12 @@ module fifo1clk_fwft #(
 		end
 		else begin
 			// Combinational Ring Buffer State
-			//	A single direction flag DF differentiates full vs. empty
-			//	when both pointers coincide.
+			//  A single direction flag DF differentiates full vs. empty
+			//  when both pointers coincide.
 			logic  DF = 0;
 			always_ff @(posedge clk) begin
-				if(rst)				DF <= 0;
-				else if(we != re)	DF <= we;
+				if(rst)             DF <= 0;
+				else if(we != re)   DF <= we;
 			end
 
 			uwire  peq = WPtr == RPtr;
@@ -230,22 +235,22 @@ module fifo1clk_fwft #(
 
 		// Statistics State - will be trimmed if availability outputs are not used
 		if(1) begin : blkStats
-			localparam int unsigned	S_BITS = $clog2(DEPTH+1);
-			logic [S_BITS-1:0]	WAvail = DEPTH;
-			logic [S_BITS-1:0]	RAvail = 0;
+			localparam int unsigned S_BITS = $clog2(DEPTH+1);
+			logic [S_BITS-1:0]  WAvail = DEPTH;
+			logic [S_BITS-1:0]  RAvail = 0;
 
 			// Match READOUT_LATENCY in making writes visible
-			logic [READOUT_LATENCY-1:0]	WeZ = 0;
+			logic [READOUT_LATENCY-1:0] WeZ = 0;
 			uwire wr_eff = WeZ[$left(WeZ)];
 			uwire rd_eff = q.valid && q.ack;
 			always_ff @(posedge clk) begin
 				if(rst) begin
-					WAvail	<= DEPTH;
-					RAvail	<= 0;
-					WeZ		<= 0;
+					WAvail  <= DEPTH;
+					RAvail  <= 0;
+					WeZ     <= 0;
 				end
 				else begin
-					automatic logic signed [1:0] w_inc = (we?	 -1 : 0) + (rd_eff?  1 : 0);
+					automatic logic signed [1:0] w_inc = (we?    -1 : 0) + (rd_eff?  1 : 0);
 					automatic logic signed [1:0] r_inc = (wr_eff? 1 : 0) + (rd_eff? -1 : 0);
 					WAvail <= $signed(WAvail) + $signed(w_inc);
 					RAvail <= $signed(RAvail) + $signed(r_inc);
@@ -263,16 +268,16 @@ module fifo1clk_fwft #(
 	//- Shift Register FIFO
 	else begin : genShift
 
-		localparam int unsigned	A_BITS	= $clog2(MIN_DEPTH);
+		localparam int unsigned A_BITS  = $clog2(MIN_DEPTH);
 
-		uwire	re;
-		uwire	we;
+		uwire   re;
+		uwire   we;
 
 		// Contents Pointer: Ptr = <item count> - 1
 		localparam logic [A_BITS-1:0]  FULL_ANTIMASK = ~(MIN_DEPTH-2);
 
 		logic [A_BITS:0]  Ptr = '{ A_BITS: 0, default: 1 };
-		logic			  Ful = 0;
+		logic             Ful = 0;
 		always_ff @(posedge clk) begin
 			if(rst) begin
 				Ptr <= '{ A_BITS: 0, default: 1 };
@@ -283,8 +288,8 @@ module fifo1clk_fwft #(
 				Ful <= !re && we && &(Ptr|FULL_ANTIMASK);
 			end
 		end // always_ff
-		uwire	ful	= Ful;
-		uwire	avl	= Ptr[$left(Ptr)];
+		uwire   ful = Ful;
+		uwire   avl = Ptr[$left(Ptr)];
 
 		always_comb begin
 			d.cnt_avail[A_BITS:0] = $unsigned(~Ptr[A_BITS:0]);
@@ -297,16 +302,16 @@ module fifo1clk_fwft #(
 		assign  q.valid = Vld;
 		assign  d.full  = ful;
 
-		assign	re = (!Vld || q.ack) && avl;
-		assign	we = d.wr  && !ful;
+		assign  re = (!Vld || q.ack) && avl;
+		assign  we = d.wr  && !ful;
 
 		// Shift register memory only for true data storage
 		if(DATA_WIDTH) begin
 			T  SR[MIN_DEPTH];
 			T  Buf;  // output buffer
 			always_ff @(posedge clk) begin
-				if(we)	SR	<= { d.d, SR[0:$right(SR)-1] };
-				if(re)	Buf	<= SR[Ptr[$left(Ptr)-1:0]];
+				if(we)  SR  <= { d.d, SR[0:$right(SR)-1] };
+				if(re)  Buf <= SR[Ptr[$left(Ptr)-1:0]];
 			end
 			assign  q.q = Buf;
 		end

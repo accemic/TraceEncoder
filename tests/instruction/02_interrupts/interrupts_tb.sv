@@ -88,7 +88,7 @@ module interrupts_tb;
 		env.csr.Set_te_trTeControl_Enable      (1'b1);
 		env.csr.Set_te_trTeControl_InstTracing (1'b1);
 		env.csr.Set_te_trTeControl_Active      (1'b1);
-		env.wait_cycles(20);
+		env.cpu.idle(20);
 		$display("[interrupts_tb] %0t: starting scenario", $time);
 
 		// ============================================================
@@ -256,15 +256,15 @@ module interrupts_tb;
 		// residual ICNT/HIST, so the offline decode resolves the final
 		// instructions. Enable=0 then only flushes queued trace data;
 		// atb_force_flush pushes the last ATB bytes to the sink.
-		env.wait_cycles(50);
+		env.cpu.idle(50);
 		env.csr.Set_te_trTeControl_InstTracing (1'b0);
-		env.wait_cycles(200);
+		env.cpu.idle(200);
 		env.csr.Set_te_trTeControl_Enable      (1'b0);
 		env.atb_force_flush = 1'b1;
-		env.wait_cycles(2000);
+		env.cpu.idle(2000);
 		env.atb_force_flush = 1'b0;
 		env.csr.Set_te_trTeControl_Active(1'b0);
-		env.wait_cycles(10000);
+		env.cpu.idle(10000);
 
 		// ---- Result placeholder check ----
 		if (env.cpu.event_count() == 0) begin

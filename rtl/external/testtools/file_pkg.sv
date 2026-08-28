@@ -1,15 +1,16 @@
-// vim: set ts=4 et:
+// SPDX-FileCopyrightText: 2018 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
 // -*- indent-tabs-mode: t; tab-width: 4 -*-
 
 /**
-* Copyright (c) 2018 by Accemic Technologies GmbH Kiefersfelden Germany
-* SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
-*/
+ */
 
 /**
-* @brief    Provides functions to operate and parse files
-* @author   Albert Schulz <aschulz@accemic.com>
-*/
+ * @brief    Provides functions to operate and parse files
+ * @author   Albert Schulz <aschulz@accemic.com>
+ */
 package file_pkg;
 
 	/*
@@ -40,7 +41,7 @@ package file_pkg;
 
 		while(!$feof(fd)) begin
 			automatic string line;
-			automatic int return_code; /// Note: Used to avoid warning message of non-existent LHS for $fgets()
+			automatic int return_code; /// Note: Used to avoid warning message of non-existent LHS for $fgets
 			return_code = $fgets(line, fd);
 			line_count++;
 		end
@@ -252,7 +253,18 @@ package file_pkg;
 	// Task to open a file
 	task automatic file_open;
 		input  string file_path;        // File path to open
+		// Mode type is simulator-dependent (both sides measured 2026-07-20):
+		//   - Verilator 5 REJECTS a dynamic `string` here ($fopen mode must
+		//     be provably <= 4 characters wide) -> fixed 4-char vector.
+		//   - XSIM 2022.1's LLVM codegen CRASHES (assert "Calling a function
+		//     with bad signature", elaboration rc=127) on the vector variant
+		//     -> keep `string` there. All call sites pass short literals
+		//     ("w", "wb", ...), so both types are equivalent in practice.
+`ifdef VERILATOR
+		input  logic [8*4-1:0] mode;    // File mode (e.g., "w" for write)
+`else
 		input  string mode;             // File mode (e.g., "w" for write)
+`endif
 		output integer file_handle;     // File handle output
 		begin
 			if (file_path == "") begin

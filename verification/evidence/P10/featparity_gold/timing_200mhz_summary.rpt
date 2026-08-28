@@ -1,0 +1,1996 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version      : Vivado v.2022.1.2 (win64) Build 3605665 Fri Aug  5 22:53:37 MDT 2022
+| Date              : Thu Aug  6 20:24:14 2026
+| Host              : <host> running 64-bit major release  (build 9200)
+| Command           : report_timing_summary -delay_type max -max_paths 5 -file <worktree>/bld/synth_ooc_t/timing_summary.rpt
+| Design            : ct_encoder
+| Device            : xck26-sfvc784
+| Speed File        : -2LV  PRODUCTION 1.30 05-15-2022
+| Temperature Grade : C
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Timing Summary Report
+
+------------------------------------------------------------------------------------------------
+| Timer Settings
+| --------------
+------------------------------------------------------------------------------------------------
+
+  Enable Multi Corner Analysis               :  Yes
+  Enable Pessimism Removal                   :  Yes
+  Pessimism Removal Resolution               :  Nearest Common Node
+  Enable Input Delay Default Clock           :  No
+  Enable Preset / Clear Arcs                 :  No
+  Disable Flight Delays                      :  No
+  Ignore I/O Paths                           :  No
+  Timing Early Launch at Borrowing Latches   :  No
+  Borrow Time for Max Delay Exceptions       :  Yes
+  Merge Timing Exceptions                    :  Yes
+
+  Corner  Analyze    Analyze    
+  Name    Max Paths  Min Paths  
+  ------  ---------  ---------  
+  Slow    Yes        Yes        
+  Fast    Yes        Yes        
+
+
+------------------------------------------------------------------------------------------------
+| Report Methodology
+| ------------------
+------------------------------------------------------------------------------------------------
+
+No report available as report_methodology has not been run prior. Run report_methodology on the current design for the summary of methodology violations.
+
+
+
+check_timing report
+
+Table of Contents
+-----------------
+1. checking no_clock (1)
+2. checking constant_clock (0)
+3. checking pulse_width_clock (0)
+4. checking unconstrained_internal_endpoints (1)
+5. checking no_input_delay (147)
+6. checking no_output_delay (73)
+7. checking multiple_clock (0)
+8. checking generated_clocks (0)
+9. checking loops (0)
+10. checking partial_input_delay (0)
+11. checking partial_output_delay (0)
+12. checking latch_loops (0)
+
+1. checking no_clock (1)
+------------------------
+ There is 1 register/latch pin with no clock driven by root clock pin: tip_rst (HIGH)
+
+
+2. checking constant_clock (0)
+------------------------------
+ There are 0 register/latch pins with constant_clock.
+
+
+3. checking pulse_width_clock (0)
+---------------------------------
+ There are 0 register/latch pins which need pulse_width check
+
+
+4. checking unconstrained_internal_endpoints (1)
+------------------------------------------------
+ There is 1 pin that is not constrained for maximum delay. (HIGH)
+
+ There are 0 pins that are not constrained for maximum delay due to constant clock.
+
+
+5. checking no_input_delay (147)
+--------------------------------
+ There are 147 input ports with no input delay specified. (HIGH)
+
+ There are 0 input ports with no input delay but user has a false path constraint.
+
+
+6. checking no_output_delay (73)
+--------------------------------
+ There are 73 ports with no output delay specified. (HIGH)
+
+ There are 0 ports with no output delay but user has a false path constraint
+
+ There are 0 ports with no output delay but with a timing clock defined on it or propagating through it
+
+
+7. checking multiple_clock (0)
+------------------------------
+ There are 0 register/latch pins with multiple clocks.
+
+
+8. checking generated_clocks (0)
+--------------------------------
+ There are 0 generated clocks that are not connected to a clock source.
+
+
+9. checking loops (0)
+---------------------
+ There are 0 combinational loops in the design.
+
+
+10. checking partial_input_delay (0)
+------------------------------------
+ There are 0 input ports with partial input delay specified.
+
+
+11. checking partial_output_delay (0)
+-------------------------------------
+ There are 0 ports with partial output delay specified.
+
+
+12. checking latch_loops (0)
+----------------------------
+ There are 0 combinational latch loops in the design through latch input
+
+
+
+------------------------------------------------------------------------------------------------
+| Design Timing Summary
+| ---------------------
+------------------------------------------------------------------------------------------------
+
+    WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints     WPWS(ns)     TPWS(ns)  TPWS Failing Endpoints  TPWS Total Endpoints  
+    -------      -------  ---------------------  -------------------     --------     --------  ----------------------  --------------------  
+      0.339        0.000                      0                11623        1.738        0.000                       0                  4932  
+
+
+All user specified timing constraints are met.
+
+
+------------------------------------------------------------------------------------------------
+| Clock Summary
+| -------------
+------------------------------------------------------------------------------------------------
+
+Clock      Waveform(ns)         Period(ns)      Frequency(MHz)
+-----      ------------         ----------      --------------
+atb_atclk  {0.000 2.500}        5.000           200.000         
+proc_clk   {0.000 2.500}        5.000           200.000         
+tip_clk    {0.000 2.500}        5.000           200.000         
+wall_clk   {0.000 2.500}        5.000           200.000         
+wb_clk     {0.000 2.500}        5.000           200.000         
+
+
+------------------------------------------------------------------------------------------------
+| Intra Clock Table
+| -----------------
+------------------------------------------------------------------------------------------------
+
+Clock             WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints     WPWS(ns)     TPWS(ns)  TPWS Failing Endpoints  TPWS Total Endpoints  
+-----             -------      -------  ---------------------  -------------------     --------     --------  ----------------------  --------------------  
+atb_atclk           3.648        0.000                      0                   20        2.225        0.000                       0                    12  
+proc_clk            0.915        0.000                      0                 1532        1.738        0.000                       0                   747  
+tip_clk             0.339        0.000                      0                 9850        1.738        0.000                       0                  4049  
+wall_clk            3.416        0.000                      0                   75        2.225        0.000                       0                    32  
+wb_clk              4.223        0.000                      0                  146        2.225        0.000                       0                    92  
+
+
+------------------------------------------------------------------------------------------------
+| Inter Clock Table
+| -----------------
+------------------------------------------------------------------------------------------------
+
+From Clock    To Clock          WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints  
+----------    --------          -------      -------  ---------------------  -------------------  
+
+
+------------------------------------------------------------------------------------------------
+| Other Path Groups Table
+| -----------------------
+------------------------------------------------------------------------------------------------
+
+Path Group    From Clock    To Clock          WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints  
+----------    ----------    --------          -------      -------  ---------------------  -------------------  
+
+
+------------------------------------------------------------------------------------------------
+| Timing Details
+| --------------
+------------------------------------------------------------------------------------------------
+
+
+---------------------------------------------------------------------------------------------------
+From Clock:  atb_atclk
+  To Clock:  atb_atclk
+
+Setup :            0  Failing Endpoints,  Worst Slack        3.648ns,  Total Violation        0.000ns
+Hold  :           NA  Failing Endpoints,  Worst Slack           NA  ,  Total Violation           NA
+PW    :            0  Failing Endpoints,  Worst Slack        2.225ns,  Total Violation        0.000ns
+---------------------------------------------------------------------------------------------------
+
+
+Max Delay Paths
+--------------------------------------------------------------------------------------
+Slack (MET) :             3.648ns  (required time - arrival time)
+  Source:                 genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/PrevChunk_reg[1]/C
+                            (rising edge-triggered cell FDSE clocked by atb_atclk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Destination:            genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/FSM_onehot_FlushState_reg[0]/CE
+                            (rising edge-triggered cell FDSE clocked by atb_atclk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Path Group:             atb_atclk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            5.000ns  (atb_atclk rise@5.000ns - atb_atclk rise@0.000ns)
+  Data Path Delay:        1.226ns  (logic 0.455ns (37.113%)  route 0.771ns (62.887%))
+  Logic Levels:           3  (LUT6=3)
+  Clock Path Skew:        -0.012ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.029ns = ( 5.029 - 5.000 ) 
+    Source Clock Delay      (SCD):    0.041ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock atb_atclk rise edge)
+                                                      0.000     0.000 r  
+                                                      0.000     0.000 r  atb_atclk (IN)
+                         net (fo=11, unset)           0.041     0.041    genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/atb_atclk
+                         FDSE                                         r  genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/PrevChunk_reg[1]/C
+  -------------------------------------------------------------------    -------------------
+                         FDSE (Prop_FDSE_C_Q)         0.114     0.155 r  genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/PrevChunk_reg[1]/Q
+                         net (fo=1, unplaced)         0.174     0.329    genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/FSM_onehot_FlushState[2]_i_3_0[1]
+                         LUT6 (Prop_LUT6_I1_O)        0.225     0.554 r  genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/FSM_onehot_FlushState[2]_i_5/O
+                         net (fo=1, unplaced)         0.211     0.765    genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/FSM_onehot_FlushState[2]_i_5_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.058     0.823 r  genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/FSM_onehot_FlushState[2]_i_3/O
+                         net (fo=1, unplaced)         0.211     1.034    genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/FSM_onehot_FlushState_reg[0]_0
+                         LUT6 (Prop_LUT6_I1_O)        0.058     1.092 r  genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/FSM_onehot_FlushState[2]_i_2/O
+                         net (fo=3, unplaced)         0.175     1.267    genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/FSM_onehot_FlushState[2]_i_2_n_0
+                         FDSE                                         r  genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/FSM_onehot_FlushState_reg[0]/CE
+  -------------------------------------------------------------------    -------------------
+
+                         (clock atb_atclk rise edge)
+                                                      5.000     5.000 r  
+                                                      0.000     5.000 r  atb_atclk (IN)
+                         net (fo=11, unset)           0.029     5.029    genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/atb_atclk
+                         FDSE                                         r  genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/FSM_onehot_FlushState_reg[0]/C
+                         clock pessimism              0.000     5.029    
+                         clock uncertainty           -0.035     4.994    
+                         FDSE (Setup_FDSE_C_CE)      -0.079     4.915    genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/FSM_onehot_FlushState_reg[0]
+  -------------------------------------------------------------------
+                         required time                          4.915    
+                         arrival time                          -1.267    
+  -------------------------------------------------------------------
+                         slack                                  3.648    
+
+Slack (MET) :             3.648ns  (required time - arrival time)
+  Source:                 genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/PrevChunk_reg[1]/C
+                            (rising edge-triggered cell FDSE clocked by atb_atclk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Destination:            genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/FSM_onehot_FlushState_reg[1]/CE
+                            (rising edge-triggered cell FDRE clocked by atb_atclk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Path Group:             atb_atclk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            5.000ns  (atb_atclk rise@5.000ns - atb_atclk rise@0.000ns)
+  Data Path Delay:        1.226ns  (logic 0.455ns (37.113%)  route 0.771ns (62.887%))
+  Logic Levels:           3  (LUT6=3)
+  Clock Path Skew:        -0.012ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.029ns = ( 5.029 - 5.000 ) 
+    Source Clock Delay      (SCD):    0.041ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock atb_atclk rise edge)
+                                                      0.000     0.000 r  
+                                                      0.000     0.000 r  atb_atclk (IN)
+                         net (fo=11, unset)           0.041     0.041    genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/atb_atclk
+                         FDSE                                         r  genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/PrevChunk_reg[1]/C
+  -------------------------------------------------------------------    -------------------
+                         FDSE (Prop_FDSE_C_Q)         0.114     0.155 r  genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/PrevChunk_reg[1]/Q
+                         net (fo=1, unplaced)         0.174     0.329    genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/FSM_onehot_FlushState[2]_i_3_0[1]
+                         LUT6 (Prop_LUT6_I1_O)        0.225     0.554 r  genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/FSM_onehot_FlushState[2]_i_5/O
+                         net (fo=1, unplaced)         0.211     0.765    genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/FSM_onehot_FlushState[2]_i_5_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.058     0.823 r  genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/FSM_onehot_FlushState[2]_i_3/O
+                         net (fo=1, unplaced)         0.211     1.034    genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/FSM_onehot_FlushState_reg[0]_0
+                         LUT6 (Prop_LUT6_I1_O)        0.058     1.092 r  genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/FSM_onehot_FlushState[2]_i_2/O
+                         net (fo=3, unplaced)         0.175     1.267    genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/FSM_onehot_FlushState[2]_i_2_n_0
+                         FDRE                                         r  genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/FSM_onehot_FlushState_reg[1]/CE
+  -------------------------------------------------------------------    -------------------
+
+                         (clock atb_atclk rise edge)
+                                                      5.000     5.000 r  
+                                                      0.000     5.000 r  atb_atclk (IN)
+                         net (fo=11, unset)           0.029     5.029    genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/atb_atclk
+                         FDRE                                         r  genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/FSM_onehot_FlushState_reg[1]/C
+                         clock pessimism              0.000     5.029    
+                         clock uncertainty           -0.035     4.994    
+                         FDRE (Setup_FDRE_C_CE)      -0.079     4.915    genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/FSM_onehot_FlushState_reg[1]
+  -------------------------------------------------------------------
+                         required time                          4.915    
+                         arrival time                          -1.267    
+  -------------------------------------------------------------------
+                         slack                                  3.648    
+
+Slack (MET) :             3.648ns  (required time - arrival time)
+  Source:                 genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/PrevChunk_reg[1]/C
+                            (rising edge-triggered cell FDSE clocked by atb_atclk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Destination:            genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/FSM_onehot_FlushState_reg[2]/CE
+                            (rising edge-triggered cell FDRE clocked by atb_atclk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Path Group:             atb_atclk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            5.000ns  (atb_atclk rise@5.000ns - atb_atclk rise@0.000ns)
+  Data Path Delay:        1.226ns  (logic 0.455ns (37.113%)  route 0.771ns (62.887%))
+  Logic Levels:           3  (LUT6=3)
+  Clock Path Skew:        -0.012ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.029ns = ( 5.029 - 5.000 ) 
+    Source Clock Delay      (SCD):    0.041ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock atb_atclk rise edge)
+                                                      0.000     0.000 r  
+                                                      0.000     0.000 r  atb_atclk (IN)
+                         net (fo=11, unset)           0.041     0.041    genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/atb_atclk
+                         FDSE                                         r  genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/PrevChunk_reg[1]/C
+  -------------------------------------------------------------------    -------------------
+                         FDSE (Prop_FDSE_C_Q)         0.114     0.155 r  genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/PrevChunk_reg[1]/Q
+                         net (fo=1, unplaced)         0.174     0.329    genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/FSM_onehot_FlushState[2]_i_3_0[1]
+                         LUT6 (Prop_LUT6_I1_O)        0.225     0.554 r  genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/FSM_onehot_FlushState[2]_i_5/O
+                         net (fo=1, unplaced)         0.211     0.765    genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/FSM_onehot_FlushState[2]_i_5_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.058     0.823 r  genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/FSM_onehot_FlushState[2]_i_3/O
+                         net (fo=1, unplaced)         0.211     1.034    genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/FSM_onehot_FlushState_reg[0]_0
+                         LUT6 (Prop_LUT6_I1_O)        0.058     1.092 r  genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/FSM_onehot_FlushState[2]_i_2/O
+                         net (fo=3, unplaced)         0.175     1.267    genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/FSM_onehot_FlushState[2]_i_2_n_0
+                         FDRE                                         r  genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/FSM_onehot_FlushState_reg[2]/CE
+  -------------------------------------------------------------------    -------------------
+
+                         (clock atb_atclk rise edge)
+                                                      5.000     5.000 r  
+                                                      0.000     5.000 r  atb_atclk (IN)
+                         net (fo=11, unset)           0.029     5.029    genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/atb_atclk
+                         FDRE                                         r  genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/FSM_onehot_FlushState_reg[2]/C
+                         clock pessimism              0.000     5.029    
+                         clock uncertainty           -0.035     4.994    
+                         FDRE (Setup_FDRE_C_CE)      -0.079     4.915    genNtrace.genCompactPacker.compact_packer_inst/u_atb_flush_detect/FSM_onehot_FlushState_reg[2]
+  -------------------------------------------------------------------
+                         required time                          4.915    
+                         arrival time                          -1.267    
+  -------------------------------------------------------------------
+                         slack                                  3.648    
+
+Slack (MET) :             4.229ns  (required time - arrival time)
+  Source:                 genNtrace.genCompactPacker.compact_packer_inst/EmptySyncQ_reg[1]/C
+                            (rising edge-triggered cell FDRE clocked by atb_atclk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Destination:            genNtrace.genCompactPacker.compact_packer_inst/EmptyQuietCnt_reg[0]/R
+                            (rising edge-triggered cell FDRE clocked by atb_atclk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Path Group:             atb_atclk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            5.000ns  (atb_atclk rise@5.000ns - atb_atclk rise@0.000ns)
+  Data Path Delay:        0.606ns  (logic 0.268ns (44.224%)  route 0.338ns (55.776%))
+  Logic Levels:           1  (LUT3=1)
+  Clock Path Skew:        -0.012ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.029ns = ( 5.029 - 5.000 ) 
+    Source Clock Delay      (SCD):    0.041ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock atb_atclk rise edge)
+                                                      0.000     0.000 r  
+                                                      0.000     0.000 r  atb_atclk (IN)
+                         net (fo=11, unset)           0.041     0.041    genNtrace.genCompactPacker.compact_packer_inst/atb_atclk
+                         FDRE                                         r  genNtrace.genCompactPacker.compact_packer_inst/EmptySyncQ_reg[1]/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.114     0.155 f  genNtrace.genCompactPacker.compact_packer_inst/EmptySyncQ_reg[1]/Q
+                         net (fo=2, unplaced)         0.106     0.261    genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/ChainEmptyQ_reg[0]
+                         LUT3 (Prop_LUT3_I0_O)        0.154     0.415 r  genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/EmptyQuietCnt[3]_i_1/O
+                         net (fo=4, unplaced)         0.232     0.647    genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo_n_39
+                         FDRE                                         r  genNtrace.genCompactPacker.compact_packer_inst/EmptyQuietCnt_reg[0]/R
+  -------------------------------------------------------------------    -------------------
+
+                         (clock atb_atclk rise edge)
+                                                      5.000     5.000 r  
+                                                      0.000     5.000 r  atb_atclk (IN)
+                         net (fo=11, unset)           0.029     5.029    genNtrace.genCompactPacker.compact_packer_inst/atb_atclk
+                         FDRE                                         r  genNtrace.genCompactPacker.compact_packer_inst/EmptyQuietCnt_reg[0]/C
+                         clock pessimism              0.000     5.029    
+                         clock uncertainty           -0.035     4.994    
+                         FDRE (Setup_FDRE_C_R)       -0.118     4.876    genNtrace.genCompactPacker.compact_packer_inst/EmptyQuietCnt_reg[0]
+  -------------------------------------------------------------------
+                         required time                          4.876    
+                         arrival time                          -0.647    
+  -------------------------------------------------------------------
+                         slack                                  4.229    
+
+Slack (MET) :             4.229ns  (required time - arrival time)
+  Source:                 genNtrace.genCompactPacker.compact_packer_inst/EmptySyncQ_reg[1]/C
+                            (rising edge-triggered cell FDRE clocked by atb_atclk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Destination:            genNtrace.genCompactPacker.compact_packer_inst/EmptyQuietCnt_reg[1]/R
+                            (rising edge-triggered cell FDRE clocked by atb_atclk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Path Group:             atb_atclk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            5.000ns  (atb_atclk rise@5.000ns - atb_atclk rise@0.000ns)
+  Data Path Delay:        0.606ns  (logic 0.268ns (44.224%)  route 0.338ns (55.776%))
+  Logic Levels:           1  (LUT3=1)
+  Clock Path Skew:        -0.012ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.029ns = ( 5.029 - 5.000 ) 
+    Source Clock Delay      (SCD):    0.041ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock atb_atclk rise edge)
+                                                      0.000     0.000 r  
+                                                      0.000     0.000 r  atb_atclk (IN)
+                         net (fo=11, unset)           0.041     0.041    genNtrace.genCompactPacker.compact_packer_inst/atb_atclk
+                         FDRE                                         r  genNtrace.genCompactPacker.compact_packer_inst/EmptySyncQ_reg[1]/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.114     0.155 f  genNtrace.genCompactPacker.compact_packer_inst/EmptySyncQ_reg[1]/Q
+                         net (fo=2, unplaced)         0.106     0.261    genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/ChainEmptyQ_reg[0]
+                         LUT3 (Prop_LUT3_I0_O)        0.154     0.415 r  genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/EmptyQuietCnt[3]_i_1/O
+                         net (fo=4, unplaced)         0.232     0.647    genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo_n_39
+                         FDRE                                         r  genNtrace.genCompactPacker.compact_packer_inst/EmptyQuietCnt_reg[1]/R
+  -------------------------------------------------------------------    -------------------
+
+                         (clock atb_atclk rise edge)
+                                                      5.000     5.000 r  
+                                                      0.000     5.000 r  atb_atclk (IN)
+                         net (fo=11, unset)           0.029     5.029    genNtrace.genCompactPacker.compact_packer_inst/atb_atclk
+                         FDRE                                         r  genNtrace.genCompactPacker.compact_packer_inst/EmptyQuietCnt_reg[1]/C
+                         clock pessimism              0.000     5.029    
+                         clock uncertainty           -0.035     4.994    
+                         FDRE (Setup_FDRE_C_R)       -0.118     4.876    genNtrace.genCompactPacker.compact_packer_inst/EmptyQuietCnt_reg[1]
+  -------------------------------------------------------------------
+                         required time                          4.876    
+                         arrival time                          -0.647    
+  -------------------------------------------------------------------
+                         slack                                  4.229    
+
+
+
+
+
+Pulse Width Checks
+--------------------------------------------------------------------------------------
+Clock Name:         atb_atclk
+Waveform(ns):       { 0.000 2.500 }
+Period(ns):         5.000
+Sources:            { atb_atclk }
+
+Check Type        Corner  Lib Pin  Reference Pin  Required(ns)  Actual(ns)  Slack(ns)  Location  Pin
+Min Period        n/a     FDRE/C   n/a            0.550         5.000       4.450                genNtrace.genCompactPacker.compact_packer_inst/ChainEmptyQ_reg/C
+Min Period        n/a     FDRE/C   n/a            0.550         5.000       4.450                genNtrace.genCompactPacker.compact_packer_inst/EmptyQuietCnt_reg[0]/C
+Min Period        n/a     FDRE/C   n/a            0.550         5.000       4.450                genNtrace.genCompactPacker.compact_packer_inst/EmptyQuietCnt_reg[1]/C
+Min Period        n/a     FDRE/C   n/a            0.550         5.000       4.450                genNtrace.genCompactPacker.compact_packer_inst/EmptyQuietCnt_reg[2]/C
+Min Period        n/a     FDRE/C   n/a            0.550         5.000       4.450                genNtrace.genCompactPacker.compact_packer_inst/EmptyQuietCnt_reg[3]/C
+Low Pulse Width   Slow    FDRE/C   n/a            0.275         2.500       2.225                genNtrace.genCompactPacker.compact_packer_inst/ChainEmptyQ_reg/C
+Low Pulse Width   Fast    FDRE/C   n/a            0.275         2.500       2.225                genNtrace.genCompactPacker.compact_packer_inst/ChainEmptyQ_reg/C
+Low Pulse Width   Slow    FDRE/C   n/a            0.275         2.500       2.225                genNtrace.genCompactPacker.compact_packer_inst/EmptyQuietCnt_reg[0]/C
+Low Pulse Width   Fast    FDRE/C   n/a            0.275         2.500       2.225                genNtrace.genCompactPacker.compact_packer_inst/EmptyQuietCnt_reg[0]/C
+Low Pulse Width   Slow    FDRE/C   n/a            0.275         2.500       2.225                genNtrace.genCompactPacker.compact_packer_inst/EmptyQuietCnt_reg[1]/C
+High Pulse Width  Slow    FDRE/C   n/a            0.275         2.500       2.225                genNtrace.genCompactPacker.compact_packer_inst/ChainEmptyQ_reg/C
+High Pulse Width  Fast    FDRE/C   n/a            0.275         2.500       2.225                genNtrace.genCompactPacker.compact_packer_inst/ChainEmptyQ_reg/C
+High Pulse Width  Slow    FDRE/C   n/a            0.275         2.500       2.225                genNtrace.genCompactPacker.compact_packer_inst/EmptyQuietCnt_reg[0]/C
+High Pulse Width  Fast    FDRE/C   n/a            0.275         2.500       2.225                genNtrace.genCompactPacker.compact_packer_inst/EmptyQuietCnt_reg[0]/C
+High Pulse Width  Slow    FDRE/C   n/a            0.275         2.500       2.225                genNtrace.genCompactPacker.compact_packer_inst/EmptyQuietCnt_reg[1]/C
+
+
+
+---------------------------------------------------------------------------------------------------
+From Clock:  proc_clk
+  To Clock:  proc_clk
+
+Setup :            0  Failing Endpoints,  Worst Slack        0.915ns,  Total Violation        0.000ns
+Hold  :           NA  Failing Endpoints,  Worst Slack           NA  ,  Total Violation           NA
+PW    :            0  Failing Endpoints,  Worst Slack        1.738ns,  Total Violation        0.000ns
+---------------------------------------------------------------------------------------------------
+
+
+Max Delay Paths
+--------------------------------------------------------------------------------------
+Slack (MET) :             0.915ns  (required time - arrival time)
+  Source:                 genNtrace.genCompactPacker.compact_packer_inst/Pos_reg[2]/C
+                            (rising edge-triggered cell FDRE clocked by proc_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Destination:            genNtrace.genCompactPacker.compact_packer_inst/Acc_reg[4]/D
+                            (rising edge-triggered cell FDRE clocked by proc_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Path Group:             proc_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            5.000ns  (proc_clk rise@5.000ns - proc_clk rise@0.000ns)
+  Data Path Delay:        4.082ns  (logic 1.673ns (40.985%)  route 2.409ns (59.015%))
+  Logic Levels:           13  (CARRY8=4 LUT2=1 LUT4=1 LUT5=1 LUT6=6)
+  Clock Path Skew:        -0.012ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.029ns = ( 5.029 - 5.000 ) 
+    Source Clock Delay      (SCD):    0.041ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock proc_clk rise edge)
+                                                      0.000     0.000 r  
+                                                      0.000     0.000 r  proc_clk (IN)
+                         net (fo=746, unset)          0.041     0.041    genNtrace.genCompactPacker.compact_packer_inst/proc_clk
+                         FDRE                                         r  genNtrace.genCompactPacker.compact_packer_inst/Pos_reg[2]/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.114     0.155 r  genNtrace.genCompactPacker.compact_packer_inst/Pos_reg[2]/Q
+                         net (fo=110, unplaced)       0.202     0.357    genNtrace.genCompactPacker.compact_packer_inst/Pos_reg_n_0_[2]
+                         LUT5 (Prop_LUT5_I0_O)        0.219     0.576 r  genNtrace.genCompactPacker.compact_packer_inst/nbits1_carry_i_6/O
+                         net (fo=1, unplaced)         0.228     0.804    genNtrace.genCompactPacker.compact_packer_inst/nbits1_carry_i_6_n_0
+                         CARRY8 (Prop_CARRY8_DI[2]_CO[7])
+                                                      0.166     0.970 r  genNtrace.genCompactPacker.compact_packer_inst/nbits1_carry/CO[7]
+                         net (fo=1, unplaced)         0.006     0.976    genNtrace.genCompactPacker.compact_packer_inst/nbits1_carry_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.073     1.049 r  genNtrace.genCompactPacker.compact_packer_inst/nbits1_carry__0/CO[7]
+                         net (fo=122, unplaced)       0.177     1.226    genNtrace.genCompactPacker.compact_packer_inst/nbits1__15
+                         LUT4 (Prop_LUT4_I2_O)        0.092     1.318 r  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_19/O
+                         net (fo=1, unplaced)         0.227     1.545    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_19_n_0
+                         CARRY8 (Prop_CARRY8_DI[0]_CO[7])
+                                                      0.241     1.786 r  genNtrace.genCompactPacker.compact_packer_inst/OutBits_reg[5]_i_7/CO[7]
+                         net (fo=1, unplaced)         0.006     1.792    genNtrace.genCompactPacker.compact_packer_inst/OutBits_reg[5]_i_7_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[4])
+                                                      0.119     1.911 f  genNtrace.genCompactPacker.compact_packer_inst/OutBits_reg[5]_i_35/O[4]
+                         net (fo=1, unplaced)         0.264     2.175    genNtrace.genCompactPacker.compact_packer_inst/mask1[13]
+                         LUT6 (Prop_LUT6_I0_O)        0.188     2.363 f  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_46/O
+                         net (fo=1, unplaced)         0.211     2.574    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_46_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.058     2.632 f  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_34/O
+                         net (fo=1, unplaced)         0.211     2.843    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_34_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.058     2.901 r  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_16/O
+                         net (fo=3, unplaced)         0.217     3.118    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_16_n_0
+                         LUT2 (Prop_LUT2_I0_O)        0.092     3.210 r  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_5/O
+                         net (fo=5, unplaced)         0.229     3.439    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_5_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.058     3.497 f  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_13/O
+                         net (fo=1, unplaced)         0.153     3.650    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_13_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.137     3.787 f  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_4/O
+                         net (fo=2, unplaced)         0.211     3.998    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_4_n_0
+                         LUT6 (Prop_LUT6_I3_O)        0.058     4.056 r  genNtrace.genCompactPacker.compact_packer_inst/OutBits[4]_i_1/O
+                         net (fo=2, unplaced)         0.067     4.123    genNtrace.genCompactPacker.compact_packer_inst/OutBits[4]_i_1_n_0
+                         FDRE                                         r  genNtrace.genCompactPacker.compact_packer_inst/Acc_reg[4]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock proc_clk rise edge)
+                                                      5.000     5.000 r  
+                                                      0.000     5.000 r  proc_clk (IN)
+                         net (fo=746, unset)          0.029     5.029    genNtrace.genCompactPacker.compact_packer_inst/proc_clk
+                         FDRE                                         r  genNtrace.genCompactPacker.compact_packer_inst/Acc_reg[4]/C
+                         clock pessimism              0.000     5.029    
+                         clock uncertainty           -0.035     4.994    
+                         FDRE (Setup_FDRE_C_D)        0.044     5.038    genNtrace.genCompactPacker.compact_packer_inst/Acc_reg[4]
+  -------------------------------------------------------------------
+                         required time                          5.038    
+                         arrival time                          -4.123    
+  -------------------------------------------------------------------
+                         slack                                  0.915    
+
+Slack (MET) :             0.915ns  (required time - arrival time)
+  Source:                 genNtrace.genCompactPacker.compact_packer_inst/Pos_reg[2]/C
+                            (rising edge-triggered cell FDRE clocked by proc_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Destination:            genNtrace.genCompactPacker.compact_packer_inst/Acc_reg[5]/D
+                            (rising edge-triggered cell FDRE clocked by proc_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Path Group:             proc_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            5.000ns  (proc_clk rise@5.000ns - proc_clk rise@0.000ns)
+  Data Path Delay:        4.082ns  (logic 1.673ns (40.985%)  route 2.409ns (59.015%))
+  Logic Levels:           13  (CARRY8=4 LUT2=1 LUT4=1 LUT5=1 LUT6=6)
+  Clock Path Skew:        -0.012ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.029ns = ( 5.029 - 5.000 ) 
+    Source Clock Delay      (SCD):    0.041ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock proc_clk rise edge)
+                                                      0.000     0.000 r  
+                                                      0.000     0.000 r  proc_clk (IN)
+                         net (fo=746, unset)          0.041     0.041    genNtrace.genCompactPacker.compact_packer_inst/proc_clk
+                         FDRE                                         r  genNtrace.genCompactPacker.compact_packer_inst/Pos_reg[2]/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.114     0.155 r  genNtrace.genCompactPacker.compact_packer_inst/Pos_reg[2]/Q
+                         net (fo=110, unplaced)       0.202     0.357    genNtrace.genCompactPacker.compact_packer_inst/Pos_reg_n_0_[2]
+                         LUT5 (Prop_LUT5_I0_O)        0.219     0.576 r  genNtrace.genCompactPacker.compact_packer_inst/nbits1_carry_i_6/O
+                         net (fo=1, unplaced)         0.228     0.804    genNtrace.genCompactPacker.compact_packer_inst/nbits1_carry_i_6_n_0
+                         CARRY8 (Prop_CARRY8_DI[2]_CO[7])
+                                                      0.166     0.970 r  genNtrace.genCompactPacker.compact_packer_inst/nbits1_carry/CO[7]
+                         net (fo=1, unplaced)         0.006     0.976    genNtrace.genCompactPacker.compact_packer_inst/nbits1_carry_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.073     1.049 r  genNtrace.genCompactPacker.compact_packer_inst/nbits1_carry__0/CO[7]
+                         net (fo=122, unplaced)       0.177     1.226    genNtrace.genCompactPacker.compact_packer_inst/nbits1__15
+                         LUT4 (Prop_LUT4_I2_O)        0.092     1.318 r  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_19/O
+                         net (fo=1, unplaced)         0.227     1.545    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_19_n_0
+                         CARRY8 (Prop_CARRY8_DI[0]_CO[7])
+                                                      0.241     1.786 r  genNtrace.genCompactPacker.compact_packer_inst/OutBits_reg[5]_i_7/CO[7]
+                         net (fo=1, unplaced)         0.006     1.792    genNtrace.genCompactPacker.compact_packer_inst/OutBits_reg[5]_i_7_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[4])
+                                                      0.119     1.911 f  genNtrace.genCompactPacker.compact_packer_inst/OutBits_reg[5]_i_35/O[4]
+                         net (fo=1, unplaced)         0.264     2.175    genNtrace.genCompactPacker.compact_packer_inst/mask1[13]
+                         LUT6 (Prop_LUT6_I0_O)        0.188     2.363 f  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_46/O
+                         net (fo=1, unplaced)         0.211     2.574    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_46_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.058     2.632 f  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_34/O
+                         net (fo=1, unplaced)         0.211     2.843    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_34_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.058     2.901 r  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_16/O
+                         net (fo=3, unplaced)         0.217     3.118    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_16_n_0
+                         LUT2 (Prop_LUT2_I0_O)        0.092     3.210 r  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_5/O
+                         net (fo=5, unplaced)         0.229     3.439    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_5_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.058     3.497 f  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_13/O
+                         net (fo=1, unplaced)         0.153     3.650    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_13_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.137     3.787 f  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_4/O
+                         net (fo=2, unplaced)         0.211     3.998    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_4_n_0
+                         LUT6 (Prop_LUT6_I4_O)        0.058     4.056 r  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_1/O
+                         net (fo=2, unplaced)         0.067     4.123    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_1_n_0
+                         FDRE                                         r  genNtrace.genCompactPacker.compact_packer_inst/Acc_reg[5]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock proc_clk rise edge)
+                                                      5.000     5.000 r  
+                                                      0.000     5.000 r  proc_clk (IN)
+                         net (fo=746, unset)          0.029     5.029    genNtrace.genCompactPacker.compact_packer_inst/proc_clk
+                         FDRE                                         r  genNtrace.genCompactPacker.compact_packer_inst/Acc_reg[5]/C
+                         clock pessimism              0.000     5.029    
+                         clock uncertainty           -0.035     4.994    
+                         FDRE (Setup_FDRE_C_D)        0.044     5.038    genNtrace.genCompactPacker.compact_packer_inst/Acc_reg[5]
+  -------------------------------------------------------------------
+                         required time                          5.038    
+                         arrival time                          -4.123    
+  -------------------------------------------------------------------
+                         slack                                  0.915    
+
+Slack (MET) :             0.915ns  (required time - arrival time)
+  Source:                 genNtrace.genCompactPacker.compact_packer_inst/Pos_reg[2]/C
+                            (rising edge-triggered cell FDRE clocked by proc_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Destination:            genNtrace.genCompactPacker.compact_packer_inst/OutBits_reg[4]/D
+                            (rising edge-triggered cell FDRE clocked by proc_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Path Group:             proc_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            5.000ns  (proc_clk rise@5.000ns - proc_clk rise@0.000ns)
+  Data Path Delay:        4.082ns  (logic 1.673ns (40.985%)  route 2.409ns (59.015%))
+  Logic Levels:           13  (CARRY8=4 LUT2=1 LUT4=1 LUT5=1 LUT6=6)
+  Clock Path Skew:        -0.012ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.029ns = ( 5.029 - 5.000 ) 
+    Source Clock Delay      (SCD):    0.041ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock proc_clk rise edge)
+                                                      0.000     0.000 r  
+                                                      0.000     0.000 r  proc_clk (IN)
+                         net (fo=746, unset)          0.041     0.041    genNtrace.genCompactPacker.compact_packer_inst/proc_clk
+                         FDRE                                         r  genNtrace.genCompactPacker.compact_packer_inst/Pos_reg[2]/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.114     0.155 r  genNtrace.genCompactPacker.compact_packer_inst/Pos_reg[2]/Q
+                         net (fo=110, unplaced)       0.202     0.357    genNtrace.genCompactPacker.compact_packer_inst/Pos_reg_n_0_[2]
+                         LUT5 (Prop_LUT5_I0_O)        0.219     0.576 r  genNtrace.genCompactPacker.compact_packer_inst/nbits1_carry_i_6/O
+                         net (fo=1, unplaced)         0.228     0.804    genNtrace.genCompactPacker.compact_packer_inst/nbits1_carry_i_6_n_0
+                         CARRY8 (Prop_CARRY8_DI[2]_CO[7])
+                                                      0.166     0.970 r  genNtrace.genCompactPacker.compact_packer_inst/nbits1_carry/CO[7]
+                         net (fo=1, unplaced)         0.006     0.976    genNtrace.genCompactPacker.compact_packer_inst/nbits1_carry_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.073     1.049 r  genNtrace.genCompactPacker.compact_packer_inst/nbits1_carry__0/CO[7]
+                         net (fo=122, unplaced)       0.177     1.226    genNtrace.genCompactPacker.compact_packer_inst/nbits1__15
+                         LUT4 (Prop_LUT4_I2_O)        0.092     1.318 r  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_19/O
+                         net (fo=1, unplaced)         0.227     1.545    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_19_n_0
+                         CARRY8 (Prop_CARRY8_DI[0]_CO[7])
+                                                      0.241     1.786 r  genNtrace.genCompactPacker.compact_packer_inst/OutBits_reg[5]_i_7/CO[7]
+                         net (fo=1, unplaced)         0.006     1.792    genNtrace.genCompactPacker.compact_packer_inst/OutBits_reg[5]_i_7_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[4])
+                                                      0.119     1.911 f  genNtrace.genCompactPacker.compact_packer_inst/OutBits_reg[5]_i_35/O[4]
+                         net (fo=1, unplaced)         0.264     2.175    genNtrace.genCompactPacker.compact_packer_inst/mask1[13]
+                         LUT6 (Prop_LUT6_I0_O)        0.188     2.363 f  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_46/O
+                         net (fo=1, unplaced)         0.211     2.574    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_46_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.058     2.632 f  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_34/O
+                         net (fo=1, unplaced)         0.211     2.843    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_34_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.058     2.901 r  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_16/O
+                         net (fo=3, unplaced)         0.217     3.118    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_16_n_0
+                         LUT2 (Prop_LUT2_I0_O)        0.092     3.210 r  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_5/O
+                         net (fo=5, unplaced)         0.229     3.439    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_5_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.058     3.497 f  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_13/O
+                         net (fo=1, unplaced)         0.153     3.650    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_13_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.137     3.787 f  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_4/O
+                         net (fo=2, unplaced)         0.211     3.998    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_4_n_0
+                         LUT6 (Prop_LUT6_I3_O)        0.058     4.056 r  genNtrace.genCompactPacker.compact_packer_inst/OutBits[4]_i_1/O
+                         net (fo=2, unplaced)         0.067     4.123    genNtrace.genCompactPacker.compact_packer_inst/OutBits[4]_i_1_n_0
+                         FDRE                                         r  genNtrace.genCompactPacker.compact_packer_inst/OutBits_reg[4]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock proc_clk rise edge)
+                                                      5.000     5.000 r  
+                                                      0.000     5.000 r  proc_clk (IN)
+                         net (fo=746, unset)          0.029     5.029    genNtrace.genCompactPacker.compact_packer_inst/proc_clk
+                         FDRE                                         r  genNtrace.genCompactPacker.compact_packer_inst/OutBits_reg[4]/C
+                         clock pessimism              0.000     5.029    
+                         clock uncertainty           -0.035     4.994    
+                         FDRE (Setup_FDRE_C_D)        0.044     5.038    genNtrace.genCompactPacker.compact_packer_inst/OutBits_reg[4]
+  -------------------------------------------------------------------
+                         required time                          5.038    
+                         arrival time                          -4.123    
+  -------------------------------------------------------------------
+                         slack                                  0.915    
+
+Slack (MET) :             0.915ns  (required time - arrival time)
+  Source:                 genNtrace.genCompactPacker.compact_packer_inst/Pos_reg[2]/C
+                            (rising edge-triggered cell FDRE clocked by proc_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Destination:            genNtrace.genCompactPacker.compact_packer_inst/OutBits_reg[5]/D
+                            (rising edge-triggered cell FDRE clocked by proc_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Path Group:             proc_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            5.000ns  (proc_clk rise@5.000ns - proc_clk rise@0.000ns)
+  Data Path Delay:        4.082ns  (logic 1.673ns (40.985%)  route 2.409ns (59.015%))
+  Logic Levels:           13  (CARRY8=4 LUT2=1 LUT4=1 LUT5=1 LUT6=6)
+  Clock Path Skew:        -0.012ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.029ns = ( 5.029 - 5.000 ) 
+    Source Clock Delay      (SCD):    0.041ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock proc_clk rise edge)
+                                                      0.000     0.000 r  
+                                                      0.000     0.000 r  proc_clk (IN)
+                         net (fo=746, unset)          0.041     0.041    genNtrace.genCompactPacker.compact_packer_inst/proc_clk
+                         FDRE                                         r  genNtrace.genCompactPacker.compact_packer_inst/Pos_reg[2]/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.114     0.155 r  genNtrace.genCompactPacker.compact_packer_inst/Pos_reg[2]/Q
+                         net (fo=110, unplaced)       0.202     0.357    genNtrace.genCompactPacker.compact_packer_inst/Pos_reg_n_0_[2]
+                         LUT5 (Prop_LUT5_I0_O)        0.219     0.576 r  genNtrace.genCompactPacker.compact_packer_inst/nbits1_carry_i_6/O
+                         net (fo=1, unplaced)         0.228     0.804    genNtrace.genCompactPacker.compact_packer_inst/nbits1_carry_i_6_n_0
+                         CARRY8 (Prop_CARRY8_DI[2]_CO[7])
+                                                      0.166     0.970 r  genNtrace.genCompactPacker.compact_packer_inst/nbits1_carry/CO[7]
+                         net (fo=1, unplaced)         0.006     0.976    genNtrace.genCompactPacker.compact_packer_inst/nbits1_carry_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.073     1.049 r  genNtrace.genCompactPacker.compact_packer_inst/nbits1_carry__0/CO[7]
+                         net (fo=122, unplaced)       0.177     1.226    genNtrace.genCompactPacker.compact_packer_inst/nbits1__15
+                         LUT4 (Prop_LUT4_I2_O)        0.092     1.318 r  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_19/O
+                         net (fo=1, unplaced)         0.227     1.545    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_19_n_0
+                         CARRY8 (Prop_CARRY8_DI[0]_CO[7])
+                                                      0.241     1.786 r  genNtrace.genCompactPacker.compact_packer_inst/OutBits_reg[5]_i_7/CO[7]
+                         net (fo=1, unplaced)         0.006     1.792    genNtrace.genCompactPacker.compact_packer_inst/OutBits_reg[5]_i_7_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[4])
+                                                      0.119     1.911 f  genNtrace.genCompactPacker.compact_packer_inst/OutBits_reg[5]_i_35/O[4]
+                         net (fo=1, unplaced)         0.264     2.175    genNtrace.genCompactPacker.compact_packer_inst/mask1[13]
+                         LUT6 (Prop_LUT6_I0_O)        0.188     2.363 f  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_46/O
+                         net (fo=1, unplaced)         0.211     2.574    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_46_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.058     2.632 f  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_34/O
+                         net (fo=1, unplaced)         0.211     2.843    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_34_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.058     2.901 r  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_16/O
+                         net (fo=3, unplaced)         0.217     3.118    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_16_n_0
+                         LUT2 (Prop_LUT2_I0_O)        0.092     3.210 r  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_5/O
+                         net (fo=5, unplaced)         0.229     3.439    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_5_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.058     3.497 f  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_13/O
+                         net (fo=1, unplaced)         0.153     3.650    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_13_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.137     3.787 f  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_4/O
+                         net (fo=2, unplaced)         0.211     3.998    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_4_n_0
+                         LUT6 (Prop_LUT6_I4_O)        0.058     4.056 r  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_1/O
+                         net (fo=2, unplaced)         0.067     4.123    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_1_n_0
+                         FDRE                                         r  genNtrace.genCompactPacker.compact_packer_inst/OutBits_reg[5]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock proc_clk rise edge)
+                                                      5.000     5.000 r  
+                                                      0.000     5.000 r  proc_clk (IN)
+                         net (fo=746, unset)          0.029     5.029    genNtrace.genCompactPacker.compact_packer_inst/proc_clk
+                         FDRE                                         r  genNtrace.genCompactPacker.compact_packer_inst/OutBits_reg[5]/C
+                         clock pessimism              0.000     5.029    
+                         clock uncertainty           -0.035     4.994    
+                         FDRE (Setup_FDRE_C_D)        0.044     5.038    genNtrace.genCompactPacker.compact_packer_inst/OutBits_reg[5]
+  -------------------------------------------------------------------
+                         required time                          5.038    
+                         arrival time                          -4.123    
+  -------------------------------------------------------------------
+                         slack                                  0.915    
+
+Slack (MET) :             0.936ns  (required time - arrival time)
+  Source:                 genNtrace.genCompactPacker.compact_packer_inst/Pos_reg[2]/C
+                            (rising edge-triggered cell FDRE clocked by proc_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Destination:            genNtrace.genCompactPacker.compact_packer_inst/Acc_reg[2]/D
+                            (rising edge-triggered cell FDRE clocked by proc_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Path Group:             proc_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            5.000ns  (proc_clk rise@5.000ns - proc_clk rise@0.000ns)
+  Data Path Delay:        4.061ns  (logic 1.594ns (39.251%)  route 2.467ns (60.749%))
+  Logic Levels:           13  (CARRY8=4 LUT2=1 LUT4=1 LUT5=3 LUT6=4)
+  Clock Path Skew:        -0.012ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.029ns = ( 5.029 - 5.000 ) 
+    Source Clock Delay      (SCD):    0.041ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock proc_clk rise edge)
+                                                      0.000     0.000 r  
+                                                      0.000     0.000 r  proc_clk (IN)
+                         net (fo=746, unset)          0.041     0.041    genNtrace.genCompactPacker.compact_packer_inst/proc_clk
+                         FDRE                                         r  genNtrace.genCompactPacker.compact_packer_inst/Pos_reg[2]/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.114     0.155 r  genNtrace.genCompactPacker.compact_packer_inst/Pos_reg[2]/Q
+                         net (fo=110, unplaced)       0.202     0.357    genNtrace.genCompactPacker.compact_packer_inst/Pos_reg_n_0_[2]
+                         LUT5 (Prop_LUT5_I0_O)        0.219     0.576 r  genNtrace.genCompactPacker.compact_packer_inst/nbits1_carry_i_6/O
+                         net (fo=1, unplaced)         0.228     0.804    genNtrace.genCompactPacker.compact_packer_inst/nbits1_carry_i_6_n_0
+                         CARRY8 (Prop_CARRY8_DI[2]_CO[7])
+                                                      0.166     0.970 r  genNtrace.genCompactPacker.compact_packer_inst/nbits1_carry/CO[7]
+                         net (fo=1, unplaced)         0.006     0.976    genNtrace.genCompactPacker.compact_packer_inst/nbits1_carry_n_0
+                         CARRY8 (Prop_CARRY8_CI_CO[7])
+                                                      0.073     1.049 r  genNtrace.genCompactPacker.compact_packer_inst/nbits1_carry__0/CO[7]
+                         net (fo=122, unplaced)       0.177     1.226    genNtrace.genCompactPacker.compact_packer_inst/nbits1__15
+                         LUT4 (Prop_LUT4_I2_O)        0.092     1.318 r  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_19/O
+                         net (fo=1, unplaced)         0.227     1.545    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_19_n_0
+                         CARRY8 (Prop_CARRY8_DI[0]_CO[7])
+                                                      0.241     1.786 r  genNtrace.genCompactPacker.compact_packer_inst/OutBits_reg[5]_i_7/CO[7]
+                         net (fo=1, unplaced)         0.006     1.792    genNtrace.genCompactPacker.compact_packer_inst/OutBits_reg[5]_i_7_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[4])
+                                                      0.119     1.911 f  genNtrace.genCompactPacker.compact_packer_inst/OutBits_reg[5]_i_35/O[4]
+                         net (fo=1, unplaced)         0.264     2.175    genNtrace.genCompactPacker.compact_packer_inst/mask1[13]
+                         LUT6 (Prop_LUT6_I0_O)        0.188     2.363 f  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_46/O
+                         net (fo=1, unplaced)         0.211     2.574    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_46_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.058     2.632 f  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_34/O
+                         net (fo=1, unplaced)         0.211     2.843    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_34_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.058     2.901 r  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_16/O
+                         net (fo=3, unplaced)         0.217     3.118    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_16_n_0
+                         LUT2 (Prop_LUT2_I0_O)        0.092     3.210 r  genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_5/O
+                         net (fo=5, unplaced)         0.229     3.439    genNtrace.genCompactPacker.compact_packer_inst/OutBits[5]_i_5_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.058     3.497 f  genNtrace.genCompactPacker.compact_packer_inst/OutBits[3]_i_3/O
+                         net (fo=1, unplaced)         0.211     3.708    genNtrace.genCompactPacker.compact_packer_inst/OutBits[3]_i_3_n_0
+                         LUT5 (Prop_LUT5_I2_O)        0.058     3.766 f  genNtrace.genCompactPacker.compact_packer_inst/OutBits[3]_i_2/O
+                         net (fo=2, unplaced)         0.211     3.977    genNtrace.genCompactPacker.compact_packer_inst/OutBits[3]_i_2_n_0
+                         LUT5 (Prop_LUT5_I0_O)        0.058     4.035 r  genNtrace.genCompactPacker.compact_packer_inst/OutBits[2]_i_1/O
+                         net (fo=2, unplaced)         0.067     4.102    genNtrace.genCompactPacker.compact_packer_inst/OutBits[2]_i_1_n_0
+                         FDRE                                         r  genNtrace.genCompactPacker.compact_packer_inst/Acc_reg[2]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock proc_clk rise edge)
+                                                      5.000     5.000 r  
+                                                      0.000     5.000 r  proc_clk (IN)
+                         net (fo=746, unset)          0.029     5.029    genNtrace.genCompactPacker.compact_packer_inst/proc_clk
+                         FDRE                                         r  genNtrace.genCompactPacker.compact_packer_inst/Acc_reg[2]/C
+                         clock pessimism              0.000     5.029    
+                         clock uncertainty           -0.035     4.994    
+                         FDRE (Setup_FDRE_C_D)        0.044     5.038    genNtrace.genCompactPacker.compact_packer_inst/Acc_reg[2]
+  -------------------------------------------------------------------
+                         required time                          5.038    
+                         arrival time                          -4.102    
+  -------------------------------------------------------------------
+                         slack                                  0.936    
+
+
+
+
+
+Pulse Width Checks
+--------------------------------------------------------------------------------------
+Clock Name:         proc_clk
+Waveform(ns):       { 0.000 2.500 }
+Period(ns):         5.000
+Sources:            { proc_clk }
+
+Check Type        Corner  Lib Pin     Reference Pin  Required(ns)  Actual(ns)  Slack(ns)  Location  Pin
+Min Period        n/a     SRL16E/CLK  n/a            1.524         5.000       3.476                genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/genShift.SR_reg[7][0]_srl8/CLK
+Min Period        n/a     SRL16E/CLK  n/a            1.524         5.000       3.476                genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/genShift.SR_reg[7][10]_srl8/CLK
+Min Period        n/a     SRL16E/CLK  n/a            1.524         5.000       3.476                genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/genShift.SR_reg[7][11]_srl8/CLK
+Min Period        n/a     SRL16E/CLK  n/a            1.524         5.000       3.476                genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/genShift.SR_reg[7][12]_srl8/CLK
+Min Period        n/a     SRL16E/CLK  n/a            1.524         5.000       3.476                genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/genShift.SR_reg[7][13]_srl8/CLK
+Low Pulse Width   Slow    SRL16E/CLK  n/a            0.762         2.500       1.738                genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/genShift.SR_reg[7][0]_srl8/CLK
+Low Pulse Width   Fast    SRL16E/CLK  n/a            0.762         2.500       1.738                genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/genShift.SR_reg[7][0]_srl8/CLK
+Low Pulse Width   Slow    SRL16E/CLK  n/a            0.762         2.500       1.738                genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/genShift.SR_reg[7][10]_srl8/CLK
+Low Pulse Width   Fast    SRL16E/CLK  n/a            0.762         2.500       1.738                genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/genShift.SR_reg[7][10]_srl8/CLK
+Low Pulse Width   Slow    SRL16E/CLK  n/a            0.762         2.500       1.738                genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/genShift.SR_reg[7][11]_srl8/CLK
+High Pulse Width  Slow    SRL16E/CLK  n/a            0.762         2.500       1.738                genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/genShift.SR_reg[7][0]_srl8/CLK
+High Pulse Width  Fast    SRL16E/CLK  n/a            0.762         2.500       1.738                genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/genShift.SR_reg[7][0]_srl8/CLK
+High Pulse Width  Slow    SRL16E/CLK  n/a            0.762         2.500       1.738                genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/genShift.SR_reg[7][10]_srl8/CLK
+High Pulse Width  Fast    SRL16E/CLK  n/a            0.762         2.500       1.738                genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/genShift.SR_reg[7][10]_srl8/CLK
+High Pulse Width  Slow    SRL16E/CLK  n/a            0.762         2.500       1.738                genNtrace.genCompactPacker.compact_packer_inst/genAtbFifo1clk.atb_cdc_fifo/genShift.SR_reg[7][11]_srl8/CLK
+
+
+
+---------------------------------------------------------------------------------------------------
+From Clock:  tip_clk
+  To Clock:  tip_clk
+
+Setup :            0  Failing Endpoints,  Worst Slack        0.339ns,  Total Violation        0.000ns
+Hold  :           NA  Failing Endpoints,  Worst Slack           NA  ,  Total Violation           NA
+PW    :            0  Failing Endpoints,  Worst Slack        1.738ns,  Total Violation        0.000ns
+---------------------------------------------------------------------------------------------------
+
+
+Max Delay Paths
+--------------------------------------------------------------------------------------
+Slack (MET) :             0.339ns  (required time - arrival time)
+  Source:                 preproc_inst/composer_etip_inst/PrevDbgMode_reg/C
+                            (rising edge-triggered cell FDRE clocked by tip_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Destination:            preproc_inst/composer_etip_inst/EtipMsg_reg[0][sub][21]/D
+                            (rising edge-triggered cell FDRE clocked by tip_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Path Group:             tip_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            5.000ns  (tip_clk rise@5.000ns - tip_clk rise@0.000ns)
+  Data Path Delay:        4.658ns  (logic 2.030ns (43.581%)  route 2.628ns (56.419%))
+  Logic Levels:           16  (CARRY8=6 LUT3=1 LUT4=4 LUT5=2 LUT6=3)
+  Clock Path Skew:        -0.012ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.029ns = ( 5.029 - 5.000 ) 
+    Source Clock Delay      (SCD):    0.041ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock tip_clk rise edge)    0.000     0.000 r  
+                                                      0.000     0.000 r  tip_clk (IN)
+                         net (fo=4128, unset)         0.041     0.041    preproc_inst/composer_etip_inst/tip_clk
+                         FDRE                                         r  preproc_inst/composer_etip_inst/PrevDbgMode_reg/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.114     0.155 r  preproc_inst/composer_etip_inst/PrevDbgMode_reg/Q
+                         net (fo=28, unplaced)        0.171     0.326    preproc_inst/composer_etip_inst/PrevDbgMode
+                         LUT5 (Prop_LUT5_I0_O)        0.188     0.514 r  preproc_inst/composer_etip_inst/ICntCum[17]_i_7/O
+                         net (fo=140, unplaced)       0.304     0.818    preproc_inst/composer_etip_inst/PrevDbgMode_reg_0
+                         LUT4 (Prop_LUT4_I1_O)        0.058     0.876 r  preproc_inst/composer_etip_inst/EtipMsg[3][sub][74]_i_28/O
+                         net (fo=1, unplaced)         0.022     0.898    preproc_inst/composer_etip_inst/EtipMsg[3][sub][74]_i_28_n_0
+                         CARRY8 (Prop_CARRY8_S[0]_CO[7])
+                                                      0.286     1.184 r  preproc_inst/composer_etip_inst/EtipMsg_reg[3][sub][74]_i_10/CO[7]
+                         net (fo=1, unplaced)         0.006     1.190    preproc_inst/composer_etip_inst/EtipMsg_reg[3][sub][74]_i_10_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[4])
+                                                      0.119     1.309 f  preproc_inst/composer_etip_inst/EtipMsg_reg[3][sub][74]_i_6/O[4]
+                         net (fo=1, unplaced)         0.212     1.521    preproc_inst/composer_etip_inst/msg_id_next2[12]
+                         LUT4 (Prop_LUT4_I1_O)        0.137     1.658 f  preproc_inst/composer_etip_inst/EtipMsg[3][sub][74]_i_9/O
+                         net (fo=1, unplaced)         0.211     1.869    preproc_inst/composer_etip_inst/EtipMsg[3][sub][74]_i_9_n_0
+                         LUT5 (Prop_LUT5_I4_O)        0.058     1.927 r  preproc_inst/composer_etip_inst/EtipMsg[3][sub][74]_i_5/O
+                         net (fo=6, unplaced)         0.233     2.160    preproc_inst/tip_delay_inst/EtipMsg[0][sub][79]_i_2
+                         LUT6 (Prop_LUT6_I0_O)        0.058     2.218 r  preproc_inst/tip_delay_inst/EtipMsg[0][sub][79]_i_3/O
+                         net (fo=20, unplaced)        0.260     2.478    preproc_inst/tip_delay_inst/ItaPipe_reg[1]_5
+                         LUT4 (Prop_LUT4_I1_O)        0.058     2.536 r  preproc_inst/tip_delay_inst/EtipMsg[4][sub][12]_i_15/O
+                         net (fo=1, unplaced)         0.022     2.558    preproc_inst/tip_delay_inst/EtipMsg[4][sub][12]_i_15_n_0
+                         CARRY8 (Prop_CARRY8_S[0]_CO[7])
+                                                      0.286     2.844 r  preproc_inst/tip_delay_inst/EtipMsg_reg[4][sub][12]_i_2/CO[7]
+                         net (fo=1, unplaced)         0.006     2.850    preproc_inst/tip_delay_inst/EtipMsg_reg[4][sub][12]_i_2_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[1])
+                                                      0.106     2.956 r  preproc_inst/tip_delay_inst/EtipMsg_reg[4][sub][13]_i_5/O[1]
+                         net (fo=5, unplaced)         0.227     3.183    preproc_inst/composer_etip_inst/icnt_cum_next0[9]
+                         LUT4 (Prop_LUT4_I3_O)        0.097     3.280 r  preproc_inst/composer_etip_inst/EtipMsg[4][sub][13]_i_12/O
+                         net (fo=1, unplaced)         0.230     3.510    preproc_inst/composer_etip_inst/EtipMsg[4][sub][13]_i_12_n_0
+                         CARRY8 (Prop_CARRY8_DI[1]_CO[7])
+                                                      0.179     3.689 r  preproc_inst/composer_etip_inst/EtipMsg_reg[4][sub][13]_i_3/CO[7]
+                         net (fo=1, unplaced)         0.006     3.695    preproc_inst/composer_etip_inst/EtipMsg_reg[4][sub][13]_i_3_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[0])
+                                                      0.078     3.773 r  preproc_inst/composer_etip_inst/EtipMsg_reg[4][sub][34]_i_2/O[0]
+                         net (fo=1, unplaced)         0.211     3.984    preproc_inst/composer_etip_inst/EtipMsg_reg[4][sub][34]_i_2_n_15
+                         LUT6 (Prop_LUT6_I4_O)        0.058     4.042 r  preproc_inst/composer_etip_inst/EtipMsg[4][sub][21]_i_2/O
+                         net (fo=5, unplaced)         0.229     4.271    preproc_inst/composer_etip_inst/ICntCum_reg[16]_1
+                         LUT6 (Prop_LUT6_I4_O)        0.058     4.329 r  preproc_inst/composer_etip_inst/EtipMsg[0][sub][21]_i_2/O
+                         net (fo=1, unplaced)         0.211     4.540    preproc_inst/composer_etip_inst/EtipMsg[0][sub][21]_i_2_n_0
+                         LUT3 (Prop_LUT3_I2_O)        0.092     4.632 r  preproc_inst/composer_etip_inst/EtipMsg[0][sub][21]_i_1/O
+                         net (fo=1, unplaced)         0.067     4.699    preproc_inst/composer_etip_inst/EtipMsg[0][sub][21]_i_1_n_0
+                         FDRE                                         r  preproc_inst/composer_etip_inst/EtipMsg_reg[0][sub][21]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock tip_clk rise edge)    5.000     5.000 r  
+                                                      0.000     5.000 r  tip_clk (IN)
+                         net (fo=4128, unset)         0.029     5.029    preproc_inst/composer_etip_inst/tip_clk
+                         FDRE                                         r  preproc_inst/composer_etip_inst/EtipMsg_reg[0][sub][21]/C
+                         clock pessimism              0.000     5.029    
+                         clock uncertainty           -0.035     4.994    
+                         FDRE (Setup_FDRE_C_D)        0.044     5.038    preproc_inst/composer_etip_inst/EtipMsg_reg[0][sub][21]
+  -------------------------------------------------------------------
+                         required time                          5.038    
+                         arrival time                          -4.699    
+  -------------------------------------------------------------------
+                         slack                                  0.339    
+
+Slack (MET) :             0.347ns  (required time - arrival time)
+  Source:                 preproc_inst/composer_etip_inst/PrevDbgMode_reg/C
+                            (rising edge-triggered cell FDRE clocked by tip_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Destination:            preproc_inst/composer_etip_inst/EtipMsg_reg[0][sub][22]/D
+                            (rising edge-triggered cell FDRE clocked by tip_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Path Group:             tip_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            5.000ns  (tip_clk rise@5.000ns - tip_clk rise@0.000ns)
+  Data Path Delay:        4.650ns  (logic 2.024ns (43.527%)  route 2.626ns (56.473%))
+  Logic Levels:           16  (CARRY8=6 LUT3=1 LUT4=4 LUT5=2 LUT6=3)
+  Clock Path Skew:        -0.012ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.029ns = ( 5.029 - 5.000 ) 
+    Source Clock Delay      (SCD):    0.041ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock tip_clk rise edge)    0.000     0.000 r  
+                                                      0.000     0.000 r  tip_clk (IN)
+                         net (fo=4128, unset)         0.041     0.041    preproc_inst/composer_etip_inst/tip_clk
+                         FDRE                                         r  preproc_inst/composer_etip_inst/PrevDbgMode_reg/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.114     0.155 r  preproc_inst/composer_etip_inst/PrevDbgMode_reg/Q
+                         net (fo=28, unplaced)        0.171     0.326    preproc_inst/composer_etip_inst/PrevDbgMode
+                         LUT5 (Prop_LUT5_I0_O)        0.188     0.514 r  preproc_inst/composer_etip_inst/ICntCum[17]_i_7/O
+                         net (fo=140, unplaced)       0.304     0.818    preproc_inst/composer_etip_inst/PrevDbgMode_reg_0
+                         LUT4 (Prop_LUT4_I1_O)        0.058     0.876 r  preproc_inst/composer_etip_inst/EtipMsg[3][sub][74]_i_28/O
+                         net (fo=1, unplaced)         0.022     0.898    preproc_inst/composer_etip_inst/EtipMsg[3][sub][74]_i_28_n_0
+                         CARRY8 (Prop_CARRY8_S[0]_CO[7])
+                                                      0.286     1.184 r  preproc_inst/composer_etip_inst/EtipMsg_reg[3][sub][74]_i_10/CO[7]
+                         net (fo=1, unplaced)         0.006     1.190    preproc_inst/composer_etip_inst/EtipMsg_reg[3][sub][74]_i_10_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[4])
+                                                      0.119     1.309 f  preproc_inst/composer_etip_inst/EtipMsg_reg[3][sub][74]_i_6/O[4]
+                         net (fo=1, unplaced)         0.212     1.521    preproc_inst/composer_etip_inst/msg_id_next2[12]
+                         LUT4 (Prop_LUT4_I1_O)        0.137     1.658 f  preproc_inst/composer_etip_inst/EtipMsg[3][sub][74]_i_9/O
+                         net (fo=1, unplaced)         0.211     1.869    preproc_inst/composer_etip_inst/EtipMsg[3][sub][74]_i_9_n_0
+                         LUT5 (Prop_LUT5_I4_O)        0.058     1.927 r  preproc_inst/composer_etip_inst/EtipMsg[3][sub][74]_i_5/O
+                         net (fo=6, unplaced)         0.233     2.160    preproc_inst/tip_delay_inst/EtipMsg[0][sub][79]_i_2
+                         LUT6 (Prop_LUT6_I0_O)        0.058     2.218 r  preproc_inst/tip_delay_inst/EtipMsg[0][sub][79]_i_3/O
+                         net (fo=20, unplaced)        0.260     2.478    preproc_inst/tip_delay_inst/ItaPipe_reg[1]_5
+                         LUT4 (Prop_LUT4_I1_O)        0.058     2.536 r  preproc_inst/tip_delay_inst/EtipMsg[4][sub][12]_i_15/O
+                         net (fo=1, unplaced)         0.022     2.558    preproc_inst/tip_delay_inst/EtipMsg[4][sub][12]_i_15_n_0
+                         CARRY8 (Prop_CARRY8_S[0]_CO[7])
+                                                      0.286     2.844 r  preproc_inst/tip_delay_inst/EtipMsg_reg[4][sub][12]_i_2/CO[7]
+                         net (fo=1, unplaced)         0.006     2.850    preproc_inst/tip_delay_inst/EtipMsg_reg[4][sub][12]_i_2_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[1])
+                                                      0.106     2.956 r  preproc_inst/tip_delay_inst/EtipMsg_reg[4][sub][13]_i_5/O[1]
+                         net (fo=5, unplaced)         0.227     3.183    preproc_inst/composer_etip_inst/icnt_cum_next0[9]
+                         LUT4 (Prop_LUT4_I3_O)        0.097     3.280 r  preproc_inst/composer_etip_inst/EtipMsg[4][sub][13]_i_12/O
+                         net (fo=1, unplaced)         0.230     3.510    preproc_inst/composer_etip_inst/EtipMsg[4][sub][13]_i_12_n_0
+                         CARRY8 (Prop_CARRY8_DI[1]_CO[7])
+                                                      0.179     3.689 r  preproc_inst/composer_etip_inst/EtipMsg_reg[4][sub][13]_i_3/CO[7]
+                         net (fo=1, unplaced)         0.006     3.695    preproc_inst/composer_etip_inst/EtipMsg_reg[4][sub][13]_i_3_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[1])
+                                                      0.106     3.801 r  preproc_inst/composer_etip_inst/EtipMsg_reg[4][sub][34]_i_2/O[1]
+                         net (fo=1, unplaced)         0.209     4.010    preproc_inst/composer_etip_inst/EtipMsg_reg[4][sub][34]_i_2_n_14
+                         LUT6 (Prop_LUT6_I0_O)        0.058     4.068 r  preproc_inst/composer_etip_inst/EtipMsg[4][sub][22]_i_2/O
+                         net (fo=5, unplaced)         0.229     4.297    preproc_inst/composer_etip_inst/ICntCum_reg[17]_1
+                         LUT6 (Prop_LUT6_I4_O)        0.058     4.355 r  preproc_inst/composer_etip_inst/EtipMsg[0][sub][22]_i_2/O
+                         net (fo=1, unplaced)         0.211     4.566    preproc_inst/composer_etip_inst/EtipMsg[0][sub][22]_i_2_n_0
+                         LUT3 (Prop_LUT3_I2_O)        0.058     4.624 r  preproc_inst/composer_etip_inst/EtipMsg[0][sub][22]_i_1/O
+                         net (fo=1, unplaced)         0.067     4.691    preproc_inst/composer_etip_inst/EtipMsg[0][sub][22]_i_1_n_0
+                         FDRE                                         r  preproc_inst/composer_etip_inst/EtipMsg_reg[0][sub][22]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock tip_clk rise edge)    5.000     5.000 r  
+                                                      0.000     5.000 r  tip_clk (IN)
+                         net (fo=4128, unset)         0.029     5.029    preproc_inst/composer_etip_inst/tip_clk
+                         FDRE                                         r  preproc_inst/composer_etip_inst/EtipMsg_reg[0][sub][22]/C
+                         clock pessimism              0.000     5.029    
+                         clock uncertainty           -0.035     4.994    
+                         FDRE (Setup_FDRE_C_D)        0.044     5.038    preproc_inst/composer_etip_inst/EtipMsg_reg[0][sub][22]
+  -------------------------------------------------------------------
+                         required time                          5.038    
+                         arrival time                          -4.691    
+  -------------------------------------------------------------------
+                         slack                                  0.347    
+
+Slack (MET) :             0.347ns  (required time - arrival time)
+  Source:                 preproc_inst/composer_etip_inst/PrevDbgMode_reg/C
+                            (rising edge-triggered cell FDRE clocked by tip_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Destination:            preproc_inst/composer_etip_inst/EtipMsg_reg[1][sub][22]/D
+                            (rising edge-triggered cell FDRE clocked by tip_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Path Group:             tip_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            5.000ns  (tip_clk rise@5.000ns - tip_clk rise@0.000ns)
+  Data Path Delay:        4.650ns  (logic 2.024ns (43.527%)  route 2.626ns (56.473%))
+  Logic Levels:           16  (CARRY8=6 LUT4=4 LUT5=3 LUT6=3)
+  Clock Path Skew:        -0.012ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.029ns = ( 5.029 - 5.000 ) 
+    Source Clock Delay      (SCD):    0.041ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock tip_clk rise edge)    0.000     0.000 r  
+                                                      0.000     0.000 r  tip_clk (IN)
+                         net (fo=4128, unset)         0.041     0.041    preproc_inst/composer_etip_inst/tip_clk
+                         FDRE                                         r  preproc_inst/composer_etip_inst/PrevDbgMode_reg/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.114     0.155 r  preproc_inst/composer_etip_inst/PrevDbgMode_reg/Q
+                         net (fo=28, unplaced)        0.171     0.326    preproc_inst/composer_etip_inst/PrevDbgMode
+                         LUT5 (Prop_LUT5_I0_O)        0.188     0.514 r  preproc_inst/composer_etip_inst/ICntCum[17]_i_7/O
+                         net (fo=140, unplaced)       0.304     0.818    preproc_inst/composer_etip_inst/PrevDbgMode_reg_0
+                         LUT4 (Prop_LUT4_I1_O)        0.058     0.876 r  preproc_inst/composer_etip_inst/EtipMsg[3][sub][74]_i_28/O
+                         net (fo=1, unplaced)         0.022     0.898    preproc_inst/composer_etip_inst/EtipMsg[3][sub][74]_i_28_n_0
+                         CARRY8 (Prop_CARRY8_S[0]_CO[7])
+                                                      0.286     1.184 r  preproc_inst/composer_etip_inst/EtipMsg_reg[3][sub][74]_i_10/CO[7]
+                         net (fo=1, unplaced)         0.006     1.190    preproc_inst/composer_etip_inst/EtipMsg_reg[3][sub][74]_i_10_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[4])
+                                                      0.119     1.309 f  preproc_inst/composer_etip_inst/EtipMsg_reg[3][sub][74]_i_6/O[4]
+                         net (fo=1, unplaced)         0.212     1.521    preproc_inst/composer_etip_inst/msg_id_next2[12]
+                         LUT4 (Prop_LUT4_I1_O)        0.137     1.658 f  preproc_inst/composer_etip_inst/EtipMsg[3][sub][74]_i_9/O
+                         net (fo=1, unplaced)         0.211     1.869    preproc_inst/composer_etip_inst/EtipMsg[3][sub][74]_i_9_n_0
+                         LUT5 (Prop_LUT5_I4_O)        0.058     1.927 r  preproc_inst/composer_etip_inst/EtipMsg[3][sub][74]_i_5/O
+                         net (fo=6, unplaced)         0.233     2.160    preproc_inst/tip_delay_inst/EtipMsg[0][sub][79]_i_2
+                         LUT6 (Prop_LUT6_I0_O)        0.058     2.218 r  preproc_inst/tip_delay_inst/EtipMsg[0][sub][79]_i_3/O
+                         net (fo=20, unplaced)        0.260     2.478    preproc_inst/tip_delay_inst/ItaPipe_reg[1]_5
+                         LUT4 (Prop_LUT4_I1_O)        0.058     2.536 r  preproc_inst/tip_delay_inst/EtipMsg[4][sub][12]_i_15/O
+                         net (fo=1, unplaced)         0.022     2.558    preproc_inst/tip_delay_inst/EtipMsg[4][sub][12]_i_15_n_0
+                         CARRY8 (Prop_CARRY8_S[0]_CO[7])
+                                                      0.286     2.844 r  preproc_inst/tip_delay_inst/EtipMsg_reg[4][sub][12]_i_2/CO[7]
+                         net (fo=1, unplaced)         0.006     2.850    preproc_inst/tip_delay_inst/EtipMsg_reg[4][sub][12]_i_2_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[1])
+                                                      0.106     2.956 r  preproc_inst/tip_delay_inst/EtipMsg_reg[4][sub][13]_i_5/O[1]
+                         net (fo=5, unplaced)         0.227     3.183    preproc_inst/composer_etip_inst/icnt_cum_next0[9]
+                         LUT4 (Prop_LUT4_I3_O)        0.097     3.280 r  preproc_inst/composer_etip_inst/EtipMsg[4][sub][13]_i_12/O
+                         net (fo=1, unplaced)         0.230     3.510    preproc_inst/composer_etip_inst/EtipMsg[4][sub][13]_i_12_n_0
+                         CARRY8 (Prop_CARRY8_DI[1]_CO[7])
+                                                      0.179     3.689 r  preproc_inst/composer_etip_inst/EtipMsg_reg[4][sub][13]_i_3/CO[7]
+                         net (fo=1, unplaced)         0.006     3.695    preproc_inst/composer_etip_inst/EtipMsg_reg[4][sub][13]_i_3_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[1])
+                                                      0.106     3.801 r  preproc_inst/composer_etip_inst/EtipMsg_reg[4][sub][34]_i_2/O[1]
+                         net (fo=1, unplaced)         0.209     4.010    preproc_inst/composer_etip_inst/EtipMsg_reg[4][sub][34]_i_2_n_14
+                         LUT6 (Prop_LUT6_I0_O)        0.058     4.068 r  preproc_inst/composer_etip_inst/EtipMsg[4][sub][22]_i_2/O
+                         net (fo=5, unplaced)         0.229     4.297    preproc_inst/composer_etip_inst/ICntCum_reg[17]_1
+                         LUT5 (Prop_LUT5_I3_O)        0.058     4.355 r  preproc_inst/composer_etip_inst/EtipMsg[1][sub][22]_i_2/O
+                         net (fo=1, unplaced)         0.211     4.566    preproc_inst/composer_etip_inst/EtipMsg[1][sub][22]_i_2_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.058     4.624 r  preproc_inst/composer_etip_inst/EtipMsg[1][sub][22]_i_1/O
+                         net (fo=1, unplaced)         0.067     4.691    preproc_inst/composer_etip_inst/EtipMsg[1][sub][22]_i_1_n_0
+                         FDRE                                         r  preproc_inst/composer_etip_inst/EtipMsg_reg[1][sub][22]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock tip_clk rise edge)    5.000     5.000 r  
+                                                      0.000     5.000 r  tip_clk (IN)
+                         net (fo=4128, unset)         0.029     5.029    preproc_inst/composer_etip_inst/tip_clk
+                         FDRE                                         r  preproc_inst/composer_etip_inst/EtipMsg_reg[1][sub][22]/C
+                         clock pessimism              0.000     5.029    
+                         clock uncertainty           -0.035     4.994    
+                         FDRE (Setup_FDRE_C_D)        0.044     5.038    preproc_inst/composer_etip_inst/EtipMsg_reg[1][sub][22]
+  -------------------------------------------------------------------
+                         required time                          5.038    
+                         arrival time                          -4.691    
+  -------------------------------------------------------------------
+                         slack                                  0.347    
+
+Slack (MET) :             0.347ns  (required time - arrival time)
+  Source:                 preproc_inst/composer_etip_inst/PrevDbgMode_reg/C
+                            (rising edge-triggered cell FDRE clocked by tip_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Destination:            preproc_inst/composer_etip_inst/EtipMsg_reg[2][sub][22]/D
+                            (rising edge-triggered cell FDRE clocked by tip_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Path Group:             tip_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            5.000ns  (tip_clk rise@5.000ns - tip_clk rise@0.000ns)
+  Data Path Delay:        4.650ns  (logic 2.024ns (43.527%)  route 2.626ns (56.473%))
+  Logic Levels:           16  (CARRY8=6 LUT4=4 LUT5=3 LUT6=3)
+  Clock Path Skew:        -0.012ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.029ns = ( 5.029 - 5.000 ) 
+    Source Clock Delay      (SCD):    0.041ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock tip_clk rise edge)    0.000     0.000 r  
+                                                      0.000     0.000 r  tip_clk (IN)
+                         net (fo=4128, unset)         0.041     0.041    preproc_inst/composer_etip_inst/tip_clk
+                         FDRE                                         r  preproc_inst/composer_etip_inst/PrevDbgMode_reg/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.114     0.155 r  preproc_inst/composer_etip_inst/PrevDbgMode_reg/Q
+                         net (fo=28, unplaced)        0.171     0.326    preproc_inst/composer_etip_inst/PrevDbgMode
+                         LUT5 (Prop_LUT5_I0_O)        0.188     0.514 r  preproc_inst/composer_etip_inst/ICntCum[17]_i_7/O
+                         net (fo=140, unplaced)       0.304     0.818    preproc_inst/composer_etip_inst/PrevDbgMode_reg_0
+                         LUT4 (Prop_LUT4_I1_O)        0.058     0.876 r  preproc_inst/composer_etip_inst/EtipMsg[3][sub][74]_i_28/O
+                         net (fo=1, unplaced)         0.022     0.898    preproc_inst/composer_etip_inst/EtipMsg[3][sub][74]_i_28_n_0
+                         CARRY8 (Prop_CARRY8_S[0]_CO[7])
+                                                      0.286     1.184 r  preproc_inst/composer_etip_inst/EtipMsg_reg[3][sub][74]_i_10/CO[7]
+                         net (fo=1, unplaced)         0.006     1.190    preproc_inst/composer_etip_inst/EtipMsg_reg[3][sub][74]_i_10_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[4])
+                                                      0.119     1.309 f  preproc_inst/composer_etip_inst/EtipMsg_reg[3][sub][74]_i_6/O[4]
+                         net (fo=1, unplaced)         0.212     1.521    preproc_inst/composer_etip_inst/msg_id_next2[12]
+                         LUT4 (Prop_LUT4_I1_O)        0.137     1.658 f  preproc_inst/composer_etip_inst/EtipMsg[3][sub][74]_i_9/O
+                         net (fo=1, unplaced)         0.211     1.869    preproc_inst/composer_etip_inst/EtipMsg[3][sub][74]_i_9_n_0
+                         LUT5 (Prop_LUT5_I4_O)        0.058     1.927 r  preproc_inst/composer_etip_inst/EtipMsg[3][sub][74]_i_5/O
+                         net (fo=6, unplaced)         0.233     2.160    preproc_inst/tip_delay_inst/EtipMsg[0][sub][79]_i_2
+                         LUT6 (Prop_LUT6_I0_O)        0.058     2.218 r  preproc_inst/tip_delay_inst/EtipMsg[0][sub][79]_i_3/O
+                         net (fo=20, unplaced)        0.260     2.478    preproc_inst/tip_delay_inst/ItaPipe_reg[1]_5
+                         LUT4 (Prop_LUT4_I1_O)        0.058     2.536 r  preproc_inst/tip_delay_inst/EtipMsg[4][sub][12]_i_15/O
+                         net (fo=1, unplaced)         0.022     2.558    preproc_inst/tip_delay_inst/EtipMsg[4][sub][12]_i_15_n_0
+                         CARRY8 (Prop_CARRY8_S[0]_CO[7])
+                                                      0.286     2.844 r  preproc_inst/tip_delay_inst/EtipMsg_reg[4][sub][12]_i_2/CO[7]
+                         net (fo=1, unplaced)         0.006     2.850    preproc_inst/tip_delay_inst/EtipMsg_reg[4][sub][12]_i_2_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[1])
+                                                      0.106     2.956 r  preproc_inst/tip_delay_inst/EtipMsg_reg[4][sub][13]_i_5/O[1]
+                         net (fo=5, unplaced)         0.227     3.183    preproc_inst/composer_etip_inst/icnt_cum_next0[9]
+                         LUT4 (Prop_LUT4_I3_O)        0.097     3.280 r  preproc_inst/composer_etip_inst/EtipMsg[4][sub][13]_i_12/O
+                         net (fo=1, unplaced)         0.230     3.510    preproc_inst/composer_etip_inst/EtipMsg[4][sub][13]_i_12_n_0
+                         CARRY8 (Prop_CARRY8_DI[1]_CO[7])
+                                                      0.179     3.689 r  preproc_inst/composer_etip_inst/EtipMsg_reg[4][sub][13]_i_3/CO[7]
+                         net (fo=1, unplaced)         0.006     3.695    preproc_inst/composer_etip_inst/EtipMsg_reg[4][sub][13]_i_3_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[1])
+                                                      0.106     3.801 r  preproc_inst/composer_etip_inst/EtipMsg_reg[4][sub][34]_i_2/O[1]
+                         net (fo=1, unplaced)         0.209     4.010    preproc_inst/composer_etip_inst/EtipMsg_reg[4][sub][34]_i_2_n_14
+                         LUT6 (Prop_LUT6_I0_O)        0.058     4.068 r  preproc_inst/composer_etip_inst/EtipMsg[4][sub][22]_i_2/O
+                         net (fo=5, unplaced)         0.229     4.297    preproc_inst/composer_etip_inst/ICntCum_reg[17]_1
+                         LUT6 (Prop_LUT6_I0_O)        0.058     4.355 r  preproc_inst/composer_etip_inst/EtipMsg[2][sub][22]_i_2/O
+                         net (fo=1, unplaced)         0.211     4.566    preproc_inst/composer_etip_inst/EtipMsg[2][sub][22]_i_2_n_0
+                         LUT5 (Prop_LUT5_I2_O)        0.058     4.624 r  preproc_inst/composer_etip_inst/EtipMsg[2][sub][22]_i_1/O
+                         net (fo=1, unplaced)         0.067     4.691    preproc_inst/composer_etip_inst/EtipMsg[2][sub][22]_i_1_n_0
+                         FDRE                                         r  preproc_inst/composer_etip_inst/EtipMsg_reg[2][sub][22]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock tip_clk rise edge)    5.000     5.000 r  
+                                                      0.000     5.000 r  tip_clk (IN)
+                         net (fo=4128, unset)         0.029     5.029    preproc_inst/composer_etip_inst/tip_clk
+                         FDRE                                         r  preproc_inst/composer_etip_inst/EtipMsg_reg[2][sub][22]/C
+                         clock pessimism              0.000     5.029    
+                         clock uncertainty           -0.035     4.994    
+                         FDRE (Setup_FDRE_C_D)        0.044     5.038    preproc_inst/composer_etip_inst/EtipMsg_reg[2][sub][22]
+  -------------------------------------------------------------------
+                         required time                          5.038    
+                         arrival time                          -4.691    
+  -------------------------------------------------------------------
+                         slack                                  0.347    
+
+Slack (MET) :             0.371ns  (required time - arrival time)
+  Source:                 preproc_inst/composer_etip_inst/PrevDbgMode_reg/C
+                            (rising edge-triggered cell FDRE clocked by tip_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Destination:            preproc_inst/composer_etip_inst/EtipMsg_reg[0][sub][17]/D
+                            (rising edge-triggered cell FDRE clocked by tip_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Path Group:             tip_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            5.000ns  (tip_clk rise@5.000ns - tip_clk rise@0.000ns)
+  Data Path Delay:        4.626ns  (logic 2.006ns (43.364%)  route 2.620ns (56.636%))
+  Logic Levels:           15  (CARRY8=5 LUT4=4 LUT5=2 LUT6=4)
+  Clock Path Skew:        -0.012ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.029ns = ( 5.029 - 5.000 ) 
+    Source Clock Delay      (SCD):    0.041ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock tip_clk rise edge)    0.000     0.000 r  
+                                                      0.000     0.000 r  tip_clk (IN)
+                         net (fo=4128, unset)         0.041     0.041    preproc_inst/composer_etip_inst/tip_clk
+                         FDRE                                         r  preproc_inst/composer_etip_inst/PrevDbgMode_reg/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.114     0.155 r  preproc_inst/composer_etip_inst/PrevDbgMode_reg/Q
+                         net (fo=28, unplaced)        0.171     0.326    preproc_inst/composer_etip_inst/PrevDbgMode
+                         LUT5 (Prop_LUT5_I0_O)        0.188     0.514 r  preproc_inst/composer_etip_inst/ICntCum[17]_i_7/O
+                         net (fo=140, unplaced)       0.304     0.818    preproc_inst/composer_etip_inst/PrevDbgMode_reg_0
+                         LUT4 (Prop_LUT4_I1_O)        0.058     0.876 r  preproc_inst/composer_etip_inst/EtipMsg[3][sub][74]_i_28/O
+                         net (fo=1, unplaced)         0.022     0.898    preproc_inst/composer_etip_inst/EtipMsg[3][sub][74]_i_28_n_0
+                         CARRY8 (Prop_CARRY8_S[0]_CO[7])
+                                                      0.286     1.184 r  preproc_inst/composer_etip_inst/EtipMsg_reg[3][sub][74]_i_10/CO[7]
+                         net (fo=1, unplaced)         0.006     1.190    preproc_inst/composer_etip_inst/EtipMsg_reg[3][sub][74]_i_10_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[4])
+                                                      0.119     1.309 f  preproc_inst/composer_etip_inst/EtipMsg_reg[3][sub][74]_i_6/O[4]
+                         net (fo=1, unplaced)         0.212     1.521    preproc_inst/composer_etip_inst/msg_id_next2[12]
+                         LUT4 (Prop_LUT4_I1_O)        0.137     1.658 f  preproc_inst/composer_etip_inst/EtipMsg[3][sub][74]_i_9/O
+                         net (fo=1, unplaced)         0.211     1.869    preproc_inst/composer_etip_inst/EtipMsg[3][sub][74]_i_9_n_0
+                         LUT5 (Prop_LUT5_I4_O)        0.058     1.927 r  preproc_inst/composer_etip_inst/EtipMsg[3][sub][74]_i_5/O
+                         net (fo=6, unplaced)         0.233     2.160    preproc_inst/tip_delay_inst/EtipMsg[0][sub][79]_i_2
+                         LUT6 (Prop_LUT6_I0_O)        0.058     2.218 r  preproc_inst/tip_delay_inst/EtipMsg[0][sub][79]_i_3/O
+                         net (fo=20, unplaced)        0.260     2.478    preproc_inst/tip_delay_inst/ItaPipe_reg[1]_5
+                         LUT4 (Prop_LUT4_I1_O)        0.058     2.536 r  preproc_inst/tip_delay_inst/EtipMsg[4][sub][12]_i_15/O
+                         net (fo=1, unplaced)         0.022     2.558    preproc_inst/tip_delay_inst/EtipMsg[4][sub][12]_i_15_n_0
+                         CARRY8 (Prop_CARRY8_S[0]_CO[7])
+                                                      0.286     2.844 r  preproc_inst/tip_delay_inst/EtipMsg_reg[4][sub][12]_i_2/CO[7]
+                         net (fo=1, unplaced)         0.006     2.850    preproc_inst/tip_delay_inst/EtipMsg_reg[4][sub][12]_i_2_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[1])
+                                                      0.106     2.956 r  preproc_inst/tip_delay_inst/EtipMsg_reg[4][sub][13]_i_5/O[1]
+                         net (fo=5, unplaced)         0.227     3.183    preproc_inst/composer_etip_inst/icnt_cum_next0[9]
+                         LUT4 (Prop_LUT4_I3_O)        0.097     3.280 r  preproc_inst/composer_etip_inst/EtipMsg[4][sub][13]_i_12/O
+                         net (fo=1, unplaced)         0.230     3.510    preproc_inst/composer_etip_inst/EtipMsg[4][sub][13]_i_12_n_0
+                         CARRY8 (Prop_CARRY8_DI[1]_O[4])
+                                                      0.267     3.777 r  preproc_inst/composer_etip_inst/EtipMsg_reg[4][sub][13]_i_3/O[4]
+                         net (fo=1, unplaced)         0.209     3.986    preproc_inst/composer_etip_inst/EtipMsg_reg[4][sub][13]_i_3_n_11
+                         LUT6 (Prop_LUT6_I0_O)        0.058     4.044 f  preproc_inst/composer_etip_inst/EtipMsg[4][sub][17]_i_2/O
+                         net (fo=5, unplaced)         0.229     4.273    preproc_inst/composer_etip_inst/ICntCum_reg[12]_1
+                         LUT6 (Prop_LUT6_I3_O)        0.058     4.331 r  preproc_inst/composer_etip_inst/EtipMsg[0][sub][17]_i_3/O
+                         net (fo=1, unplaced)         0.211     4.542    preproc_inst/composer_etip_inst/EtipMsg[0][sub][17]_i_3_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.058     4.600 r  preproc_inst/composer_etip_inst/EtipMsg[0][sub][17]_i_1/O
+                         net (fo=1, unplaced)         0.067     4.667    preproc_inst/composer_etip_inst/EtipMsg[0][sub][17]_i_1_n_0
+                         FDRE                                         r  preproc_inst/composer_etip_inst/EtipMsg_reg[0][sub][17]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock tip_clk rise edge)    5.000     5.000 r  
+                                                      0.000     5.000 r  tip_clk (IN)
+                         net (fo=4128, unset)         0.029     5.029    preproc_inst/composer_etip_inst/tip_clk
+                         FDRE                                         r  preproc_inst/composer_etip_inst/EtipMsg_reg[0][sub][17]/C
+                         clock pessimism              0.000     5.029    
+                         clock uncertainty           -0.035     4.994    
+                         FDRE (Setup_FDRE_C_D)        0.044     5.038    preproc_inst/composer_etip_inst/EtipMsg_reg[0][sub][17]
+  -------------------------------------------------------------------
+                         required time                          5.038    
+                         arrival time                          -4.667    
+  -------------------------------------------------------------------
+                         slack                                  0.371    
+
+
+
+
+
+Pulse Width Checks
+--------------------------------------------------------------------------------------
+Clock Name:         tip_clk
+Waveform(ns):       { 0.000 2.500 }
+Period(ns):         5.000
+Sources:            { tip_clk }
+
+Check Type        Corner  Lib Pin             Reference Pin  Required(ns)  Actual(ns)  Slack(ns)  Location  Pin
+Min Period        n/a     RAMB36E2/CLKARDCLK  n/a            1.960         5.000       3.040                preproc_inst/composer_etip_inst/genEtipParallel.etip_cvs_cdc_fifo/cvs_fifo2_inst/fifo/fifo/genRegular.blkMemory.Mem_reg_0/CLKARDCLK
+Min Period        n/a     RAMB36E2/CLKBWRCLK  n/a            1.960         5.000       3.040                preproc_inst/composer_etip_inst/genEtipParallel.etip_cvs_cdc_fifo/cvs_fifo2_inst/fifo/fifo/genRegular.blkMemory.Mem_reg_0/CLKBWRCLK
+Min Period        n/a     RAMB36E2/CLKARDCLK  n/a            1.960         5.000       3.040                preproc_inst/composer_etip_inst/genEtipParallel.etip_cvs_cdc_fifo/cvs_fifo2_inst/fifo/fifo/genRegular.blkMemory.Mem_reg_1/CLKARDCLK
+Min Period        n/a     RAMB36E2/CLKBWRCLK  n/a            1.960         5.000       3.040                preproc_inst/composer_etip_inst/genEtipParallel.etip_cvs_cdc_fifo/cvs_fifo2_inst/fifo/fifo/genRegular.blkMemory.Mem_reg_1/CLKBWRCLK
+Min Period        n/a     RAMB36E2/CLKARDCLK  n/a            1.960         5.000       3.040                preproc_inst/composer_etip_inst/genEtipParallel.etip_cvs_cdc_fifo/cvs_fifo2_inst/fifo/fifo/genRegular.blkMemory.Mem_reg_2/CLKARDCLK
+Low Pulse Width   Slow    RAMD64E/CLK         n/a            0.762         2.500       1.738                preproc_inst/composer_etip_inst/genNextIaddrFifo1clk.next_iaddr_fifo/genRegular.blkMemory.Mem_reg_0_63_0_6/RAMA/CLK
+Low Pulse Width   Fast    RAMD64E/CLK         n/a            0.762         2.500       1.738                preproc_inst/composer_etip_inst/genNextIaddrFifo1clk.next_iaddr_fifo/genRegular.blkMemory.Mem_reg_0_63_0_6/RAMA/CLK
+Low Pulse Width   Slow    RAMD64E/CLK         n/a            0.762         2.500       1.738                preproc_inst/composer_etip_inst/genNextIaddrFifo1clk.next_iaddr_fifo/genRegular.blkMemory.Mem_reg_0_63_0_6/RAMB/CLK
+Low Pulse Width   Fast    RAMD64E/CLK         n/a            0.762         2.500       1.738                preproc_inst/composer_etip_inst/genNextIaddrFifo1clk.next_iaddr_fifo/genRegular.blkMemory.Mem_reg_0_63_0_6/RAMB/CLK
+Low Pulse Width   Slow    RAMD64E/CLK         n/a            0.762         2.500       1.738                preproc_inst/composer_etip_inst/genNextIaddrFifo1clk.next_iaddr_fifo/genRegular.blkMemory.Mem_reg_0_63_0_6/RAMC/CLK
+High Pulse Width  Slow    RAMD64E/CLK         n/a            0.762         2.500       1.738                preproc_inst/composer_etip_inst/genNextIaddrFifo1clk.next_iaddr_fifo/genRegular.blkMemory.Mem_reg_0_63_0_6/RAMA/CLK
+High Pulse Width  Fast    RAMD64E/CLK         n/a            0.762         2.500       1.738                preproc_inst/composer_etip_inst/genNextIaddrFifo1clk.next_iaddr_fifo/genRegular.blkMemory.Mem_reg_0_63_0_6/RAMA/CLK
+High Pulse Width  Slow    RAMD64E/CLK         n/a            0.762         2.500       1.738                preproc_inst/composer_etip_inst/genNextIaddrFifo1clk.next_iaddr_fifo/genRegular.blkMemory.Mem_reg_0_63_0_6/RAMB/CLK
+High Pulse Width  Fast    RAMD64E/CLK         n/a            0.762         2.500       1.738                preproc_inst/composer_etip_inst/genNextIaddrFifo1clk.next_iaddr_fifo/genRegular.blkMemory.Mem_reg_0_63_0_6/RAMB/CLK
+High Pulse Width  Slow    RAMD64E/CLK         n/a            0.762         2.500       1.738                preproc_inst/composer_etip_inst/genNextIaddrFifo1clk.next_iaddr_fifo/genRegular.blkMemory.Mem_reg_0_63_0_6/RAMC/CLK
+
+
+
+---------------------------------------------------------------------------------------------------
+From Clock:  wall_clk
+  To Clock:  wall_clk
+
+Setup :            0  Failing Endpoints,  Worst Slack        3.416ns,  Total Violation        0.000ns
+Hold  :           NA  Failing Endpoints,  Worst Slack           NA  ,  Total Violation           NA
+PW    :            0  Failing Endpoints,  Worst Slack        2.225ns,  Total Violation        0.000ns
+---------------------------------------------------------------------------------------------------
+
+
+Max Delay Paths
+--------------------------------------------------------------------------------------
+Slack (MET) :             3.416ns  (required time - arrival time)
+  Source:                 preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[5]/C
+                            (rising edge-triggered cell FDRE clocked by wall_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Destination:            preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[2]/D
+                            (rising edge-triggered cell FDRE clocked by wall_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Path Group:             wall_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            5.000ns  (wall_clk rise@5.000ns - wall_clk rise@0.000ns)
+  Data Path Delay:        1.581ns  (logic 0.907ns (57.369%)  route 0.674ns (42.631%))
+  Logic Levels:           5  (CARRY8=3 LUT2=1 LUT6=1)
+  Clock Path Skew:        -0.012ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.029ns = ( 5.029 - 5.000 ) 
+    Source Clock Delay      (SCD):    0.041ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock wall_clk rise edge)
+                                                      0.000     0.000 r  
+                                                      0.000     0.000 r  wall_clk (IN)
+                         net (fo=31, unset)           0.041     0.041    preproc_inst/sync_inst/counter_wallclk_inst/wall_clk
+                         FDRE                                         r  preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[5]/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.114     0.155 r  preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[5]/Q
+                         net (fo=1, unplaced)         0.164     0.319    preproc_inst/sync_inst/counter_wallclk_inst/Count_reg_n_0_[5]
+                         CARRY8 (Prop_CARRY8_S[4]_CO[7])
+                                                      0.240     0.559 r  preproc_inst/sync_inst/counter_wallclk_inst/OverflowN1_inferred__0/i__carry/CO[7]
+                         net (fo=1, unplaced)         0.006     0.565    preproc_inst/sync_inst/counter_wallclk_inst/OverflowN1_inferred__0/i__carry_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[2])
+                                                      0.093     0.658 r  preproc_inst/sync_inst/counter_wallclk_inst/OverflowN1_inferred__0/i__carry__0/O[2]
+                         net (fo=2, unplaced)         0.214     0.872    preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[16]_0[2]
+                         LUT6 (Prop_LUT6_I0_O)        0.136     1.008 r  preproc_inst/sync_inst/counter_wallclk_inst/OverflowN0_carry_i_4__2/O
+                         net (fo=1, unplaced)         0.021     1.029    preproc_inst/sync_inst/counter_wallclk_inst/OverflowN0_carry_i_4__2_n_0
+                         CARRY8 (Prop_CARRY8_S[3]_CO[6])
+                                                      0.232     1.261 f  preproc_inst/sync_inst/counter_wallclk_inst/OverflowN0_carry/CO[6]
+                         net (fo=22, unplaced)        0.202     1.463    preproc_inst/sync_inst/counter_wallclk_inst/CO[0]
+                         LUT2 (Prop_LUT2_I1_O)        0.092     1.555 r  preproc_inst/sync_inst/counter_wallclk_inst/Count[2]_i_1__2/O
+                         net (fo=1, unplaced)         0.067     1.622    preproc_inst/sync_inst/counter_wallclk_inst/Count[2]_i_1__2_n_0
+                         FDRE                                         r  preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[2]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock wall_clk rise edge)
+                                                      5.000     5.000 r  
+                                                      0.000     5.000 r  wall_clk (IN)
+                         net (fo=31, unset)           0.029     5.029    preproc_inst/sync_inst/counter_wallclk_inst/wall_clk
+                         FDRE                                         r  preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[2]/C
+                         clock pessimism              0.000     5.029    
+                         clock uncertainty           -0.035     4.994    
+                         FDRE (Setup_FDRE_C_D)        0.044     5.038    preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[2]
+  -------------------------------------------------------------------
+                         required time                          5.038    
+                         arrival time                          -1.622    
+  -------------------------------------------------------------------
+                         slack                                  3.416    
+
+Slack (MET) :             3.416ns  (required time - arrival time)
+  Source:                 preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[5]/C
+                            (rising edge-triggered cell FDRE clocked by wall_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Destination:            preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[3]/D
+                            (rising edge-triggered cell FDRE clocked by wall_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Path Group:             wall_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            5.000ns  (wall_clk rise@5.000ns - wall_clk rise@0.000ns)
+  Data Path Delay:        1.581ns  (logic 0.907ns (57.369%)  route 0.674ns (42.631%))
+  Logic Levels:           5  (CARRY8=3 LUT2=1 LUT6=1)
+  Clock Path Skew:        -0.012ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.029ns = ( 5.029 - 5.000 ) 
+    Source Clock Delay      (SCD):    0.041ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock wall_clk rise edge)
+                                                      0.000     0.000 r  
+                                                      0.000     0.000 r  wall_clk (IN)
+                         net (fo=31, unset)           0.041     0.041    preproc_inst/sync_inst/counter_wallclk_inst/wall_clk
+                         FDRE                                         r  preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[5]/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.114     0.155 r  preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[5]/Q
+                         net (fo=1, unplaced)         0.164     0.319    preproc_inst/sync_inst/counter_wallclk_inst/Count_reg_n_0_[5]
+                         CARRY8 (Prop_CARRY8_S[4]_CO[7])
+                                                      0.240     0.559 r  preproc_inst/sync_inst/counter_wallclk_inst/OverflowN1_inferred__0/i__carry/CO[7]
+                         net (fo=1, unplaced)         0.006     0.565    preproc_inst/sync_inst/counter_wallclk_inst/OverflowN1_inferred__0/i__carry_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[2])
+                                                      0.093     0.658 r  preproc_inst/sync_inst/counter_wallclk_inst/OverflowN1_inferred__0/i__carry__0/O[2]
+                         net (fo=2, unplaced)         0.214     0.872    preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[16]_0[2]
+                         LUT6 (Prop_LUT6_I0_O)        0.136     1.008 r  preproc_inst/sync_inst/counter_wallclk_inst/OverflowN0_carry_i_4__2/O
+                         net (fo=1, unplaced)         0.021     1.029    preproc_inst/sync_inst/counter_wallclk_inst/OverflowN0_carry_i_4__2_n_0
+                         CARRY8 (Prop_CARRY8_S[3]_CO[6])
+                                                      0.232     1.261 f  preproc_inst/sync_inst/counter_wallclk_inst/OverflowN0_carry/CO[6]
+                         net (fo=22, unplaced)        0.202     1.463    preproc_inst/sync_inst/counter_wallclk_inst/CO[0]
+                         LUT2 (Prop_LUT2_I1_O)        0.092     1.555 r  preproc_inst/sync_inst/counter_wallclk_inst/Count[3]_i_1__2/O
+                         net (fo=1, unplaced)         0.067     1.622    preproc_inst/sync_inst/counter_wallclk_inst/Count[3]_i_1__2_n_0
+                         FDRE                                         r  preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[3]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock wall_clk rise edge)
+                                                      5.000     5.000 r  
+                                                      0.000     5.000 r  wall_clk (IN)
+                         net (fo=31, unset)           0.029     5.029    preproc_inst/sync_inst/counter_wallclk_inst/wall_clk
+                         FDRE                                         r  preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[3]/C
+                         clock pessimism              0.000     5.029    
+                         clock uncertainty           -0.035     4.994    
+                         FDRE (Setup_FDRE_C_D)        0.044     5.038    preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[3]
+  -------------------------------------------------------------------
+                         required time                          5.038    
+                         arrival time                          -1.622    
+  -------------------------------------------------------------------
+                         slack                                  3.416    
+
+Slack (MET) :             3.416ns  (required time - arrival time)
+  Source:                 preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[5]/C
+                            (rising edge-triggered cell FDRE clocked by wall_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Destination:            preproc_inst/sync_inst/counter_wallclk_inst/Overflow_reg/D
+                            (rising edge-triggered cell FDRE clocked by wall_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Path Group:             wall_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            5.000ns  (wall_clk rise@5.000ns - wall_clk rise@0.000ns)
+  Data Path Delay:        1.581ns  (logic 0.907ns (57.369%)  route 0.674ns (42.631%))
+  Logic Levels:           5  (CARRY8=3 LUT4=1 LUT6=1)
+  Clock Path Skew:        -0.012ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.029ns = ( 5.029 - 5.000 ) 
+    Source Clock Delay      (SCD):    0.041ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock wall_clk rise edge)
+                                                      0.000     0.000 r  
+                                                      0.000     0.000 r  wall_clk (IN)
+                         net (fo=31, unset)           0.041     0.041    preproc_inst/sync_inst/counter_wallclk_inst/wall_clk
+                         FDRE                                         r  preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[5]/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.114     0.155 r  preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[5]/Q
+                         net (fo=1, unplaced)         0.164     0.319    preproc_inst/sync_inst/counter_wallclk_inst/Count_reg_n_0_[5]
+                         CARRY8 (Prop_CARRY8_S[4]_CO[7])
+                                                      0.240     0.559 r  preproc_inst/sync_inst/counter_wallclk_inst/OverflowN1_inferred__0/i__carry/CO[7]
+                         net (fo=1, unplaced)         0.006     0.565    preproc_inst/sync_inst/counter_wallclk_inst/OverflowN1_inferred__0/i__carry_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[2])
+                                                      0.093     0.658 r  preproc_inst/sync_inst/counter_wallclk_inst/OverflowN1_inferred__0/i__carry__0/O[2]
+                         net (fo=2, unplaced)         0.214     0.872    preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[16]_0[2]
+                         LUT6 (Prop_LUT6_I0_O)        0.136     1.008 r  preproc_inst/sync_inst/counter_wallclk_inst/OverflowN0_carry_i_4__2/O
+                         net (fo=1, unplaced)         0.021     1.029    preproc_inst/sync_inst/counter_wallclk_inst/OverflowN0_carry_i_4__2_n_0
+                         CARRY8 (Prop_CARRY8_S[3]_CO[6])
+                                                      0.232     1.261 r  preproc_inst/sync_inst/counter_wallclk_inst/OverflowN0_carry/CO[6]
+                         net (fo=22, unplaced)        0.202     1.463    preproc_inst/sync_inst/counter_wallclk_inst/CO[0]
+                         LUT4 (Prop_LUT4_I3_O)        0.092     1.555 r  preproc_inst/sync_inst/counter_wallclk_inst/Overflow_i_1/O
+                         net (fo=1, unplaced)         0.067     1.622    preproc_inst/sync_inst/counter_wallclk_inst/Overflow_i_1_n_0
+                         FDRE                                         r  preproc_inst/sync_inst/counter_wallclk_inst/Overflow_reg/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock wall_clk rise edge)
+                                                      5.000     5.000 r  
+                                                      0.000     5.000 r  wall_clk (IN)
+                         net (fo=31, unset)           0.029     5.029    preproc_inst/sync_inst/counter_wallclk_inst/wall_clk
+                         FDRE                                         r  preproc_inst/sync_inst/counter_wallclk_inst/Overflow_reg/C
+                         clock pessimism              0.000     5.029    
+                         clock uncertainty           -0.035     4.994    
+                         FDRE (Setup_FDRE_C_D)        0.044     5.038    preproc_inst/sync_inst/counter_wallclk_inst/Overflow_reg
+  -------------------------------------------------------------------
+                         required time                          5.038    
+                         arrival time                          -1.622    
+  -------------------------------------------------------------------
+                         slack                                  3.416    
+
+Slack (MET) :             3.450ns  (required time - arrival time)
+  Source:                 preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[5]/C
+                            (rising edge-triggered cell FDRE clocked by wall_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Destination:            preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[0]/D
+                            (rising edge-triggered cell FDRE clocked by wall_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Path Group:             wall_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            5.000ns  (wall_clk rise@5.000ns - wall_clk rise@0.000ns)
+  Data Path Delay:        1.547ns  (logic 0.873ns (56.432%)  route 0.674ns (43.568%))
+  Logic Levels:           5  (CARRY8=3 LUT5=1 LUT6=1)
+  Clock Path Skew:        -0.012ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.029ns = ( 5.029 - 5.000 ) 
+    Source Clock Delay      (SCD):    0.041ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock wall_clk rise edge)
+                                                      0.000     0.000 r  
+                                                      0.000     0.000 r  wall_clk (IN)
+                         net (fo=31, unset)           0.041     0.041    preproc_inst/sync_inst/counter_wallclk_inst/wall_clk
+                         FDRE                                         r  preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[5]/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.114     0.155 r  preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[5]/Q
+                         net (fo=1, unplaced)         0.164     0.319    preproc_inst/sync_inst/counter_wallclk_inst/Count_reg_n_0_[5]
+                         CARRY8 (Prop_CARRY8_S[4]_CO[7])
+                                                      0.240     0.559 r  preproc_inst/sync_inst/counter_wallclk_inst/OverflowN1_inferred__0/i__carry/CO[7]
+                         net (fo=1, unplaced)         0.006     0.565    preproc_inst/sync_inst/counter_wallclk_inst/OverflowN1_inferred__0/i__carry_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[2])
+                                                      0.093     0.658 r  preproc_inst/sync_inst/counter_wallclk_inst/OverflowN1_inferred__0/i__carry__0/O[2]
+                         net (fo=2, unplaced)         0.214     0.872    preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[16]_0[2]
+                         LUT6 (Prop_LUT6_I0_O)        0.136     1.008 r  preproc_inst/sync_inst/counter_wallclk_inst/OverflowN0_carry_i_4__2/O
+                         net (fo=1, unplaced)         0.021     1.029    preproc_inst/sync_inst/counter_wallclk_inst/OverflowN0_carry_i_4__2_n_0
+                         CARRY8 (Prop_CARRY8_S[3]_CO[6])
+                                                      0.232     1.261 f  preproc_inst/sync_inst/counter_wallclk_inst/OverflowN0_carry/CO[6]
+                         net (fo=22, unplaced)        0.202     1.463    preproc_inst/sync_inst/counter_wallclk_inst/CO[0]
+                         LUT5 (Prop_LUT5_I1_O)        0.058     1.521 r  preproc_inst/sync_inst/counter_wallclk_inst/Count[0]_i_1/O
+                         net (fo=1, unplaced)         0.067     1.588    preproc_inst/sync_inst/counter_wallclk_inst/Count[0]_i_1_n_0
+                         FDRE                                         r  preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[0]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock wall_clk rise edge)
+                                                      5.000     5.000 r  
+                                                      0.000     5.000 r  wall_clk (IN)
+                         net (fo=31, unset)           0.029     5.029    preproc_inst/sync_inst/counter_wallclk_inst/wall_clk
+                         FDRE                                         r  preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[0]/C
+                         clock pessimism              0.000     5.029    
+                         clock uncertainty           -0.035     4.994    
+                         FDRE (Setup_FDRE_C_D)        0.044     5.038    preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[0]
+  -------------------------------------------------------------------
+                         required time                          5.038    
+                         arrival time                          -1.588    
+  -------------------------------------------------------------------
+                         slack                                  3.450    
+
+Slack (MET) :             3.450ns  (required time - arrival time)
+  Source:                 preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[5]/C
+                            (rising edge-triggered cell FDRE clocked by wall_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Destination:            preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[10]/D
+                            (rising edge-triggered cell FDRE clocked by wall_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Path Group:             wall_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            5.000ns  (wall_clk rise@5.000ns - wall_clk rise@0.000ns)
+  Data Path Delay:        1.547ns  (logic 0.873ns (56.432%)  route 0.674ns (43.568%))
+  Logic Levels:           5  (CARRY8=3 LUT6=2)
+  Clock Path Skew:        -0.012ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.029ns = ( 5.029 - 5.000 ) 
+    Source Clock Delay      (SCD):    0.041ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock wall_clk rise edge)
+                                                      0.000     0.000 r  
+                                                      0.000     0.000 r  wall_clk (IN)
+                         net (fo=31, unset)           0.041     0.041    preproc_inst/sync_inst/counter_wallclk_inst/wall_clk
+                         FDRE                                         r  preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[5]/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.114     0.155 r  preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[5]/Q
+                         net (fo=1, unplaced)         0.164     0.319    preproc_inst/sync_inst/counter_wallclk_inst/Count_reg_n_0_[5]
+                         CARRY8 (Prop_CARRY8_S[4]_CO[7])
+                                                      0.240     0.559 r  preproc_inst/sync_inst/counter_wallclk_inst/OverflowN1_inferred__0/i__carry/CO[7]
+                         net (fo=1, unplaced)         0.006     0.565    preproc_inst/sync_inst/counter_wallclk_inst/OverflowN1_inferred__0/i__carry_n_0
+                         CARRY8 (Prop_CARRY8_CI_O[2])
+                                                      0.093     0.658 r  preproc_inst/sync_inst/counter_wallclk_inst/OverflowN1_inferred__0/i__carry__0/O[2]
+                         net (fo=2, unplaced)         0.214     0.872    preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[16]_0[2]
+                         LUT6 (Prop_LUT6_I0_O)        0.136     1.008 r  preproc_inst/sync_inst/counter_wallclk_inst/OverflowN0_carry_i_4__2/O
+                         net (fo=1, unplaced)         0.021     1.029    preproc_inst/sync_inst/counter_wallclk_inst/OverflowN0_carry_i_4__2_n_0
+                         CARRY8 (Prop_CARRY8_S[3]_CO[6])
+                                                      0.232     1.261 r  preproc_inst/sync_inst/counter_wallclk_inst/OverflowN0_carry/CO[6]
+                         net (fo=22, unplaced)        0.202     1.463    ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/Count_reg[4][0]
+                         LUT6 (Prop_LUT6_I4_O)        0.058     1.521 r  ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/Count[10]_i_1__2/O
+                         net (fo=1, unplaced)         0.067     1.588    preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[10]_0
+                         FDRE                                         r  preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[10]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock wall_clk rise edge)
+                                                      5.000     5.000 r  
+                                                      0.000     5.000 r  wall_clk (IN)
+                         net (fo=31, unset)           0.029     5.029    preproc_inst/sync_inst/counter_wallclk_inst/wall_clk
+                         FDRE                                         r  preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[10]/C
+                         clock pessimism              0.000     5.029    
+                         clock uncertainty           -0.035     4.994    
+                         FDRE (Setup_FDRE_C_D)        0.044     5.038    preproc_inst/sync_inst/counter_wallclk_inst/Count_reg[10]
+  -------------------------------------------------------------------
+                         required time                          5.038    
+                         arrival time                          -1.588    
+  -------------------------------------------------------------------
+                         slack                                  3.450    
+
+
+
+
+
+Pulse Width Checks
+--------------------------------------------------------------------------------------
+Clock Name:         wall_clk
+Waveform(ns):       { 0.000 2.500 }
+Period(ns):         5.000
+Sources:            { wall_clk }
+
+Check Type        Corner  Lib Pin  Reference Pin  Required(ns)  Actual(ns)  Slack(ns)  Location  Pin
+Min Period        n/a     FDCE/C   n/a            0.550         5.000       4.450                preproc_inst/sync_inst/cnt_wall_clk_clr_cdc_inst/AckToggle_reg/C
+Min Period        n/a     FDCE/C   n/a            0.550         5.000       4.450                preproc_inst/sync_inst/cnt_wall_clk_clr_cdc_inst/LastReq_reg/C
+Min Period        n/a     FDCE/C   n/a            0.550         5.000       4.450                preproc_inst/sync_inst/cnt_wall_clk_clr_cdc_inst/QData_reg[0]/C
+Min Period        n/a     FDCE/C   n/a            0.550         5.000       4.450                preproc_inst/sync_inst/cnt_wall_clk_clr_cdc_inst/ReqSync1_reg/C
+Min Period        n/a     FDCE/C   n/a            0.550         5.000       4.450                preproc_inst/sync_inst/cnt_wall_clk_clr_cdc_inst/ReqSync2_reg/C
+Low Pulse Width   Slow    FDCE/C   n/a            0.275         2.500       2.225                preproc_inst/sync_inst/cnt_wall_clk_clr_cdc_inst/AckToggle_reg/C
+Low Pulse Width   Fast    FDCE/C   n/a            0.275         2.500       2.225                preproc_inst/sync_inst/cnt_wall_clk_clr_cdc_inst/AckToggle_reg/C
+Low Pulse Width   Slow    FDCE/C   n/a            0.275         2.500       2.225                preproc_inst/sync_inst/cnt_wall_clk_clr_cdc_inst/LastReq_reg/C
+Low Pulse Width   Fast    FDCE/C   n/a            0.275         2.500       2.225                preproc_inst/sync_inst/cnt_wall_clk_clr_cdc_inst/LastReq_reg/C
+Low Pulse Width   Slow    FDCE/C   n/a            0.275         2.500       2.225                preproc_inst/sync_inst/cnt_wall_clk_clr_cdc_inst/QData_reg[0]/C
+High Pulse Width  Slow    FDCE/C   n/a            0.275         2.500       2.225                preproc_inst/sync_inst/cnt_wall_clk_clr_cdc_inst/AckToggle_reg/C
+High Pulse Width  Fast    FDCE/C   n/a            0.275         2.500       2.225                preproc_inst/sync_inst/cnt_wall_clk_clr_cdc_inst/AckToggle_reg/C
+High Pulse Width  Slow    FDCE/C   n/a            0.275         2.500       2.225                preproc_inst/sync_inst/cnt_wall_clk_clr_cdc_inst/LastReq_reg/C
+High Pulse Width  Fast    FDCE/C   n/a            0.275         2.500       2.225                preproc_inst/sync_inst/cnt_wall_clk_clr_cdc_inst/LastReq_reg/C
+High Pulse Width  Slow    FDCE/C   n/a            0.275         2.500       2.225                preproc_inst/sync_inst/cnt_wall_clk_clr_cdc_inst/QData_reg[0]/C
+
+
+
+---------------------------------------------------------------------------------------------------
+From Clock:  wb_clk
+  To Clock:  wb_clk
+
+Setup :            0  Failing Endpoints,  Worst Slack        4.223ns,  Total Violation        0.000ns
+Hold  :           NA  Failing Endpoints,  Worst Slack           NA  ,  Total Violation           NA
+PW    :            0  Failing Endpoints,  Worst Slack        2.225ns,  Total Violation        0.000ns
+---------------------------------------------------------------------------------------------------
+
+
+Max Delay Paths
+--------------------------------------------------------------------------------------
+Slack (MET) :             4.223ns  (required time - arrival time)
+  Source:                 ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeControl][Enable][value]/C
+                            (rising edge-triggered cell FDRE clocked by wb_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Destination:            ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeTrigExtInControl][ExtInAction0][value][0]/CE
+                            (rising edge-triggered cell FDRE clocked by wb_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Path Group:             wb_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            5.000ns  (wb_clk rise@5.000ns - wb_clk rise@0.000ns)
+  Data Path Delay:        0.651ns  (logic 0.302ns (46.390%)  route 0.349ns (53.610%))
+  Logic Levels:           1  (LUT5=1)
+  Clock Path Skew:        -0.012ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.029ns = ( 5.029 - 5.000 ) 
+    Source Clock Delay      (SCD):    0.041ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock wb_clk rise edge)     0.000     0.000 r  
+                                                      0.000     0.000 r  wb_clk (IN)
+                         net (fo=91, unset)           0.041     0.041    ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/wb_clk
+                         FDRE                                         r  ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeControl][Enable][value]/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.114     0.155 f  ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeControl][Enable][value]/Q
+                         net (fo=25, unplaced)        0.168     0.323    ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeControl][Enable][value]_0
+                         LUT5 (Prop_LUT5_I1_O)        0.188     0.511 r  ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage[te][trTeTrigExtInControl][ExtInAction0][value][3]_i_1/O
+                         net (fo=4, unplaced)         0.181     0.692    ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_combo[te][trTeTrigExtInControl][ExtInAction0][load_next]
+                         FDRE                                         r  ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeTrigExtInControl][ExtInAction0][value][0]/CE
+  -------------------------------------------------------------------    -------------------
+
+                         (clock wb_clk rise edge)     5.000     5.000 r  
+                                                      0.000     5.000 r  wb_clk (IN)
+                         net (fo=91, unset)           0.029     5.029    ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/wb_clk
+                         FDRE                                         r  ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeTrigExtInControl][ExtInAction0][value][0]/C
+                         clock pessimism              0.000     5.029    
+                         clock uncertainty           -0.035     4.994    
+                         FDRE (Setup_FDRE_C_CE)      -0.079     4.915    ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeTrigExtInControl][ExtInAction0][value][0]
+  -------------------------------------------------------------------
+                         required time                          4.915    
+                         arrival time                          -0.692    
+  -------------------------------------------------------------------
+                         slack                                  4.223    
+
+Slack (MET) :             4.223ns  (required time - arrival time)
+  Source:                 ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeControl][Enable][value]/C
+                            (rising edge-triggered cell FDRE clocked by wb_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Destination:            ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeTrigExtInControl][ExtInAction0][value][1]/CE
+                            (rising edge-triggered cell FDRE clocked by wb_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Path Group:             wb_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            5.000ns  (wb_clk rise@5.000ns - wb_clk rise@0.000ns)
+  Data Path Delay:        0.651ns  (logic 0.302ns (46.390%)  route 0.349ns (53.610%))
+  Logic Levels:           1  (LUT5=1)
+  Clock Path Skew:        -0.012ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.029ns = ( 5.029 - 5.000 ) 
+    Source Clock Delay      (SCD):    0.041ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock wb_clk rise edge)     0.000     0.000 r  
+                                                      0.000     0.000 r  wb_clk (IN)
+                         net (fo=91, unset)           0.041     0.041    ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/wb_clk
+                         FDRE                                         r  ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeControl][Enable][value]/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.114     0.155 f  ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeControl][Enable][value]/Q
+                         net (fo=25, unplaced)        0.168     0.323    ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeControl][Enable][value]_0
+                         LUT5 (Prop_LUT5_I1_O)        0.188     0.511 r  ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage[te][trTeTrigExtInControl][ExtInAction0][value][3]_i_1/O
+                         net (fo=4, unplaced)         0.181     0.692    ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_combo[te][trTeTrigExtInControl][ExtInAction0][load_next]
+                         FDRE                                         r  ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeTrigExtInControl][ExtInAction0][value][1]/CE
+  -------------------------------------------------------------------    -------------------
+
+                         (clock wb_clk rise edge)     5.000     5.000 r  
+                                                      0.000     5.000 r  wb_clk (IN)
+                         net (fo=91, unset)           0.029     5.029    ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/wb_clk
+                         FDRE                                         r  ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeTrigExtInControl][ExtInAction0][value][1]/C
+                         clock pessimism              0.000     5.029    
+                         clock uncertainty           -0.035     4.994    
+                         FDRE (Setup_FDRE_C_CE)      -0.079     4.915    ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeTrigExtInControl][ExtInAction0][value][1]
+  -------------------------------------------------------------------
+                         required time                          4.915    
+                         arrival time                          -0.692    
+  -------------------------------------------------------------------
+                         slack                                  4.223    
+
+Slack (MET) :             4.223ns  (required time - arrival time)
+  Source:                 ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeControl][Enable][value]/C
+                            (rising edge-triggered cell FDRE clocked by wb_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Destination:            ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeTrigExtInControl][ExtInAction0][value][2]/CE
+                            (rising edge-triggered cell FDRE clocked by wb_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Path Group:             wb_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            5.000ns  (wb_clk rise@5.000ns - wb_clk rise@0.000ns)
+  Data Path Delay:        0.651ns  (logic 0.302ns (46.390%)  route 0.349ns (53.610%))
+  Logic Levels:           1  (LUT5=1)
+  Clock Path Skew:        -0.012ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.029ns = ( 5.029 - 5.000 ) 
+    Source Clock Delay      (SCD):    0.041ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock wb_clk rise edge)     0.000     0.000 r  
+                                                      0.000     0.000 r  wb_clk (IN)
+                         net (fo=91, unset)           0.041     0.041    ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/wb_clk
+                         FDRE                                         r  ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeControl][Enable][value]/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.114     0.155 f  ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeControl][Enable][value]/Q
+                         net (fo=25, unplaced)        0.168     0.323    ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeControl][Enable][value]_0
+                         LUT5 (Prop_LUT5_I1_O)        0.188     0.511 r  ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage[te][trTeTrigExtInControl][ExtInAction0][value][3]_i_1/O
+                         net (fo=4, unplaced)         0.181     0.692    ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_combo[te][trTeTrigExtInControl][ExtInAction0][load_next]
+                         FDRE                                         r  ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeTrigExtInControl][ExtInAction0][value][2]/CE
+  -------------------------------------------------------------------    -------------------
+
+                         (clock wb_clk rise edge)     5.000     5.000 r  
+                                                      0.000     5.000 r  wb_clk (IN)
+                         net (fo=91, unset)           0.029     5.029    ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/wb_clk
+                         FDRE                                         r  ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeTrigExtInControl][ExtInAction0][value][2]/C
+                         clock pessimism              0.000     5.029    
+                         clock uncertainty           -0.035     4.994    
+                         FDRE (Setup_FDRE_C_CE)      -0.079     4.915    ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeTrigExtInControl][ExtInAction0][value][2]
+  -------------------------------------------------------------------
+                         required time                          4.915    
+                         arrival time                          -0.692    
+  -------------------------------------------------------------------
+                         slack                                  4.223    
+
+Slack (MET) :             4.223ns  (required time - arrival time)
+  Source:                 ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeControl][Enable][value]/C
+                            (rising edge-triggered cell FDRE clocked by wb_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Destination:            ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeTrigExtInControl][ExtInAction0][value][3]/CE
+                            (rising edge-triggered cell FDRE clocked by wb_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Path Group:             wb_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            5.000ns  (wb_clk rise@5.000ns - wb_clk rise@0.000ns)
+  Data Path Delay:        0.651ns  (logic 0.302ns (46.390%)  route 0.349ns (53.610%))
+  Logic Levels:           1  (LUT5=1)
+  Clock Path Skew:        -0.012ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.029ns = ( 5.029 - 5.000 ) 
+    Source Clock Delay      (SCD):    0.041ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock wb_clk rise edge)     0.000     0.000 r  
+                                                      0.000     0.000 r  wb_clk (IN)
+                         net (fo=91, unset)           0.041     0.041    ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/wb_clk
+                         FDRE                                         r  ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeControl][Enable][value]/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.114     0.155 f  ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeControl][Enable][value]/Q
+                         net (fo=25, unplaced)        0.168     0.323    ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeControl][Enable][value]_0
+                         LUT5 (Prop_LUT5_I1_O)        0.188     0.511 r  ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage[te][trTeTrigExtInControl][ExtInAction0][value][3]_i_1/O
+                         net (fo=4, unplaced)         0.181     0.692    ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_combo[te][trTeTrigExtInControl][ExtInAction0][load_next]
+                         FDRE                                         r  ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeTrigExtInControl][ExtInAction0][value][3]/CE
+  -------------------------------------------------------------------    -------------------
+
+                         (clock wb_clk rise edge)     5.000     5.000 r  
+                                                      0.000     5.000 r  wb_clk (IN)
+                         net (fo=91, unset)           0.029     5.029    ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/wb_clk
+                         FDRE                                         r  ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeTrigExtInControl][ExtInAction0][value][3]/C
+                         clock pessimism              0.000     5.029    
+                         clock uncertainty           -0.035     4.994    
+                         FDRE (Setup_FDRE_C_CE)      -0.079     4.915    ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeTrigExtInControl][ExtInAction0][value][3]
+  -------------------------------------------------------------------
+                         required time                          4.915    
+                         arrival time                          -0.692    
+  -------------------------------------------------------------------
+                         slack                                  4.223    
+
+Slack (MET) :             4.225ns  (required time - arrival time)
+  Source:                 ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeTipFifoHistCtrl][HistClear][value]/C
+                            (rising edge-triggered cell FDRE clocked by wb_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Destination:            ct_cs_cpuif_wb_inst/genFifoHist.HistRdIdx_reg[0]__0/R
+                            (rising edge-triggered cell FDRE clocked by wb_clk  {rise@0.000ns fall@2.500ns period=5.000ns})
+  Path Group:             wb_clk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            5.000ns  (wb_clk rise@5.000ns - wb_clk rise@0.000ns)
+  Data Path Delay:        0.610ns  (logic 0.206ns (33.770%)  route 0.404ns (66.229%))
+  Logic Levels:           1  (LUT3=1)
+  Clock Path Skew:        -0.012ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.029ns = ( 5.029 - 5.000 ) 
+    Source Clock Delay      (SCD):    0.041ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock wb_clk rise edge)     0.000     0.000 r  
+                                                      0.000     0.000 r  wb_clk (IN)
+                         net (fo=91, unset)           0.041     0.041    ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/wb_clk
+                         FDRE                                         r  ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeTipFifoHistCtrl][HistClear][value]/C
+  -------------------------------------------------------------------    -------------------
+                         FDRE (Prop_FDRE_C_Q)         0.114     0.155 r  ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/field_storage_reg[te][trTeTipFifoHistCtrl][HistClear][value]/Q
+                         net (fo=4, unplaced)         0.166     0.321    ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/cs_tip\\.trTeTipFifoHistClear
+                         LUT3 (Prop_LUT3_I2_O)        0.092     0.413 r  ct_cs_cpuif_wb_inst/genRdlCsr.ct_cs_cpuif_inst/genFifoHist.HistRdIdx[4]_i_1/O
+                         net (fo=5, unplaced)         0.238     0.651    ct_cs_cpuif_wb_inst/genFifoHist.HistRdIdx0
+                         FDRE                                         r  ct_cs_cpuif_wb_inst/genFifoHist.HistRdIdx_reg[0]__0/R
+  -------------------------------------------------------------------    -------------------
+
+                         (clock wb_clk rise edge)     5.000     5.000 r  
+                                                      0.000     5.000 r  wb_clk (IN)
+                         net (fo=91, unset)           0.029     5.029    ct_cs_cpuif_wb_inst/wb_clk
+                         FDRE                                         r  ct_cs_cpuif_wb_inst/genFifoHist.HistRdIdx_reg[0]__0/C
+                         clock pessimism              0.000     5.029    
+                         clock uncertainty           -0.035     4.994    
+                         FDRE (Setup_FDRE_C_R)       -0.118     4.876    ct_cs_cpuif_wb_inst/genFifoHist.HistRdIdx_reg[0]__0
+  -------------------------------------------------------------------
+                         required time                          4.876    
+                         arrival time                          -0.651    
+  -------------------------------------------------------------------
+                         slack                                  4.225    
+
+
+
+
+
+Pulse Width Checks
+--------------------------------------------------------------------------------------
+Clock Name:         wb_clk
+Waveform(ns):       { 0.000 2.500 }
+Period(ns):         5.000
+Sources:            { wb_clk }
+
+Check Type        Corner  Lib Pin  Reference Pin  Required(ns)  Actual(ns)  Slack(ns)  Location  Pin
+Min Period        n/a     FDRE/C   n/a            0.550         5.000       4.450                ct_cs_cpuif_wb_inst/genFifoHist.HistRdIdx_reg[0]__0/C
+Min Period        n/a     FDRE/C   n/a            0.550         5.000       4.450                ct_cs_cpuif_wb_inst/genFifoHist.HistRdIdx_reg[1]__0/C
+Min Period        n/a     FDRE/C   n/a            0.550         5.000       4.450                ct_cs_cpuif_wb_inst/genFifoHist.HistRdIdx_reg[2]__0/C
+Min Period        n/a     FDRE/C   n/a            0.550         5.000       4.450                ct_cs_cpuif_wb_inst/genFifoHist.HistRdIdx_reg[3]/C
+Min Period        n/a     FDRE/C   n/a            0.550         5.000       4.450                ct_cs_cpuif_wb_inst/genFifoHist.HistRdIdx_reg[4]/C
+Low Pulse Width   Slow    FDRE/C   n/a            0.275         2.500       2.225                ct_cs_cpuif_wb_inst/genFifoHist.HistRdIdx_reg[0]__0/C
+Low Pulse Width   Fast    FDRE/C   n/a            0.275         2.500       2.225                ct_cs_cpuif_wb_inst/genFifoHist.HistRdIdx_reg[0]__0/C
+Low Pulse Width   Slow    FDRE/C   n/a            0.275         2.500       2.225                ct_cs_cpuif_wb_inst/genFifoHist.HistRdIdx_reg[1]__0/C
+Low Pulse Width   Fast    FDRE/C   n/a            0.275         2.500       2.225                ct_cs_cpuif_wb_inst/genFifoHist.HistRdIdx_reg[1]__0/C
+Low Pulse Width   Slow    FDRE/C   n/a            0.275         2.500       2.225                ct_cs_cpuif_wb_inst/genFifoHist.HistRdIdx_reg[2]__0/C
+High Pulse Width  Slow    FDRE/C   n/a            0.275         2.500       2.225                ct_cs_cpuif_wb_inst/genFifoHist.HistRdIdx_reg[0]__0/C
+High Pulse Width  Fast    FDRE/C   n/a            0.275         2.500       2.225                ct_cs_cpuif_wb_inst/genFifoHist.HistRdIdx_reg[0]__0/C
+High Pulse Width  Slow    FDRE/C   n/a            0.275         2.500       2.225                ct_cs_cpuif_wb_inst/genFifoHist.HistRdIdx_reg[1]__0/C
+High Pulse Width  Fast    FDRE/C   n/a            0.275         2.500       2.225                ct_cs_cpuif_wb_inst/genFifoHist.HistRdIdx_reg[1]__0/C
+High Pulse Width  Slow    FDRE/C   n/a            0.275         2.500       2.225                ct_cs_cpuif_wb_inst/genFifoHist.HistRdIdx_reg[2]__0/C
+
+
+

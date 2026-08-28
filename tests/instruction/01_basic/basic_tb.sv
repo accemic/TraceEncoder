@@ -61,7 +61,7 @@ module basic_tb;
 		$display("[basic_tb] %0t: Active=1", $time);
 
 		// Small settling delay
-		env.wait_cycles(20);
+		env.cpu.idle(20);
 		$display("[basic_tb] %0t: starting scenario", $time);
 
 		// ---- Scenario ----------------------------------------------
@@ -116,9 +116,9 @@ module basic_tb;
 		// count + branch history, so Phase 1 decodes cleanly up to here. The
 		// CPU keeps executing during the pause but is NOT traced; the model
 		// flag mirrors this so those PCs are excluded from the reference.
-		env.wait_cycles(50);                             // drain Phase-1 (inst_trace_active still 1)
+		env.cpu.idle(50);                             // drain Phase-1 (inst_trace_active still 1)
 		env.csr.Set_te_trTeControl_InstTracing(1'b0);   // -> correlation message
-		env.wait_cycles(200);                            // let inst_trace_active fall (CDC + margin)
+		env.cpu.idle(200);                            // let inst_trace_active fall (CDC + margin)
 		env.cpu.set_inst_traced(1'b0);
 		env.cpu.run(16);                                 // 4 untraced linear instr
 		env.cpu.uninferable_jump(.target(32'h0000_3000));// untraced jump elsewhere
@@ -130,14 +130,14 @@ module basic_tb;
 		// InstTracing 0->1 (Enable still high) re-anchors the decoder with a
 		// TRACE_ENABLE sync at the first resumed instruction, so the decode
 		// picks up at 0x3008 even though the PC moved during the untraced gap.
-		env.wait_cycles(50);                             // drain downtime (inst_trace_active still 0)
+		env.cpu.idle(50);                             // drain downtime (inst_trace_active still 0)
 		env.csr.Set_te_trTeControl_InstTracing(1'b1);   // -> TRACE_ENABLE sync at resume
-		env.wait_cycles(200);                            // let inst_trace_active rise (CDC + margin)
+		env.cpu.idle(200);                            // let inst_trace_active rise (CDC + margin)
 		env.cpu.set_inst_traced(1'b1);
 		env.cpu.run(8);                                  // 2 traced linear instr
 		env.cpu.branch_taken(.target(32'h0000_3100));
 		env.cpu.run(8);                                  // 2 traced linear instr
-		env.wait_cycles(50);                             // drain Phase-2 (inst_trace_active still 1)
+		env.cpu.idle(50);                             // drain Phase-2 (inst_trace_active still 1)
 
 		env.cpu.exit_trace();
 
@@ -148,13 +148,13 @@ module basic_tb;
 		// one atomic event (the correlation eTIP carries do_flush=1, so there
 		// is no race where it could be left unflushed). atb_force_flush then
 		// pushes the last ATB bytes to the sink.
-		env.wait_cycles(50);
+		env.cpu.idle(50);
 		env.csr.Set_te_trTeControl_Enable(1'b0);        // -> correlation + flush (implicit InstTracing off)
 		env.atb_force_flush = 1'b1;
-		env.wait_cycles(2000);
+		env.cpu.idle(2000);
 		env.atb_force_flush = 1'b0;
 		env.csr.Set_te_trTeControl_Active(1'b0);
-		env.wait_cycles(10000);
+		env.cpu.idle(10000);
 
 		// ---- Sanity checks (placeholder scoreboard) ----------------
 		if (env.cpu.event_count() == 0) begin

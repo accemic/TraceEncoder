@@ -1,13 +1,13 @@
-// vim: set ts=4 et:
+// SPDX-FileCopyrightText: 2020 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
 // -*- indent-tabs-mode: t; tab-width: 4 -*-
 
 /**
-* Copyright (c) 2020 by Accemic Technologies GmbH Kiefersfelden Germany
-* SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
-*
-* @brief    Provides convenience functions to manipulate strings
-* @author   Albert Schulz <aschulz@accemic.com>
-*/
+ * @brief    Provides convenience functions to manipulate strings
+ * @author   Albert Schulz <aschulz@accemic.com>
+ */
 package string_pkg;
 
 	/// Returns a new string of a specified totalWidth

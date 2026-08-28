@@ -1,0 +1,63 @@
+--- a/core/include/cv32a6_ima_sv32_fpga_config_pkg.sv
++++ b/core/include/cv32a6_ima_sv32_fpga_config_pkg.sv
+@@ -129,15 +129,52 @@
+       PMPEntryReadOnly: 64'd0,
+       PMPNapotEn: bit'(1),
+       NOCType: config_pkg::NOC_TYPE_AXI4_ATOP,
+-      NrNonIdempotentRules: unsigned'(2),
+-      NonIdempotentAddrBase: 1024'({64'b0, 64'b0}),
+-      NonIdempotentLength: 1024'({64'b0, 64'b0}),
+-      NrExecuteRegionRules: unsigned'(3),
+-      ExecuteRegionAddrBase: 1024'({64'h8000_0000, 64'h1_0000, 64'h0}),
+-      ExecuteRegionLength: 1024'({64'h40000000, 64'h10000, 64'h1000}),
++      // ACCEMIC-DELTA D5 (2026-07-26, finding L1): address regions moved to
++      // the KV260 board. Upstream describes the Genesys2 board here
++      // (DRAM from 0x8000_0000). On the KV260 the CVA6 window sits in the
++      // reserved PS-DDR range from 0x6400_0000
++      // (docs/SPEC_board_memory_map.md); with the upstream rules our
++      // memory is NOT executable -> the very first fetch takes an
++      // Instruction Access Fault (mcause 1, visible as itype 1 in the ITI log).
++      // Platform-specific, hence NOT upstream-worthy -- like D3.
++      //   non-idempotent: peripheral window CLINT..UART (no speculative
++      //                   accesses to registers with side effects)
++      //   executable/cacheable: the DRAM window
++      NrNonIdempotentRules: unsigned'(1),
++      NonIdempotentAddrBase: 1024'({64'h0200_0000}),
++      NonIdempotentLength: 1024'({64'h0E00_1000}),
++      // D5 (Accemic): execute/cached region moved to OUR window. Upstream
++      // points at the Genesys2 board here (0x8000_0000) -- with that, the
++      // very first fetch already took an Instruction Access Fault.
++      //
++      // The LENGTH must match the guest RAM (SPEC v3: 192 MiB), not the
++      // original 64 MiB. Otherwise the kernel runs (it sits at the bottom),
++      // but EVERY code page above 0x6800_0000 is rejected on fetch --
++      // user space dies with cause=1 (Instruction ACCESS fault, not page
++      // fault) and "unhandled signal 11 ... in ld-linux-riscv32-ilp32.so.1".
++      // Diagnosed exactly like that on the board (2026-07-27).
++      //
++      // CORRESPONDENCE RULE: this length, DRAM_SIZE in cva6_linux_soc_top,
++      // the memory node in cva6_kv260.dts and the reserved-memory window
++      // belong together and are changed TOGETHER.
++      NrExecuteRegionRules: unsigned'(1),
++      ExecuteRegionAddrBase: 1024'({64'h6400_0000}),
++      ExecuteRegionLength: 1024'({64'h0C00_0000}),
++      // Cached region DELIBERATELY left at 64 MiB while execute is at 192 MiB
++      // -- the two are independent, and only execute caused the user-space
++      // failure. Background: v5 (both at 192 MiB) made the memory above
++      // 0x6800_0000 cacheable, so the core issues cache-line BURSTS to the
++      // PS HP port there instead of single accesses. With exactly that
++      // bitstream the board failed reproducibly within 5 s (v4 with 64 MiB
++      // ran 75 s stable and booted Linux). A hung master on the HP port
++      // takes the PS interconnect -- and with it the host Ubuntu -- down.
++      // The link is CORRELATED, not proven -- hence the conservative state
++      // here: executability yes, cacheability only where it has demonstrably
++      // worked. Cost: accesses above 64 MiB are uncached and therefore
++      // slow.
+       NrCachedRegionRules: unsigned'(1),
+-      CachedRegionAddrBase: 1024'({64'h8000_0000}),
+-      CachedRegionLength: 1024'({64'h40000000}),
++      CachedRegionAddrBase: 1024'({64'h6400_0000}),
++      CachedRegionLength: 1024'({64'h0400_0000}),
+       MaxOutstandingStores: unsigned'(7),
+       DebugEn: bit'(1),
+       SDTRIG: bit'(0),
