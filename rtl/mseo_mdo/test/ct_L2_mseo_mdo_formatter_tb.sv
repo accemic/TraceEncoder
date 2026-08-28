@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
 // SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
 
-// vim: set ts=4 et:
+// vim: set ts=4 noet:
 // -*- indent-tabs-mode: t; tab-width: 4 -*-
 `timescale 1ns/1ps
 `default_nettype none
@@ -77,7 +77,7 @@ module ct_L2_mseo_mdo_formatter_tb;
 	// ----------------------------------------------------------------
 	// Coverage sampling state and groups (Phase 5).
 	// ----------------------------------------------------------------
-	// Per-message sampling inputs (set just before `msg_cov.sample()`):
+	// Per-message sampling inputs (set just before `msg_cov.sample`):
 	logic [5:0]   cov_msg_tcode        = '0;
 	int unsigned  cov_msg_num_fields   = 0;
 	int unsigned  cov_msg_total_bits   = 0;
@@ -91,6 +91,7 @@ module ct_L2_mseo_mdo_formatter_tb;
 	int unsigned  cov_slice_pos        = 0;  // 0=first, 1=middle, 2=last
 	int unsigned  cov_slice_idx_in_msg = 0;  // slice index inside current message
 
+`ifndef VERILATOR // functional coverage: XSIM-only (Verilator: no covergroups)
 	covergroup cg_msg;
 		option.per_instance = 1;
 		option.name         = "per_message";
@@ -149,6 +150,7 @@ module ct_L2_mseo_mdo_formatter_tb;
 
 	cg_msg   msg_cov   = new();
 	cg_slice slice_cov = new();
+`endif
 
 	ct_L2_mseo_mdo_formatter #(
 		.MDO_WIDTH(MDO_WIDTH)
@@ -162,6 +164,8 @@ module ct_L2_mseo_mdo_formatter_tb;
 		.cs_atb,
 		.atb,
 		.synq_req_trace_byte_count,
+		.synq_req_trace_msg_count  (),     // quota levels unused in this TB
+		.quota_cnt_clr             (1'b0), // (mode gate keeps the counter idle)
 		.ready_out
 	);
 
@@ -178,9 +182,9 @@ module ct_L2_mseo_mdo_formatter_tb;
 		.atb
 	);
 
-	// Raw ATB byte stream dump. The resulting file can be fed to the NexRv
-	// software decoder (https://github.com/accemic/NexRv-for-C-Trace) for
-	// round-trip verification.
+	// Raw ATB byte stream dump. The resulting file can be fed to the CTTD
+	// software decoder (https://github.com/accemic/CTTD) for round-trip
+	// verification.
 	atb_dump #(
 		.FILEPATH("atb_dump.bin")
 	) atb_dump_inst (
@@ -303,7 +307,7 @@ module ct_L2_mseo_mdo_formatter_tb;
 		return cnt;
 	endfunction
 
-	// DUT's is_variable() accepts both VARIABLE and VENDOR_VARIABLE — the
+	// DUT's is_variable accepts both VARIABLE and VENDOR_VARIABLE — the
 	// reference model must agree, otherwise any vendor-variable field in
 	// stimulus would be modelled as fixed and mismatch the RTL output.
 	function automatic bit tb_is_variable(input nexus_field_type_e t);
@@ -1067,7 +1071,9 @@ module ct_L2_mseo_mdo_formatter_tb;
 					cov_msg_has_src      = (nf >= 2)
 						&& (item.msg.fields[1].name == SRC);
 					cov_msg_has_variable = has_var;
+`ifndef VERILATOR
 					msg_cov.sample();
+`endif
 				end
 			end
 		end
@@ -1123,7 +1129,9 @@ module ct_L2_mseo_mdo_formatter_tb;
 					end else begin
 						cov_slice_pos = 1;  // middle
 					end
+`ifndef VERILATOR
 					slice_cov.sample();
+`endif
 
 					if (dut.eom_pulse) begin
 						cov_slice_idx_in_msg = 0;
@@ -1234,6 +1242,7 @@ module ct_L2_mseo_mdo_formatter_tb;
 		wait (AtbCheckingDone);
 		wait (WhiteboxDone);
 
+`ifndef VERILATOR
 		// Coverage summary — prints even on failure so you can see which
 		// bins were missed whenever a regression happens.
 		$display("COVERAGE: per_message   = %0.2f%% (tcode=%0.2f%% nf=%0.2f%% bits=%0.2f%% src=%0.2f%% var=%0.2f%% tcode*src=%0.2f%%)",
@@ -1253,6 +1262,7 @@ module ct_L2_mseo_mdo_formatter_tb;
 			slice_cov.x_pos_ends_field.get_inst_coverage(),
 			slice_cov.x_pos_ends_var.get_inst_coverage(),
 			slice_cov.x_pos_padded.get_inst_coverage());
+`endif
 
 		// Final SOM/EOM pairing sanity.
 		if (total_som != total_eom) begin

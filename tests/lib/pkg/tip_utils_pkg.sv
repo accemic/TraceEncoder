@@ -46,6 +46,10 @@ package tip_utils_pkg;
 		tip.sdata       <= '0;
 		tip.lresp       <= '0;
 		tip.ldata       <= '0;
+		tip.debug_mode  <= '0;
+		tip.evti        <= '0;
+		tip.power_down  <= '0;
+		tip.trigger     <= '0;
 
 		repeat (delay_cycles+1) @(posedge clk);
 	endtask
@@ -70,6 +74,10 @@ package tip_utils_pkg;
 		tipt.sdata       = '0;
 		tipt.lresp       = '0;
 		tipt.ldata       = '0;
+		tipt.debug_mode  = '0;
+		tipt.evti        = '0;
+		tipt.power_down  = '0;
+		tipt.trigger     = '0;
 	endtask
 
 	task automatic TipSendMsg (
@@ -96,6 +104,10 @@ package tip_utils_pkg;
 		tip.sdata       <= tipt.sdata;
 		tip.lresp       <= tipt.lresp;
 		tip.ldata       <= tipt.ldata;
+		tip.debug_mode  <= tipt.debug_mode;
+		tip.evti        <= tipt.evti;
+		tip.power_down  <= tipt.power_down;
+		tip.trigger     <= tipt.trigger;
 		@(posedge clk);
 		TipIfSetDefault (tip, clk, delay_cycles);
 	endtask

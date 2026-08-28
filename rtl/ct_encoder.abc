@@ -7,6 +7,7 @@ import  @rtl/external/memory/ocmem   : ocram_write_if
 import	@rtl/external/stream         : source_if
 import  @rtl/pkg : ct_cs_if tip_if ct_cs_cpuif_wb
 import	@rtl     : ct_L23_preproc  ct_L2_msg_gen  ct_L2_nexus_formatter
-import  @rtl     : ct_L2_mseo_mdo_formatter
+import  @rtl     : ct_L2_mseo_mdo_formatter  ct_L2_compact_packer
+import  @rtl     : ct_L2_te_inst_gen  ct_L2_te_packetizer
 
 read_sv	ct_encoder.sv

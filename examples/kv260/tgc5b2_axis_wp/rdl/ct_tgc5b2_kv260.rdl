@@ -1,0 +1,261 @@
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// -----------------------------------------------------------------------------
+// Register map for the tgc5b2_axis_wp KV260 design -- the WHOLE device as seen
+// from the PS, at the absolute addresses `devmem` takes on the board.
+//
+// This is the map a user of the loadable app needs: two TGC5B cores, their two
+// CTTE encoder instances, the core control block, the trace-sink window that
+// the funnel feeds, and the two AXI-Stream FIFOs the ACT-CAP/ACT-ST records are
+// drained from.
+//
+// Structure (component definitions pulled in with `include):
+//
+//   ct_cs_cpuif.rdl   ct_cs_cpuif   -- the CTTE encoder CSRs (from rdl/,
+//                                      resolved via -I). Instantiated TWICE,
+//                                      once per encoder, so every encoder
+//                                      register appears at its final address.
+//
+// Three address maps are described below:
+//
+//   tgc5b2_axis_soc_top  the 22-bit aperture decoded by tgc5b2_axis_soc_top
+//                        (CTRL / ENC0 / ENC1 / RAM1 / RAM0 / TRACE).
+//   tgc5b2_kv260_top     the bitstream top: that SoC placed at 0xA000_0000 by
+//                        the 1:4 AXI4-Lite router, next to WPCTRL and the two
+//                        axi_fifo_mm_s instances.
+//   (the regfiles below) CTRL, WPCTRL and the PG080 FIFO register set.
+//
+// The CTRL, WPCTRL and router blocks are HAND-WRITTEN RTL, not RDL-generated
+// (only the encoder CSRs are). They are described here so the map is complete
+// in one place. Keep this file in sync with:
+//
+//   rtl/tgc5b2_axis_soc_top.sv   (@details "Address map" + "CTRL")
+//   fpga/tgc5b2_kv260_top.sv     (@details router table + the WPCTRL read case)
+//
+// The true memories -- the two core RAMs and the ATB ring -- stay
+// `external mem`: they hold data, not registers. Their `mementries` mirror the
+// RTL parameters MEM_WORDS (16384) and TRACE_DEPTH (262144); keep the two in
+// sync when a depth changes.
+// -----------------------------------------------------------------------------
+
+`include "ct_cs_cpuif.rdl"
+
+// --- CTRL: core start/stop, ring accounting, sink window ---------------------
+// Hand-implemented in rtl/tgc5b2_axis_soc_top.sv.
+regfile tgc5b2_ctrl_rf {
+    name = "tgc5b2_axis_soc_top control / status";
+
+    reg {
+        desc = "Control register, written over devmem to drive the SoC. The two
+                cores have nothing to do with each other -- there is no SMP
+                here. Effective run state of core i is core_run OR core_i_run.
+
+                LOADER CONTRACT, PER CORE: only write RAM_i while core_i_run
+                (and core_run) are 0. An access to a RUNNING core's RAM never
+                gets ready and hangs the transaction.";
+        field { sw = rw; hw = r; desc = "Collective bit: run BOTH cores.";       } core_run[0:0] = 0;
+        field { sw = rw; hw = r; desc = "Level: while set, re-arm the ATB ring."; } trace_clear[1:1] = 0;
+        field { sw = rw; hw = r; desc = "Request a global funnel flush.";        } trace_flush[2:2] = 0;
+        field { sw = rw; hw = r; desc = "Run core 0 individually.";              } core0_run[8:8] = 0;
+        field { sw = rw; hw = r; desc = "Run core 1 individually.";              } core1_run[9:9] = 0;
+    } control @ 0x0;
+
+    reg {
+        desc = "Status register. Cleared by trace_clear.";
+        field { sw = r; hw = w; desc = "ATB ring wrapped -- capture truncated."; } trace_overflow[0:0] = 0;
+        field { sw = r; hw = w; desc = "Core 0 running (effective state).";      } core0_running[8:8] = 0;
+        field { sw = r; hw = w; desc = "Core 1 running (effective state).";      } core1_running[9:9] = 0;
+    } status @ 0x4;
+
+    reg { desc = "Merged ATB beats captured into the ring (one 32-bit word per beat).";
+          field { sw = r; hw = w; } value[31:0] = 0; } trace_beats @ 0x8;
+    reg { desc = "Valid ATB bytes captured. Only the last beat can be partial.";
+          field { sw = r; hw = w; } value[31:0] = 0; } trace_bytes @ 0xC;
+    reg { desc = "Ring capacity in bytes (TRACE_DEPTH * 4 = 1 MiB).";
+          field { sw = r; hw = w; } value[31:0] = 0; } trace_bufsz @ 0x10;
+
+    // --- shared sink window (ct_trace_sinks), same offsets as duo_soc_top ---
+    reg {
+        desc = "Sink control. The DDR4 sink and the PIB parallel port are
+                additive observers on the funnel output; the URAM ring always
+                runs.";
+        field { sw = rw; hw = r; desc = "Arm the DDR4 sink.";                     } ddr_en[0:0] = 0;
+        field { sw = rw; hw = r; desc = "Pulse: clear DDR counters/flags.";       } ddr_clear[1:1] = 0;
+        field { sw = rw; hw = r; desc = "Circular mode (wrap instead of stop).";  } ddr_circ[2:2] = 0;
+        field { sw = rw; hw = r; desc = "URAM ring one-shot (stop on full).";     } uram_oneshot[3:3] = 0;
+        field { sw = rw; hw = r; desc = "Enable the PIB parallel trace port.";    } pib_en[4:4] = 0;
+        field { sw = rw; hw = r; desc = "Pulse: clear PIB counters.";             } pib_clear[5:5] = 0;
+        field { sw = rw; hw = r; desc = "Emit the PIB calibration pattern.";      } pib_calib[6:6] = 0;
+        field { sw = rw; hw = r; desc = "PIB clock divider.";                     } pib_div[10:8] = 0;
+        field { sw = rw; hw = r; desc = "PIB calibration pattern select.";        } pib_pattern[13:12] = 0;
+    } sink_ctrl @ 0x18;
+
+    reg {
+        desc = "DDR4 sink window base. Writable only while ddr_en = 0; a write
+                while the sink is armed is rejected and reported in
+                SINK_STAT.ddr_cfg_rej. Reset is the reserved-memory window that
+                the boot device tree must carve out (no-map).";
+        field { sw = rw; hw = r; } value[31:0] = 0x50000000;
+    } ddr_base @ 0x1C;
+
+    reg {
+        desc = "DDR4 sink window size in bytes (reset 256 MiB). Same
+                write-while-disarmed rule as DDR_BASE.";
+        field { sw = rw; hw = r; } value[31:0] = 0x10000000;
+    } ddr_size @ 0x20;
+
+    reg { desc = "Bytes written to DDR in TOTAL (monotonic, not modulo the window).";
+          field { sw = r; hw = w; } value[31:0] = 0; } ddr_wptr @ 0x24;
+
+    reg {
+        desc = "Sink status.";
+        field { sw = r; hw = w; desc = "DDR window full.";                       } ddr_full[0:0] = 0;
+        field { sw = r; hw = w; desc = "DDR AXI error response seen.";           } ddr_axi_err[1:1] = 0;
+        field { sw = r; hw = w; desc = "DDR window wrapped (circular mode).";    } ddr_wrapped[2:2] = 0;
+        field { sw = r; hw = w; desc = "URAM ring stopped (one-shot).";          } uram_stopped[3:3] = 0;
+        field { sw = r; hw = w; desc = "A window write was rejected because the
+                                        sink was armed.";                        } ddr_cfg_rej[4:4] = 0;
+    } sink_stat @ 0x28;
+
+    reg { desc = "Beats dropped by the DDR sink (saturating).";
+          field { sw = r; hw = w; } value[31:0] = 0; } ddr_drops @ 0x2C;
+    reg { desc = "Beats dropped by the PIB port (saturating).";
+          field { sw = r; hw = w; } value[31:0] = 0; } pib_drops @ 0x30;
+    reg { desc = "ATB beats OFFERED to the sink since ddr_en -- the proof that
+                  beats reach the sink at all. Cleared via ddr_clear.";
+          field { sw = r; hw = w; } value[31:0] = 0; } ddr_beats @ 0x38;
+};
+
+// --- WPCTRL: shim health + the shared fabric time base -----------------------
+// Hand-implemented in fpga/tgc5b2_kv260_top.sv (served locally by the router in
+// one cycle; every register is read-only, a write is a no-op with OKAY).
+regfile tgc5b2_wpctrl_rf {
+    name = "AXIS watchpoint shim status";
+
+    reg {
+        desc = "Magic identifier, reads 0x41575031 (\"AWP1\"). This is the proof
+                that the PL is loaded and answering on the AXI bus -- read it
+                before any other access to the design.";
+        field { sw = r; hw = w; } value[31:0] = 0x41575031;
+    } magic @ 0x00;
+
+    reg { desc = "Core 0 shim: records dropped because its FIFO was full (saturating).";
+          field { sw = r; hw = w; } value[31:0] = 0; } shim0_drop @ 0x04;
+    reg { desc = "Core 0 shim: current FIFO fill level in records.";
+          field { sw = r; hw = w; } value[31:0] = 0; } shim0_fill @ 0x08;
+    reg { desc = "Core 0 shim: sticky overflow flag (latches on the first drop).";
+          field { sw = r; hw = w; } overflow[0:0] = 0; } shim0_ovf @ 0x0C;
+
+    reg { desc = "Core 1 shim: records dropped because its FIFO was full (saturating).";
+          field { sw = r; hw = w; } value[31:0] = 0; } shim1_drop @ 0x10;
+    reg { desc = "Core 1 shim: current FIFO fill level in records.";
+          field { sw = r; hw = w; } value[31:0] = 0; } shim1_fill @ 0x14;
+    reg { desc = "Core 1 shim: sticky overflow flag (latches on the first drop).";
+          field { sw = r; hw = w; } overflow[0:0] = 0; } shim1_ovf @ 0x18;
+
+    reg {
+        desc = "Low half of the free-running 64-bit fabric counter -- the SHARED
+                time base both encoders stamp their records with.
+
+                READ ORDER MATTERS: reading FTIME_LO atomically snapshots the
+                high half into FTIME_HI. Read LO first, then HI, or the two
+                halves can straddle a carry.";
+        field { sw = r; hw = w; } value[31:0] = 0;
+    } ftime_lo @ 0x1C;
+
+    reg { desc = "High half of the fabric counter, as snapshotted by the last
+                  FTIME_LO read.";
+          field { sw = r; hw = w; } value[31:0] = 0; } ftime_hi @ 0x20;
+
+    reg { desc = "Build parameter mirror: RX FIFO depth in 32-bit words per
+                  axi_fifo_mm_s (4096 = 1024 records).";
+          field { sw = r; hw = w; } value[31:0] = 4096; } rx_fifo_words @ 0x24;
+    reg { desc = "Build parameter mirror: internal record depth per
+                  ct_axis_wp_shim.";
+          field { sw = r; hw = w; } value[31:0] = 256; } shim_records @ 0x28;
+};
+
+// --- axi_fifo_mm_s (AMD PG080), RX-only in this design -----------------------
+// Vendor IP; the register set is PG080's, reproduced here so the map is
+// complete. Configured RX-only: the TX data and TX control paths are disabled,
+// so the TX registers exist but are inert.
+regfile axi_fifo_mm_s_rf {
+    name = "AXI4-Stream FIFO (PG080), RX path";
+
+    reg { desc = "Interrupt status. Bit 26 RC (receive complete), bit 23 RRC
+                  (receive reset complete), bit 19 RFPE (Rx programmable empty).
+                  Write-1-to-clear.";
+          field { sw = rw; hw = w; } value[31:0] = 0; } isr @ 0x00;
+    reg { desc = "Interrupt enable.";
+          field { sw = rw; hw = r; } value[31:0] = 0; } ier @ 0x04;
+
+    reg { desc = "Transmit FIFO reset (key 0xA5). Inert: TX is disabled here.";
+          field { sw = w; hw = r; } value[31:0] = 0; } tdfr @ 0x08;
+    reg { desc = "Transmit FIFO vacancy. Inert: TX is disabled here.";
+          field { sw = r; hw = w; } value[31:0] = 0; } tdfv @ 0x0C;
+    reg { desc = "Transmit FIFO data. Inert: TX is disabled here.";
+          field { sw = w; hw = r; } value[31:0] = 0; } tdfd @ 0x10;
+    reg { desc = "Transmit length. Inert: TX is disabled here.";
+          field { sw = w; hw = r; } value[31:0] = 0; } tlr @ 0x14;
+
+    reg { desc = "Receive FIFO reset -- writing 0xA5 resets the RX side. This is
+                  DESTRUCTIVE: it discards whatever is buffered.";
+          field { sw = w; hw = r; } value[31:0] = 0; } rdfr @ 0x18;
+    reg { desc = "Receive FIFO occupancy in 32-bit words.";
+          field { sw = r; hw = w; } value[31:0] = 0; } rdfo @ 0x1C;
+    reg { desc = "Receive FIFO data -- EVERY READ POPS ONE WORD. A watchpoint
+                  record is four consecutive words: W0 PC, W1 DirectData,
+                  W2 timestamp, W3 meta (tid / tstrb / core_id).";
+          field { sw = r; hw = w; } value[31:0] = 0; } rdfd @ 0x20;
+    reg { desc = "Receive length -- bytes in the next packet. Bit 31 set means
+                  the packet is not yet complete (cut-through); this design is
+                  store-and-forward, so it should not appear.";
+          field { sw = r; hw = w; } value[31:0] = 0; } rlr @ 0x24;
+    reg { desc = "AXI4-Stream reset, both sides (key 0xA5).";
+          field { sw = w; hw = r; } value[31:0] = 0; } srr @ 0x28;
+    reg { desc = "Transmit destination. Inert: TX is disabled here.";
+          field { sw = w; hw = r; } value[31:0] = 0; } tdr @ 0x2C;
+    reg { desc = "Receive destination.";
+          field { sw = r; hw = w; } value[31:0] = 0; } rdr @ 0x30;
+};
+
+// --- The SoC aperture, decoded by tgc5b2_axis_soc_top (low 22 bits) ----------
+addrmap tgc5b2_axis_soc_top {
+    name = "tgc5b2_axis_wp SoC -- PS control-port view (aperture-relative)";
+    desc = "The 22-bit window the AXI4-Lite router forwards to the SoC.";
+
+    default regwidth = 32;
+
+    tgc5b2_ctrl_rf ctrl @ 0x00_0000;
+
+    ct_cs_cpuif enc0 @ 0x01_0000;
+    ct_cs_cpuif enc1 @ 0x02_0000;
+
+    external mem { mementries = 16384; memwidth = 32;
+        desc = "TGC5B core 1 program/data RAM, 64 KiB (MEM_WORDS). Write only
+                while core 1 is held -- see CONTROL.";                  } ram1  @ 0x08_0000;
+    external mem { mementries = 16384; memwidth = 32;
+        desc = "TGC5B core 0 program/data RAM, 64 KiB (MEM_WORDS). Write only
+                while core 0 is held -- see CONTROL.";                  } ram0  @ 0x10_0000;
+    external mem { mementries = 262144; memwidth = 32;
+        desc = "Merged ATB ring (TRACE_DEPTH = 1 MiB). Both encoders' N-Trace
+                output after ct_L1_funnel; the SRC field attributes each
+                message back to its source encoder. Read TRACE_BEATS words and
+                keep the first TRACE_BYTES bytes.";                     } trace @ 0x20_0000;
+};
+
+// --- The bitstream top: what devmem sees on the board -----------------------
+addrmap tgc5b2_kv260_top {
+    name = "tgc5b2_axis_wp -- KV260 devmem view";
+    desc = "Absolute addresses on the board. The Zynq PS reaches all of this
+            through M_AXI_HPM0_FPD -> width converter -> AXI4-Lite -> a 1:4
+            router. pl_clk0 must be driven to 75 MHz before use.";
+
+    default regwidth = 32;
+
+    tgc5b2_axis_soc_top soc    @ 0xA000_0000;
+    tgc5b2_wpctrl_rf    wpctrl @ 0xA040_0000;
+    axi_fifo_mm_s_rf    fifo0  @ 0xA041_0000;
+    axi_fifo_mm_s_rf    fifo1  @ 0xA042_0000;
+};

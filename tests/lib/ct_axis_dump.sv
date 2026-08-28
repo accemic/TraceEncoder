@@ -56,8 +56,8 @@ module ct_axis_dump #(
 	// working directory (note: Vivado XSim runs from a nested build dir, not
 	// the repo root). The default writes to a local `runs/` directory; pass
 	// +CT_OUT_DIR=<path> at runtime, or override OUT_DIR, to redirect it.
-	string  OUT_DIR                  = "runs",
-	int     DUMP_COUNT_MAX           = 500000
+	string OUT_DIR        = "runs",
+	int    DUMP_COUNT_MAX = 500000
 ) (
 	axis_if.monitor       axis
 );
@@ -109,7 +109,7 @@ module ct_axis_dump #(
 		filepath_raw = mk_path("raw");
 
 		file_open(filepath_txt, "w", fd_txt);
-		$fwrite(fd_txt, "# CEDARtools.TraceEncoder AXIS dump (txt)\n");
+		$fwrite(fd_txt, "# CTTE AXIS dump (txt)\n");
 		$fwrite(fd_txt, "# Columns: time tid cmd_name tstrb elem_valid[2:0] elem0 elem1 elem2 tdata_hex\n");
 		file_open(filepath_raw, "wb", fd_raw);
 

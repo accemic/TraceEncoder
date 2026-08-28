@@ -1,18 +1,18 @@
-// -*- indent-tabs-mode:t; tab-width:4 -*-
-// vim: tabstop=4:noexpandtab
+// SPDX-FileCopyrightText: 2024 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
+// -*- indent-tabs-mode: t; tab-width: 4 -*-
 /**
- * Copyright (c) 2024 by Accemic Technologies GmbH Kiefersfelden Germany
- * SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
- *
  * @brief   PeakRDL Internal CPUIF Passthrough Interface
  * @note    Compatible with PeakRDL-regblock generated code using --cpuif passthrough
  * @author  Based on PeakRDL Internal CPUIF Protocol specification
  */
 
 interface cpuif_if #(
-	parameter DATA_WIDTH = 32,
-	parameter ADDR_WIDTH = 32,
-	parameter BITEN_WIDTH = DATA_WIDTH  // Bit-enable width (typically same as DATA_WIDTH)
+	parameter DATA_WIDTH  = 32,
+	parameter ADDR_WIDTH  = 32,
+	parameter BITEN_WIDTH = DATA_WIDTH // Bit-enable width (typically same as DATA_WIDTH)
 );
 	// Request signals
 	logic                       req;

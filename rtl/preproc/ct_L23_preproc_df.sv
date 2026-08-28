@@ -9,7 +9,7 @@
  * @file    ct_L23_preproc_df.sv
  * @brief   Preprocessing stage for data-flow hit consolidation and pipeline alignment.
  *
- * @description
+ * @details
  *   This stage combines data-retire TIP events with data filter and data-address range
  *   search results to produce a consolidated data-flow hit signal. It provides a selectable
  *   extra pipeline delay for downstream synchronization with peer preprocessing stages.
@@ -34,6 +34,7 @@
  *   df_range_hit         Range search match result.
  *   df_hit               Consolidated data-flow hit output (after extra_delay stages).
  *   cs_tip               Control/status interface (ct_cs_tipclk_if, TIP clock domain).
+ *   data_trace_active_q  Pipeline-ALIGNED trTeDataControl.DataTracing level.
  *   internal_delay       Reported intrinsic latency (fixed at 1 cycle).
  *   extra_delay          External pipeline alignment to match peer preproc stages.
  *
@@ -41,7 +42,14 @@
  *   - internal_delay is hardcoded to 1, representing the single pipeline stage before
  *     the configurable delay tap.
  *   - df_hit combines both filter and range results with daddr_valid qualification.
- *   - trTeDataTracing control bit gates all data-flow hit generation.
+ *   - The DataTracing control bit gates all data-flow hit generation -- but it is taken
+ *     ALIGNED (data_trace_active_q from the integrating module), never live from cs_tip:
+ *     this stage sees the DELAYED tip beats, so qualifying them with the live CSR level
+ *     applies an edge to accesses that retired up to max_delay cycles EARLIER. At the
+ *     off edge that silently loses already-retired traced accesses; at the on edge it
+ *     puts accesses retired while data tracing was OFF onto the wire (a data-filter
+ *     violation). Same defect class -- and the same fix -- as inst_trace_active_q in
+ *     ct_L23_preproc_composer_etip; see the DtaPipe/ItaPipe comment in ct_L23_preproc.
  */
 
 `undef  MY_DEBUG
@@ -57,35 +65,36 @@ import ct_pkg::*;
 
 module ct_L23_preproc_df #(
 	// DIM currently unused (kept for backwards compatibility / symmetry with other preproc blocks)
-	int DIM = 4,
+	int DIM               = 4,
 	// Keep integration/TB compatibility: other preproc modules use ct_pkg::EXTRA_DELAY_MAX.
-	int EXTRA_DELAY_MAX = ct_pkg::EXTRA_DELAY_MAX,
+	int EXTRA_DELAY_MAX   = ct_pkg::EXTRA_DELAY_MAX,
 	// When 1: LOADs emit df_qualifier.hit at lresp time (not dretire); STOREs unchanged.
 	// Compatible with the split-load interface (sdata/lresp/ldata).
 	bit SPLIT_DATA_ACCESS = 0
 )(
-	input uwire logic           clk,                    // trace input clock
-	input uwire logic           rst,                    // reset
-	tip_if.slave                tip,                    // TIP from CPU
-	ct_hit_if.slave             df_filter,              // input from comp_filters
-	ct_hit_if.slave             df_range,               // input from df_range
-	ct_hit_if.master            df_qualifier,           // consolidated output to etip composer
-	ct_cs_tipclk_if.slave       cs_tip,                 // control / status interface
-	output delay_t              internal_delay,         // delay of this component including all submodules
-	input uwire delay_t         extra_delay             // extra delay to be added for syncronizing preproc modules
+	input uwire logic     clk,            // trace input clock
+	input uwire logic     rst,            // reset
+	tip_if.slave          tip,            // TIP from CPU
+	ct_hit_if.slave       df_filter,      // input from comp_filters
+	ct_hit_if.slave       df_range,       // input from df_range
+	ct_hit_if.master      df_qualifier,   // consolidated output to etip composer
+	ct_cs_tipclk_if.slave cs_tip,         // control / status interface
+	input uwire logic     data_trace_active_q, // ALIGNED trTeDataTracing (see @notes)
+	output delay_t        internal_delay, // delay of this component including all submodules
+	input uwire delay_t   extra_delay     // extra delay to be added for syncronizing preproc modules
 );
 
 	logic  valid;
 	assign valid =     tip.dretire
-					&& cs_tip.trTeDataTracing
+					&& data_trace_active_q
 					&& ((tip.dtype == LOAD) || (tip.dtype == STORE));
 
 	// split-load qualifiers (active only when SPLIT_DATA_ACCESS=1)
 	logic load_dretire;
 	logic store_dretire;
 	logic lresp_valid;
-	assign load_dretire  = tip.dretire && cs_tip.trTeDataTracing && (tip.dtype == LOAD);
-	assign store_dretire = tip.dretire && cs_tip.trTeDataTracing && (tip.dtype == STORE);
+	assign load_dretire  = tip.dretire && data_trace_active_q && (tip.dtype == LOAD);
+	assign store_dretire = tip.dretire && data_trace_active_q && (tip.dtype == STORE);
 	assign lresp_valid   = tip.lresp[1]; // bit[1]=1: lresp=2 (OK) or 3 (error)
 
 	// pending load filter result — captured at load dretire, emitted at lresp (split mode)

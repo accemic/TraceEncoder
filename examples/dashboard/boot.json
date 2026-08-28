@@ -1,0 +1,60 @@
+{
+  "_comment": [
+    "Guest boot recipes, one per scenario. THIS FILE IS THE ONLY SOURCE OF",
+    "SCRIPT PATHS -- the browser sends nothing but a scenario id. A path taken",
+    "from the request would be remote execution of arbitrary commands.",
+    "",
+    "Why this exists: the user interface could not start the guest. 'Run' only",
+    "releases the core and does NOT reload the payload -- a guest that was",
+    "already running has overwritten its own image and restarts in modified",
+    "code. Only 'prep' reloads it, including the read-back verification; that",
+    "verification is never bypassed.",
+    "",
+    "PL_MHZ is the pl_clk0 LABEL kv260_plclk.sh understands (68 | 75 | 100),",
+    "not an exact frequency: the runner turns 68 into 1500000000/22 =",
+    "68181818 Hz, not 68000000. Which label a scenario needs, and the evidence",
+    "for it, is kept ONCE in plclk.json -- the value repeated here must match,",
+    "and test_demo_assets.py checks that it does. Without the right label,",
+    "prep aborts with PLCLK_WRONG instead of running a design above the",
+    "frequency it was signed off at.",
+    "",
+    "SINK=uram is the 1 MiB URAM ring; the live phase runs it circular, so the",
+    "display keeps showing traffic. SINK=ddr uses the DDR sink window instead",
+    "and requires the reserved-memory node from ctrace_resmem.dtso -- the",
+    "runners check that against the live devicetree and refuse to write into",
+    "unreserved host RAM.",
+    "",
+    "The order is binding: prep loads and verifies, start boots and measures,",
+    "live switches to continuous operation (ring circular, nothing is switched",
+    "off again). If a phase aborts, the server does NOT run the next one -- a",
+    "start on a failed prep produces exactly the dead core this button is",
+    "meant to prevent."
+  ],
+  "rocket2": {
+    "script": "boot/rocket2_linux_run.sh",
+    "phases": ["prep", "start", "live"],
+    "env": {
+      "PAYLOAD": "/tmp/fw_payload_rocket2.bin",
+      "SINK": "ddr",
+      "PL_MHZ": "75"
+    }
+  },
+  "cva6_linux64": {
+    "script": "boot/cva6_linux64_run.sh",
+    "phases": ["prep", "start", "live"],
+    "env": {
+      "PAYLOAD": "/tmp/fw_payload64.bin",
+      "SINK": "uram",
+      "PL_MHZ": "68"
+    }
+  },
+  "rocket64": {
+    "script": "boot/rocket_linux64_run.sh",
+    "phases": ["prep", "start", "live"],
+    "env": {
+      "PAYLOAD": "/tmp/fw_payload_rocket.bin",
+      "SINK": "uram",
+      "PL_MHZ": "75"
+    }
+  }
+}

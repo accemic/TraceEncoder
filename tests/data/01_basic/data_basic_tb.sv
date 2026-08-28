@@ -69,7 +69,7 @@ module data_basic_tb;
 		env.csr.Set_te_trTeControl_InstTracing     (1'b0);
 		env.csr.Set_te_trTeDataControl_DataTracing (1'b1);
 		env.csr.Set_te_trTeControl_Active          (1'b1);
-		env.wait_cycles(20);
+		env.cpu.idle(20);
 		$display("[data_basic_tb] %0t: starting scenario", $time);
 
 		// Instruction tracing is OFF here, so the CTXP reference must contain
@@ -111,14 +111,14 @@ module data_basic_tb;
 
 		// ---- Drain ----
 		env.csr.Set_te_trTeControl_InstSyncReq (1'b1);
-		env.wait_cycles(200);
+		env.cpu.idle(200);
 		env.atb_force_sync  = 1'b1;
 		env.atb_force_flush = 1'b1;
-		env.wait_cycles(2000);
+		env.cpu.idle(2000);
 		env.atb_force_sync  = 1'b0;
 		env.atb_force_flush = 1'b0;
 		env.csr.Set_te_trTeControl_Active(1'b0);
-		env.wait_cycles(10000);
+		env.cpu.idle(10000);
 
 		// ---- Result placeholder checks ----
 		if (env.cpu.event_count() == 0) begin

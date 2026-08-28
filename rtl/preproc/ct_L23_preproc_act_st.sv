@@ -11,8 +11,8 @@
  * @file    ct_L23_preproc_act_st.sv
  * @brief   Preprocessing stage for ACT‑ST (Smart Trigger) events.
  *
- * @description
- *   The ACT‑ST (Accemic C‑Trace Smart Trigger) extends ACT‑CAP by generating
+ * @details
+ *   The ACT‑ST (Accemic CEDARtools Smart Trigger) extends ACT‑CAP by generating
  *   *virtual HSI operations* when preconfigured runtime events occur in the
  *   instruction stream, without CPU involvement.
  *
@@ -65,19 +65,34 @@ import ct_cs_cpuif_types_pkg::*;
 module ct_L23_preproc_act_st #(
 	int DIM = 4
 )(
-	input uwire logic           clk,                    // trace input clock
-	input uwire logic           rst,                    // reset
-	tip_if.slave                tip,                    // TIP from CPU
-	ct_act_cap_if.master        act_st,
-	ct_cs_tipclk_if.slave       cs_tip,                 // control / status interface
-	input uwire logic           wext_clk,
-	ocram_write_if.impl         wext,                   // vector_binary_search memory config
-	output delay_t              internal_delay,         // delay of this component including all submodules
-	input uwire delay_t         extra_delay             // extra delay to be added for syncronizing preproc modules
+	input uwire logic     clk,            // trace input clock
+	input uwire logic     rst,            // reset
+	tip_if.slave          tip,            // TIP from CPU
+	ct_act_cap_if.master  act_st,
+	ct_cs_tipclk_if.slave cs_tip,         // control / status interface
+	input uwire logic     wext_clk,
+	ocram_write_if.impl   wext,           // vector_binary_search memory config
+	output delay_t        internal_delay, // delay of this component including all submodules
+	input uwire delay_t   extra_delay     // extra delay to be added for syncronizing preproc modules
 );
 
 	localparam type   R             = logic [CSR_CT_ACT_CAP_WIDTH-1:0];
 	localparam string SEARCH_MODE   = "VALUE";
+
+	// ----------------------------------------------------------------
+	// Elaboration budget guard (C0b): the ACT-ST chain is a CONSTANT,
+	// 1 + vbs(4*DIM-1) = 4*DIM cycles. Check it against the alignment
+	// budget HERE, where both sides are elaboration constants -- the
+	// downstream $fatal in ct_L23_preproc compares module-port wires and
+	// is only a simulation-time net. The undeclared-module poison keeps
+	// the violation fatal on backends that demote $fatal to a warning
+	// (Verilator under abc's blanket -Wno-fatal, C0a audit B-1).
+	// ----------------------------------------------------------------
+	localparam int ACT_ST_CHAIN_DELAY = 4*DIM; // 1 + (4*DIM - 1)
+	if (ACT_ST_CHAIN_DELAY > EXTRA_DELAY_MAX) begin : genActStBudgetGuard
+		$fatal(1, "ct_L23_preproc_act_st: chain delay %0d (= 4*DIM) exceeds EXTRA_DELAY_MAX=%0d -- raise PREPROC_DELAY_MAX with M0_DIM", ACT_ST_CHAIN_DELAY, EXTRA_DELAY_MAX);
+		ct_elab_guard_violation poison ();
+	end
 
 	logic           hit, hit_valid;
 	R               hit_value;
@@ -98,7 +113,9 @@ module ct_L23_preproc_act_st #(
 		.wr_clk (wext_clk),
 		.rd_clk (clk),
 		.rst,
-		.valid   (tip.iretire),
+		// TipBeatRetires: the port is one bit, tip.iretire is not at a block
+		// ingress width -- a bare connection would keep the LSB only.
+		.valid   (TipBeatRetires(tip.iretire)),
 		.data_in (tip.iaddr),
 		.wext,
 		.hit_valid,

@@ -4,7 +4,7 @@
 import  @rtl/pkg : tip_if tip_pkg ct_pkg ct_cs_if ct_act_cap_if nexus_vendor_riscv_pkg ct_etip_pkg
 import  @rtl/preproc : ct_L23_preproc_act_cap  ct_L23_preproc_act_st  ct_L23_preproc_act_proc  ct_L23_preproc_cf  ct_L23_preproc_df  ct_L23_preproc_df_range  ct_L23_preproc_perfcnt  ct_L23_preproc_sync  ct_L23_preproc_ts  ct_L23_preproc_tip_delay  ct_L23_preproc_composer_etip  ct_L23_preproc_composer_axis
 import  @rtl/external/amba            : axis_if  atb_if  atb_pkg
-import  @rtl/external/common          : math_pkg
+import  @rtl/external/common          : math_pkg  signal_cdc
 import  @rtl/external/memory/ocmem    : ocram_write_if
 import	@rtl/external/stream          : source_if
 

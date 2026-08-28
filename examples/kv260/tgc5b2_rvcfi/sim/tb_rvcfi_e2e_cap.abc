@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+import @examples/kv260/tgc5b2_rvcfi/rtl : tgc5b2_rvcfi_soc_top
+
+read_sim tb_rvcfi_e2e.sv
+read_sim tb_rvcfi_e2e_cap.sv
+simulate tb_rvcfi_e2e_cap

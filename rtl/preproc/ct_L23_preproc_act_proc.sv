@@ -33,17 +33,17 @@ import ct_cs_cpuif_types_pkg::*;
 import nexus_vendor::*;
 
 module ct_L23_preproc_act_proc (
-	input uwire logic           clk,                // trace input clock
-	input uwire logic           rst,                // reset
+	input uwire logic     clk,            // trace input clock
+	input uwire logic     rst,            // reset
 
 	// Input / Output
-	ct_act_cap_if.slave         act_cap,
-	ct_act_cap_if.slave         act_st,
-	ct_act_cap_if.master        act_cap_st,
+	ct_act_cap_if.slave   act_cap,
+	ct_act_cap_if.slave   act_st,
+	ct_act_cap_if.master  act_cap_st,
 	// Local control
-	ct_cs_tipclk_if.slave       cs_tip,                 // control / status interface
-	output delay_t              internal_delay,         // delay of this component including all submodules
-	input uwire delay_t         extra_delay             // extra delay to be added for syncronizing preproc modules
+	ct_cs_tipclk_if.slave cs_tip,         // control / status interface
+	output delay_t        internal_delay, // delay of this component including all submodules
+	input uwire delay_t   extra_delay     // extra delay to be added for syncronizing preproc modules
 );
 
 	typedef struct {
@@ -116,7 +116,16 @@ module ct_L23_preproc_act_proc (
 						// synchronization message (Nexus only). The composer
 						// suppresses the DAQ message for this command and the
 						// AXIS composer ignores it (default arm).
-						ct_cs_cpuif__trActCapStCmd_e__ACT_CAP_ST_CF_SYNC: begin
+						ct_cs_cpuif__trActCapStCmd_e__ACT_CAP_ST_CF_SYNC,
+						// WATCHPOINT (P4): same forwarding contract as CF_SYNC --
+						// no DAQ payload, the eTIP composer turns it into a
+						// Watchpoint message (TCODE 15, Nexus only) and skips its
+						// DAQ arm for this command. Not compile-gated here (a
+						// case item cannot be): with CT_EN_WATCHPOINT_MSG = 0 the
+						// composer raises no slot for it, so the forwarded
+						// command is simply inert -- an unsupported command
+						// produces no message, which is what the RDL promises.
+						ct_cs_cpuif__trActCapStCmd_e__ACT_CAP_ST_WATCHPOINT: begin
 							ActProcPipe[0].valid <= 1;
 							ActProcPipe[0].cmd   <= act_cap_cmd;
 							ActProcPipe[0].data  <= act_cap_data;
@@ -141,7 +150,11 @@ module ct_L23_preproc_act_proc (
 					endcase
 				end
 				default: begin
-					// TODO error
+					// Unreachable, and that is a property of the field, not an
+					// assumption: Sink is trActCapStCmd.Sink[7:6] -- two bits,
+					// and trActCapStSink_e enumerates all four encodings
+					// (NEXUS, AXIS, AXIS_NEXUS, TE), each handled above. There
+					// is no illegal value left for an error path to report.
 				end
 				endcase
 			end

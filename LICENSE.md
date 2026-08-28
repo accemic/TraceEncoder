@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Licensing
 
-CEDARtools.TraceEncoder — RISC-V N-Trace Encoder IP
+CEDARtools.TraceEncoder — RISC-V Trace Encoder IP
 Copyright (C) 2026 Accemic Technologies GmbH
 
 This repository is licensed **per artifact type**. Which license applies
@@ -24,8 +24,9 @@ The full text of every license used is in [`LICENSES/`](LICENSES/).
 | **Hardware IP** | RTL (`.sv`), register description (`.rdl`), timing/placement constraints (`.xdc`), and the SystemVerilog/`.abc` verification testbenches | **`CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial`** (dual) |
 | **Software** | Build, tooling and CI — shell/Python scripts, `Makefile`, GitHub workflows, config and metadata | **`ISC`** |
 | **Documentation** | Markdown, AsciiDoc, and documentation images | **`CC-BY-4.0`** |
-| **Third-party IP** | MINRES TGC5B core vendored for the example SoC (`examples/tgc5b_soc/cpu/`) | **`CERN-OHL-S-2.0 OR LicenseRef-MINRES-Commercial`** (dual — licensed by MINRES) |
-| **Vendored** | `bin/NexRv` reference decoder (derived from the IAR Systems NexRv tool) | **`ISC`** |
+| **Pre-built demo apps** | The ready-to-load KV260 apps under `examples/kv260/<demo>/fpga/prebuilt/` — bitstream, device-tree overlay, `shell.json`, manifest — built from the Hardware IP and the example SoCs (declared in [`REUSE.toml`](REUSE.toml)) | **`CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial`** (dual); the third-party cores compiled into a bitstream keep their own licenses, stated in that example's README |
+| **Third-party IP** | MINRES TGC5B core vendored for the example SoC (`examples/kv260/common/tgc5b/cpu/`) | **`CERN-OHL-S-2.0 OR LicenseRef-MINRES-Commercial`** (dual — licensed by MINRES) |
+| **Fetched tool** | CTTD (CEDARtools.TraceDecoder) reference decoder — not committed; `scripts/fetch_cttd.py` downloads the pinned build into the gitignored `bin/` (see below) | **`ISC`** (upstream NexRv reference decoder of the RISC-V Nexus Trace TG, extended by Accemic) |
 
 ## Hardware IP — dual license
 
@@ -49,13 +50,20 @@ SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
 
 ## Third-party IP — MINRES TGC5B core
 
-`examples/tgc5b_soc/cpu/TGC5B_AXI4L_H2E.sv` is **not** Accemic's work. It
+`examples/kv260/common/tgc5b/cpu/TGC5B_AXI4L_H2E.sv` is **not** Accemic's work. It
 is the MINRES **TGC5B** RISC-V core, `Copyright 2020-2022 MINRES
 Technologies GmbH`, vendored so the integration example builds and
 simulates against a real core.
 
 MINRES has permitted its publication under the same dual-license model
-this repository uses for its own hardware IP:
+this repository uses for its own hardware IP. The permission is on
+record — Eyck Jentzsch, Managing Director of MINRES Technologies GmbH, by
+e-mail of **2026-08-03**, in reply to an explicit request naming this
+repository's `LICENSE.md`; the parties, the date and the scope are in
+[`legal/minres-tgc5b-license-grant-20260803.md`](legal/minres-tgc5b-license-grant-20260803.md).
+The correspondence itself is MINRES' text and not Accemic's to publish;
+Accemic holds it and produces it for licensees and licence auditors on
+request (<info@accemic.com>).
 
 ```
 SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-MINRES-Commercial
@@ -92,13 +100,17 @@ under **Creative Commons Attribution 4.0 International (CC-BY-4.0)** — you
 may share and adapt them with attribution. Full text:
 [`LICENSES/CC-BY-4.0.txt`](LICENSES/CC-BY-4.0.txt).
 
-## Vendored — NexRv
+## Fetched tool — CTTD
 
-`bin/NexRv` is a reference decoder built from the CEDARtools.TraceEncoder port at
-[accemic/NexRv-for-C-Trace](https://github.com/accemic/NexRv-for-C-Trace),
-derived from the IAR Systems NexRv tool, copyright IAR Systems AB and
-Accemic Technologies GmbH, licensed under **ISC**. It is recorded in
-[`REUSE.toml`](REUSE.toml).
+The reference decoder **CTTD (CEDARtools.TraceDecoder)** is not part of this
+repository's tree: `scripts/fetch_cttd.py` downloads the build pinned in
+`scripts/cttd.pin` (sha256 per platform, `base_url` naming the CTTD
+repository) into the gitignored `bin/`. CTTD is
+derived from the RISC-V Nexus Trace Task Group's reference decoder NexRv
+(copyright IAR Systems AB, **ISC**) and extended by Accemic Technologies GmbH
+(E-Trace front end, DAQ, multi-target decode, CTXP export); its licence text
+and notices travel with the CTTD repository. Nothing of it is redistributed
+from here, so it carries no `REUSE.toml` entry in this repository.
 
 ## Commercial licensing
 
@@ -106,10 +118,17 @@ Organizations that cannot comply with the copyleft obligations of
 CERN-OHL-S-2.0 for the hardware IP may obtain a commercial license from
 Accemic Technologies GmbH. Inquiries: [sales@accemic.com](mailto:sales@accemic.com).
 
-That license covers the **CEDARtools.TraceEncoder IP** — everything in
-`rtl/`, `rdl/`, `tests/` and the Accemic-authored parts of `examples/`.
-It does **not** cover the vendored MINRES TGC5B core, which carries its
-own dual license from MINRES. The two are independent:
+That license covers the **CEDARtools.TraceEncoder IP**, and the IP is
+defined by its licence expression, not by its directory: it is exactly the
+set of files whose SPDX header reads
+`CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial` — the RTL, the register
+description, the testbenches, the formal properties, the reference vectors
+and the Accemic-authored hardware parts of `examples/`. Files under the
+same directories that carry a different expression (`ISC` build and board
+scripts, `CC-BY-4.0` documentation) are already permissive and need no
+commercial license. The commercial arm does **not** cover the vendored
+MINRES TGC5B core, which carries its own dual license from MINRES. The two
+are independent:
 
 | You want to ship | Encoder | TGC5B core | License(s) needed |
 |---|---|---|---|

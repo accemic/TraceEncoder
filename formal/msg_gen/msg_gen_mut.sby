@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+#
+# Mutation job driven by run_red_p4.sh, at the same depth as the accepted
+# criterion of msg_gen.sby (BMC 50). build/msg_gen_mut.v is written by that
+# script from a MUTATED copy of the RTL and/or the wrapper -- never by hand,
+# and never checked in.
+[options]
+mode bmc
+depth 50
+
+[engines]
+smtbmc bitwuzla
+
+[script]
+read -formal msg_gen_mut.v
+prep -top f_msg_check
+
+[files]
+build/msg_gen_mut.v

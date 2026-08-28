@@ -1,0 +1,2673 @@
+{
+  "_comment": [
+    "Scenario catalogue of the CTTE dashboard (2026-07-28).",
+    "Each scenario describes ONE app loadable on the KV260: bitstream (xmutil app name),",
+    "aperture regions, CTRL register map, cores/encoders, sinks, console and",
+    "decode configuration. The UI builds block diagram and control panel from it,",
+    "the server its /dev/mem mappings and register accesses.",
+    "",
+    "WHY this file exists: the CTRL register maps of the apps are NOT",
+    "identical. mbv/trio have 0x10 AXIS_BEATS and 0x14 TRACE_BUFSZ; the Linux CVA6",
+    "has 0x10 TRACE_BUFSZ, 0x14 CON_BYTES, 0x18 CON_DROPS and shifts everything from",
+    "SINK_CTRL up by four bytes. A server with hard-wired offsets silently reads",
+    "wrong numbers on whichever app it was not written for.",
+    "",
+    "The register map of every scenario is verified against the RTL:",
+    "  mbv          rtl/board_kv260/mbv_soc_top.sv (header comment + rdata_q case)",
+    "  trio         rtl/board_kv260/trio_soc_top.sv",
+    "  cva6_linux   rtl/board_kv260/cva6_linux_soc_top.sv",
+    "  cva6_linux64 rtl/board_kv260/cva6_linux64_soc_top.sv (rdata_q case 4'd0..4'd14)",
+    "  rocket64     vivado/kv260_app/rocket_soc_top.sv (header comment + rdata_q case 5'd0..5'd21)",
+    "",
+    "app_variants (since 2026-08-08): a scenario can be present on the board in",
+    "several bitstreams that can be told apart ONLY by the app name. The",
+    "address width of the encoder (CT_XLEN) is a synthesis parameter and is held in",
+    "no CSR (package W1) -- the name is the only discriminator. An",
+    "RV64 core under a 32-bit encoder delivers addresses truncated in HARDWARE;",
+    "the dashboard states that instead of computing them back."
+  ],
+  "version": 3,
+  "default": "cva6_linux",
+  "scenarios": [
+    {
+      "id": "cva6_linux",
+      "title": "CVA6 · Linux 6.12",
+      "subtitle": "A RISC-V Linux in the PL — and its instruction flow, without the core noticing",
+      "accent": "#39d0ff",
+      "app": "cva6_linux_ctrace_kv260",
+      "bitbin": "cva6_linux_ctrace_kv260.bit.bin",
+      "headline": [
+        "Linux 6.12.19 boots on our CVA6 in the KV260 PL, and the boot is fully",
+        "recorded as CTTE: 64,651,219 instructions, 0 errors,",
+        "6.84 bit per instruction."
+      ],
+      "regions": {
+        "ctrl": {
+          "base": "0xA0000000",
+          "size": 65536,
+          "label": "SoC CTRL"
+        },
+        "enc": {
+          "base": "0xA0010000",
+          "size": 65536,
+          "label": "CTTE CSRs (CVA6)"
+        },
+        "trace": {
+          "base": "0xA0200000",
+          "size": 1048576,
+          "label": "ATB ring (1 MiB URAM)"
+        },
+        "con": {
+          "base": "0xA0300000",
+          "size": 65536,
+          "label": "Console ring (8250 TX)"
+        }
+      },
+      "ctrl": {
+        "control": 0,
+        "status": 4,
+        "trace_beats": 8,
+        "trace_bytes": 12,
+        "trace_bufsz": 16,
+        "con_bytes": 20,
+        "con_drops": 24,
+        "sink_ctrl": 28,
+        "ddr_base": 32,
+        "ddr_size": 36,
+        "ddr_wptr": 40,
+        "sink_stat": 44,
+        "ddr_drops": 48,
+        "con_tx": 52,
+        "con_rptr": 56
+      },
+      "control_bits": {
+        "core_run": 0,
+        "trace_clear": 1,
+        "con_clear": 2
+      },
+      "status_bits": {
+        "trace_wrapped": 0,
+        "uram_stopped": 1,
+        "timer_irq": 2,
+        "sw_irq": 3
+      },
+      "cores": [
+        {
+          "id": 0,
+          "name": "CVA6",
+          "long": "CVA6 cv32a6_ima_sv32",
+          "isa": "RV32IMA Sv32",
+          "mhz": 75,
+          "enc": "enc",
+          "load": "cva6",
+          "load_base": "0x64000000",
+          "mem": "DDR @0x6400_0000",
+          "ingress": "ITI shim",
+          "note": "OpenSBI + Linux from the reserved PS-DDR window",
+          "panel": "CVA6 (cv32a6_ima_sv32_fpga) — the traced core",
+          "desc": "Linux-capable CVA6 (vendored cva6_ref, OpenHW): RV32IMA_Zicsr_Zifencei, Sv32 MMU, M/S/U, one commit port, no C extension, no FPU, no PMP, 8 KiB I$ / 8 KiB D$. NO local RAM: code and data are fetched over its own 64-bit AXI master from the reserved PS-DDR window @ 0x6400_0000 (+64 MiB, ctrace_resmem.dtso). The PS loads OpenSBI + Linux into that window while core_run=0, configures the encoder, then releases the core.",
+          "ingress_panel": "ITI Adapter (CVA6)",
+          "ingress_desc": "cva6_iti (upstream Instruction Trace Interface, E-Trace v2.0.2 ingress, incl. Accemic fixes D1/D2) + cva6_iti_to_ctte_tip shim: the E-Trace itype vocabulary maps value-identically onto the CTTE TIP; trap beats are forced to iretire=0 (CTTE/AMD ICNT convention).",
+          "facts": [
+            [
+              "code/data",
+              "PS DDR window @ 0x6400_0000 (+64 MiB, reserved)"
+            ],
+            [
+              "boot_addr",
+              "0x6400_0000"
+            ],
+            [
+              "encoder",
+              "ENC0 @ 0xA001_0000"
+            ],
+            [
+              "console",
+              "8250 TX ring @ 0xA030_0000 (+ RX FIFO)"
+            ]
+          ]
+        }
+      ],
+      "sinks": {
+        "uram": true,
+        "ddr": true,
+        "pib": false
+      },
+      "_console_comment": [
+        "'interactive' and 'wrapping' describe what the LOADED BITSTREAM can do,",
+        "not what the UI would like. Up to bitstream v6, cva6_linux_periph was",
+        "TX-only (RBR reads 0, LSR.DR stays 0) and the ring ended after 64 KiB.",
+        "The RX bitstream (CON_TX 0x34 / CON_RPTR 0x38) can do both.",
+        "The server checks this at run time via CON_TX and corrects the",
+        "entry -- if 'true' is stated here and the bitstream cannot do it, input",
+        "stays blocked instead of sending characters into the void."
+      ],
+      "console": {
+        "region": "con",
+        "size": 65536,
+        "bytes": "con_bytes",
+        "drops": "con_drops",
+        "clear_bit": 2,
+        "tx_reg": "con_tx",
+        "rptr_reg": "con_rptr",
+        "wrapping": true,
+        "interactive": true,
+        "probe": true,
+        "note_readonly": "This bitstream has no UART RX path: the 8250 is TX-only (RBR reads 0, LSR.DR stays 0). Input requires the RX bitstream."
+      },
+      "_decode_comment": [
+        "live_pcinfo is the SLIM variant for the rolling window.",
+        "Measured on the KV260 (Cortex-A53): NexRv reads the pcinfo in full on EVERY",
+        "call. The 114 MiB listing of the Linux boot costs 18.06 s per",
+        "window -- and 18.08 s with a zero-byte trace as well, so the decode itself",
+        "is free. With the 775 KiB OpenSBI listing it is 0.14 s.",
+        "Without that separation the live view is unusable on the board."
+      ],
+      "decode": {
+        "multi_target": false,
+        "srcbits": 0,
+        "targets": [
+          {
+            "id": 0,
+            "label": "CVA6",
+            "pcinfo": "cva6_linux.pcinfo",
+            "live_pcinfo": "cva6_linux.pcinfo"
+          }
+        ]
+      },
+      "_symbols_comment": [
+        "Fallback set for demo mode: ONLY the OpenSBI phase (748 symbols,",
+        "24 KiB) -- exactly what the shipped trace excerpt covers.",
+        "The FULL set (83,074 symbols from merged3.dis, ~2.7 MiB + 6.2 MiB sites)",
+        "is not versioned but produced on the board and then sits next to it as",
+        "symbols_cva6_linux.map / sites_cva6_linux.map -- those take precedence:",
+        "  py dis_to_symbols.py merged3.dis -o symbols_cva6_linux.map \\",
+        "      --sites sites_cva6_linux.map"
+      ],
+      "_code_regions_comment": [
+        "Address regions for the coverage treemap. A Linux boot runs through",
+        "THREE spaces (sw/cva6_linux/make_listing.sh): OpenSBI physical==virtual,",
+        "kernel physical until satp is set, kernel virtual afterwards. Without that",
+        "separation the same functions would lie twice in one area."
+      ],
+      "code_regions": [
+        {
+          "name": "OpenSBI",
+          "base": "0x64000000",
+          "size": "0x00400000"
+        },
+        {
+          "name": "Kernel physical",
+          "base": "0x64400000",
+          "size": "0x02000000"
+        },
+        {
+          "name": "Kernel virtual",
+          "base": "0xC0000000",
+          "size": "0x02000000"
+        }
+      ],
+      "symbols": "demo/symbols_sbi.map",
+      "sites": "demo/sites_sbi.map",
+      "features": [
+        "console",
+        "ddr_sink",
+        "decode",
+        "live_pc",
+        "hotmap",
+        "coverage",
+        "elf_load"
+      ],
+      "fifo": {
+        "cvs_depth": 128,
+        "cdc_depth": 8,
+        "hist_bins": 16,
+        "_src": "ct_pkg.sv of the built profile: ETIP_CVS_FIFO_DEPTH = (CT_EN_DATA_TRACE||CT_EN_ACT||CT_EN_DAQ) ? 128 : 32"
+      },
+      "demo": {
+        "_src": "Derived from the verified boot record (64,651,219 instructions x 6.84 bpi / 8 = 55.3 MB) and the console boot time up to login (~50 s, kernel timestamps up to 46.7 s): ~1.1 MB/s. bpi 6.84 from the record; without a retires register the UI computes no bpi here.",
+        "byte_rate": 1100000,
+        "bpi": 6.84
+      }
+    },
+    {
+      "id": "cva6_linux64",
+      "title": "CVA6 RV64 · Linux (cv64a6, Sv39)",
+      "subtitle": "A 64-bit RISC-V Linux in the PL — traced with 64-bit addresses",
+      "accent": "#a78bfa",
+      "xlen": 64,
+      "app": "cva6_linux64_x64ctx_ctrace_kv260",
+      "bitbin": "cva6_linux64_x64ctx_ctrace_kv260.bit.bin",
+      "_app_variants_comment": [
+        "Two bitstreams, one design. The difference is CT_XLEN -- the",
+        "address width of the encoder -- and that is a synthesis parameter, not a",
+        "CSR (package W1). Whoever loads the 32-bit variant gets addresses",
+        "truncated by the HARDWARE; that is not a display error, and it is not",
+        "computed away either but stated."
+      ],
+      "app_variants": [
+        {
+          "app": "cva6_linux64_x64ctx_ctrace_kv260",
+          "enc_xlen": 64,
+          "label": "64-bit encoder + 16-bit context (CT_CONTEXT_WIDTH=16)",
+          "note": "Adds the Ownership/Context path: satp.ASID reaches the encoder and the comparator can filter on it, so a trace can be restricted to a single Linux process (package W5). Same addresses as the plain 64-bit variant; the context width costs no timing (WNS +1.174 ns vs +1.077, and 421 LUT fewer)."
+        },
+        {
+          "app": "cva6_linux64_x64_ctrace_kv260",
+          "enc_xlen": 64,
+          "label": "64-bit encoder (CT_XLEN=64)",
+          "note": "Full RV64 addresses in the trace stream. No context path: this build predates CT_CONTEXT_WIDTH, emits zero Ownership messages, and satp.ASID is not even wired to the encoder — an ownership filter cannot work here."
+        },
+        {
+          "app": "cva6_linux64_ctrace_kv260",
+          "enc_xlen": 32,
+          "label": "32-bit encoder (CT_XLEN=32)",
+          "note": "The ENCODER truncates addresses to 32 bit. Sv39 kernel PCs (0xFFFFFFFF8...) cannot be reconstructed from this stream — that is hardware, not display."
+        }
+      ],
+      "headline": [
+        "Linux 6.x boots on our 64-bit CVA6 (cv64a6_imac_sv39, no FPU) in the",
+        "KV260 PL: 'buildroot login:', isa rv64imac_zicsr_zifencei_zca, mmu sv39.",
+        "RV64 PC decode is proven at the board: 818,663 instructions from one",
+        "stream, 0 errors — the majority of them above 2^32 (package W1)."
+      ],
+      "regions": {
+        "ctrl": {
+          "base": "0xA0000000",
+          "size": 65536,
+          "label": "SoC CTRL"
+        },
+        "enc": {
+          "base": "0xA0010000",
+          "size": 65536,
+          "label": "CTTE CSRs (cv64a6)"
+        },
+        "trace": {
+          "base": "0xA0200000",
+          "size": 1048576,
+          "label": "ATB ring (1 MiB URAM)"
+        },
+        "con": {
+          "base": "0xA0300000",
+          "size": 65536,
+          "label": "Console ring (8250 TX/RX)"
+        }
+      },
+      "_ctrl_comment": [
+        "Word for word the map of the RV32 version -- that is intentional and is",
+        "recorded as such in the file header of cva6_linux64_soc_top.sv, so that the",
+        "PS tools keep working unchanged. Verified against the rdata_q case",
+        "(4'd0..4'd14) of the same file, not copied from the RV32 row."
+      ],
+      "ctrl": {
+        "control": 0,
+        "status": 4,
+        "trace_beats": 8,
+        "trace_bytes": 12,
+        "trace_bufsz": 16,
+        "con_bytes": 20,
+        "con_drops": 24,
+        "sink_ctrl": 28,
+        "ddr_base": 32,
+        "ddr_size": 36,
+        "ddr_wptr": 40,
+        "sink_stat": 44,
+        "ddr_drops": 48,
+        "con_tx": 52,
+        "con_rptr": 56
+      },
+      "control_bits": {
+        "core_run": 0,
+        "trace_clear": 1,
+        "con_clear": 2
+      },
+      "status_bits": {
+        "trace_wrapped": 0,
+        "uram_stopped": 1,
+        "timer_irq": 2,
+        "sw_irq": 3
+      },
+      "cores": [
+        {
+          "id": 0,
+          "name": "CVA6",
+          "long": "CVA6 cv64a6_imac_sv39_ctrace",
+          "isa": "RV64IMAC Sv39",
+          "mhz": 75,
+          "mhz_note": "Design constrained to 75 MHz. The board's boot firmware leaves pl_clk0 at 100 MHz; the board runners set 75 MHz explicitly (vivado/kv260_app/kv260_plclk.sh).",
+          "enc": "enc",
+          "load": "cva6",
+          "load_base": "0x64000000",
+          "load_size": "0x0C000000",
+          "mem": "DDR @0x6400_0000 (192 MiB)",
+          "ingress": "ITI shim",
+          "note": "OpenSBI + RV64 Linux from the reserved PS-DDR window",
+          "panel": "CVA6 cv64a6_imac_sv39_ctrace — the traced 64-bit core",
+          "desc": "64-bit CVA6 (vendored cva6_ref, OpenHW), configuration delta D6: RV64IMAC_Zicsr_Zifencei_Zca, Sv39 MMU, M/S/U, one commit port, NO FPU, 8 KiB I$ / 8 KiB D$. Code and data come over its own 64-bit AXI master from the reserved PS-DDR window @ 0x6400_0000 (192 MiB). Three RV64 deltas in the SoC hull were each a boot stopper on their own: RISCV_WORD_WIDTH=64 at the atomics block (otherwise every amoadd.d and thus every kernel spinlock fails), byte-strobe-exact 64-bit CLINT writes (otherwise mtimecmp[63:32] keeps its reset value and the timer never fires), and msip routed to the core.",
+          "ingress_panel": "ITI Adapter (cv64a6)",
+          "ingress_desc": "cva6_iti (E-Trace v2.0.2 ingress, incl. Accemic fixes D1/D2) + cva6_iti_to_ctte_tip shim, width-parametric: the same shim carries 32- and 64-bit addresses.",
+          "facts": [
+            [
+              "code/data",
+              "PS DDR window @ 0x6400_0000 (+192 MiB, reserved)"
+            ],
+            [
+              "boot_addr",
+              "0x6400_0000"
+            ],
+            [
+              "encoder",
+              "ENC0 @ 0xA001_0000"
+            ],
+            [
+              "console",
+              "8250 TX ring @ 0xA030_0000 (+ RX FIFO)"
+            ]
+          ]
+        }
+      ],
+      "sinks": {
+        "uram": true,
+        "ddr": true,
+        "pib": false
+      },
+      "console": {
+        "region": "con",
+        "size": 65536,
+        "bytes": "con_bytes",
+        "drops": "con_drops",
+        "clear_bit": 2,
+        "tx_reg": "con_tx",
+        "rptr_reg": "con_rptr",
+        "wrapping": true,
+        "interactive": true,
+        "probe": true,
+        "note_readonly": "This bitstream has no UART RX path: the 8250 is TX-only. Input requires an RX-capable bitstream."
+      },
+      "_decode_comment": [
+        "There is NO pcinfo for this core in the tree -- the RV64 listing of the",
+        "Linux image is produced on the board (sw/cva6_linux/make_listing_rv64.sh) and",
+        "is too large to be versioned. The server looks for it as",
+        "  pcinfo_cva6_linux64_src0.pcinfo        (full)",
+        "  pcinfo_cva6_linux64_src0_live.pcinfo   (slim, for the live window)",
+        "in the dashboard directory. If it is missing, the live view says exactly that --",
+        "it shows no invented names."
+      ],
+      "decode": {
+        "multi_target": false,
+        "srcbits": 0,
+        "targets": [
+          {
+            "id": 0,
+            "label": "cv64a6",
+            "pcinfo": "cva6_linux64.pcinfo",
+            "live_pcinfo": "cva6_linux64.pcinfo"
+          }
+        ]
+      },
+      "_code_regions_comment": [
+        "Three spaces as in the RV32 boot, but on RV64 the third one is NOT at",
+        "PAGE_OFFSET but in the topmost 2 GiB: 0xFFFFFFFF_8000_0000",
+        "(sw/cva6_linux/make_listing_rv64.sh header, item 3). Exactly this region",
+        "is the reason for the 64-bit address display -- read as a 32-bit number",
+        "it collapses onto 0x80000000."
+      ],
+      "code_regions": [
+        {
+          "name": "OpenSBI",
+          "base": "0x64000000",
+          "size": "0x00200000"
+        },
+        {
+          "name": "Kernel physical",
+          "base": "0x64200000",
+          "size": "0x02000000"
+        },
+        {
+          "name": "Kernel virtual (Sv39)",
+          "base": "0xFFFFFFFF80000000",
+          "size": "0x02000000"
+        }
+      ],
+      "symbols": null,
+      "sites": null,
+      "features": [
+        "console",
+        "ddr_sink",
+        "decode",
+        "live_pc",
+        "hotmap",
+        "coverage",
+        "elf_load"
+      ],
+      "fifo": {
+        "cvs_depth": 128,
+        "cdc_depth": 8,
+        "hist_bins": 16,
+        "_src": "ct_pkg.sv of the built profile: ETIP_CVS_FIFO_DEPTH = (CT_EN_DATA_TRACE||CT_EN_ACT||CT_EN_DAQ) ? 128 : 32"
+      }
+    },
+    {
+      "id": "rocket64",
+      "title": "Rocket RV64 · Linux (Rocket64t1)",
+      "subtitle": "A second, foreign 64-bit core — same encoder, same stream format",
+      "accent": "#f472b6",
+      "xlen": 64,
+      "app": "rocket_x64_ctrace_kv260",
+      "bitbin": "rocket_x64_ctrace_kv260.bit.bin",
+      "app_variants": [
+        {
+          "app": "rocket_x64_ctrace_kv260",
+          "enc_xlen": 64,
+          "label": "64-bit encoder (CT_XLEN=64)",
+          "note": "Full RV64 addresses in the trace stream. Built with EN_ETRACE=0."
+        },
+        {
+          "app": "rocket_ctrace_kv260",
+          "enc_xlen": 32,
+          "label": "32-bit encoder (CT_XLEN=32)",
+          "note": "The ENCODER truncates addresses to 32 bit. PC_LO/PC_HI still carry the full 64-bit retired PC — that path is width-agnostic and independent of the encoder."
+        }
+      ],
+      "headline": [
+        "The same CTTE encoder on a core we did not build: SiFive's Rocket",
+        "(Rocket64t1, RV64IMAC, no FPU) boots Linux in the KV260 PL —",
+        "'buildroot login:', uarch sifive,rocket0, marchid 0x1."
+      ],
+      "regions": {
+        "ctrl": {
+          "base": "0xA0000000",
+          "size": 65536,
+          "label": "SoC CTRL"
+        },
+        "enc": {
+          "base": "0xA0010000",
+          "size": 65536,
+          "label": "CTTE CSRs (Rocket)"
+        },
+        "trace": {
+          "base": "0xA0200000",
+          "size": 1048576,
+          "label": "ATB ring (1 MiB URAM)"
+        },
+        "con": {
+          "base": "0xA0300000",
+          "size": 65536,
+          "label": "Console ring (8250 TX/RX)"
+        }
+      },
+      "_ctrl_comment": [
+        "ONE row more than in the CVA6 design: window-guard diagnostics (0x3C..0x44),",
+        "PLIC inputs (0x48) and the 64-bit PC (0x4C/0x50) plus retire counter",
+        "(0x54). Source is the header comment of vivado/kv260_app/rocket_soc_top.sv,",
+        "cross-read against the rdata_q case (5'd0..5'd21) of the same file."
+      ],
+      "ctrl": {
+        "control": 0,
+        "status": 4,
+        "trace_beats": 8,
+        "trace_bytes": 12,
+        "trace_bufsz": 16,
+        "con_bytes": 20,
+        "con_drops": 24,
+        "sink_ctrl": 28,
+        "ddr_base": 32,
+        "ddr_size": 36,
+        "ddr_wptr": 40,
+        "sink_stat": 44,
+        "ddr_drops": 48,
+        "con_tx": 52,
+        "con_rptr": 56,
+        "win_err_cnt": 60,
+        "win_err_lo": 64,
+        "win_err_hi": 68,
+        "ext_irq": 72,
+        "pc_lo": 76,
+        "pc_hi": 80,
+        "retires": 84
+      },
+      "control_bits": {
+        "core_run": 0,
+        "trace_clear": 1,
+        "con_clear": 2,
+        "win_err_clear": 3,
+        "obs_clear": 4
+      },
+      "status_bits": {
+        "trace_wrapped": 0,
+        "uram_stopped": 1,
+        "win_err_sticky": 2,
+        "win_err_was_write": 3,
+        "core_ndreset": 4,
+        "core_rst_hold": 5
+      },
+      "_core_pc_comment": [
+        "The observation channel of this design (lesson C6 from the trio): without it",
+        "'core hangs' cannot be told apart from 'window guard has tripped'.",
+        "PC_LO/PC_HI are built width-agnostic -- on the",
+        "32-bit encoder build PC_HI reads 0, with CT_XLEN=64 the same logic carries",
+        "the full RV64 PC without changing a line of RTL."
+      ],
+      "core_pc": {
+        "lo": "pc_lo",
+        "hi": "pc_hi",
+        "retires": "retires",
+        "priv_lsb": 12,
+        "priv_bits": 3,
+        "obs_lsb": 8,
+        "obs_bits": 3,
+        "obs_names": [
+          "retire_seen",
+          "arvalid_seen",
+          "rvalid_seen"
+        ],
+        "win_err": {
+          "count": "win_err_cnt",
+          "lo": "win_err_lo",
+          "hi": "win_err_hi",
+          "sticky_bit": 2,
+          "was_write_bit": 3
+        }
+      },
+      "cores": [
+        {
+          "id": 0,
+          "name": "Rocket",
+          "long": "SiFive Rocket64t1 (rocket-chip generator)",
+          "isa": "RV64IMAC Sv39",
+          "mhz": 75,
+          "mhz_note": "Design constrained to 75 MHz; the board runners set pl_clk0 explicitly (vivado/kv260_app/kv260_plclk.sh).",
+          "enc": "enc",
+          "load": "cva6",
+          "load_base": "0x64000000",
+          "load_guest_base": "0x80000000",
+          "load_size": "0x0C000000",
+          "mem": "guest 0x8000_0000 -> PS DDR 0x6400_0000",
+          "ingress": "TCI shim",
+          "panel": "Rocket64t1 — a core we did not build",
+          "desc": "Generated core (rocket-chip, Rocket64t1): RV64IMAC, no FPU, CLINT + PLIC + bootrom are INSIDE the generated netlist. It sees its RAM at guest address 0x8000_0000; a window guard in the wrapper translates that to the reserved PS-DDR window at 0x6400_0000 and reports every rejected access (WIN_ERR_*). The A extension is resolved inside the core (TLAtomicAutomata / L1D), so no atomics block is needed on the AXI side.",
+          "ingress_panel": "TCI → TIP Adapter (Rocket)",
+          "ingress_desc": "Rocket's trace port (TCI) is converted to the RISC-V TIP by a width-parametric shim — the same TIP the encoder consumes in every other scenario of this dashboard. One encoder, one stream format, a different ingress vocabulary per core family.",
+          "facts": [
+            [
+              "guest RAM",
+              "0x8000_0000 (window guard -> PS 0x6400_0000)"
+            ],
+            [
+              "CLINT / PLIC / bootrom",
+              "inside the generated netlist"
+            ],
+            [
+              "encoder",
+              "ENC0 @ 0xA001_0000"
+            ],
+            [
+              "console",
+              "rocket_con_8250 @ guest 0x6001_0000, ring @ 0xA030_0000"
+            ]
+          ]
+        }
+      ],
+      "sinks": {
+        "uram": true,
+        "ddr": true,
+        "pib": true
+      },
+      "console": {
+        "region": "con",
+        "size": 65536,
+        "bytes": "con_bytes",
+        "drops": "con_drops",
+        "clear_bit": 2,
+        "tx_reg": "con_tx",
+        "rptr_reg": "con_rptr",
+        "wrapping": true,
+        "interactive": true,
+        "probe": true,
+        "note_readonly": "No UART RX path in this bitstream: RBR reads 0, LSR.DR stays 0."
+      },
+      "_decode_comment": [
+        "As with cv64a6: the listing is produced on the board, the server looks for",
+        "pcinfo_rocket64_src0.pcinfo (+ _live). If it is missing, the view says so."
+      ],
+      "decode": {
+        "multi_target": false,
+        "srcbits": 0,
+        "targets": [
+          {
+            "id": 0,
+            "label": "Rocket",
+            "pcinfo": "rocket64.pcinfo",
+            "live_pcinfo": "rocket64.pcinfo"
+          }
+        ]
+      },
+      "code_regions": [
+        {
+          "name": "OpenSBI",
+          "base": "0x80000000",
+          "size": "0x00200000"
+        },
+        {
+          "name": "Kernel physical",
+          "base": "0x80200000",
+          "size": "0x02000000"
+        },
+        {
+          "name": "Kernel virtual (Sv39)",
+          "base": "0xFFFFFFFF80000000",
+          "size": "0x02000000"
+        }
+      ],
+      "symbols": null,
+      "sites": null,
+      "features": [
+        "console",
+        "ddr_sink",
+        "pib",
+        "decode",
+        "live_pc",
+        "hotmap",
+        "coverage",
+        "elf_load",
+        "core_pc"
+      ],
+      "fifo": {
+        "cvs_depth": 128,
+        "cdc_depth": 8,
+        "hist_bins": 16,
+        "_src": "ct_pkg.sv of the built profile: ETIP_CVS_FIFO_DEPTH = (CT_EN_DATA_TRACE||CT_EN_ACT||CT_EN_DAQ) ? 128 : 32"
+      }
+    },
+    {
+      "id": "rocket2",
+      "title": "Rocket RV64 · 2 Harts · SMP-Linux (Rocket64t2)",
+      "subtitle": "Two harts, two encoders, one merged stream — and it separates again",
+      "accent": "#7dd3fc",
+      "xlen": 64,
+      "app": "rocket2_ctrace_kv260",
+      "bitbin": "rocket2_ctrace_kv260.bit.bin",
+      "_loadable_comment": [
+        "The bitstream is built AND has already been loaded on the board (M5 §3.1,",
+        "hash-verified, 'Loaded with slot_handle 0'). Whether the app is currently",
+        "installed on THIS board is decided by `xmutil listapps` -- and the server",
+        "answers that at run time. If the app is not in the list, the header",
+        "greys the button out instead of offering a load that ends with",
+        "'app not found'."
+      ],
+      "headline": [
+        "Two Rocket harts, one CTTE encoder each, ONE merged ATB stream:",
+        "SMP Linux boots on both (Platform HART Count : 2, 'smp: Brought up",
+        "1 node, 2 CPUs'), and the merged stream splits again by Nexus SRC —",
+        "1,475,706 / 1,665,826 PCs bare metal, gapless, in disjoint regions",
+        "(packages M4/M5). Under Linux the two streams are told apart by the",
+        "Ownership context: five satp contexts per SRC, sets disjoint (M6)."
+      ],
+      "regions": {
+        "ctrl": {
+          "base": "0xA0000000",
+          "size": 65536,
+          "label": "SoC CTRL"
+        },
+        "enc": {
+          "base": "0xA0010000",
+          "size": 65536,
+          "label": "CTTE CSRs (hart 0)"
+        },
+        "enc1": {
+          "base": "0xA0020000",
+          "size": 65536,
+          "label": "CTTE CSRs (hart 1)"
+        },
+        "trace": {
+          "base": "0xA0200000",
+          "size": 1048576,
+          "label": "ATB ring, merged (1 MiB URAM)"
+        },
+        "con": {
+          "base": "0xA0300000",
+          "size": 65536,
+          "label": "Console ring (8250 TX/RX)"
+        }
+      },
+      "_ctrl_comment": [
+        "0x00..0x54 identical to rocket64 -- intentional, so that the existing",
+        "board scripts keep working. NEW are only 0x58 FUNNEL_CTRL and the",
+        "second observation set 0x5C/0x60/0x64 for hart 1. Source is the",
+        "header comment of vivado/kv260_app/rocket2_soc_top.sv, cross-read",
+        "against the rdata_q case of the same file."
+      ],
+      "ctrl": {
+        "control": 0,
+        "status": 4,
+        "trace_beats": 8,
+        "trace_bytes": 12,
+        "trace_bufsz": 16,
+        "con_bytes": 20,
+        "con_drops": 24,
+        "sink_ctrl": 28,
+        "ddr_base": 32,
+        "ddr_size": 36,
+        "ddr_wptr": 40,
+        "sink_stat": 44,
+        "ddr_drops": 48,
+        "con_tx": 52,
+        "con_rptr": 56,
+        "win_err_cnt": 60,
+        "win_err_lo": 64,
+        "win_err_hi": 68,
+        "ext_irq": 72,
+        "pc_lo": 76,
+        "pc_hi": 80,
+        "retires": 84,
+        "funnel_ctrl": 88,
+        "pc1_lo": 92,
+        "pc1_hi": 96,
+        "retires1": 100
+      },
+      "control_bits": {
+        "core_run": 0,
+        "trace_clear": 1,
+        "con_clear": 2,
+        "win_err_clear": 3,
+        "obs_clear": 4
+      },
+      "status_bits": {
+        "trace_wrapped": 0,
+        "uram_stopped": 1,
+        "win_err_sticky": 2,
+        "win_err_was_write": 3,
+        "core_ndreset": 4,
+        "core_rst_hold": 5
+      },
+      "_core_pc_comment": [
+        "Observation channel PER HART (M4 item 3): with two harts 'the core hangs'",
+        "is not one question but two -- a shared",
+        "retire counter would keep running happily while ONE hart stands still. The",
+        "instrument here shows hart 0; STATUS b18/b19 carry retire_seen per",
+        "hart, b[22:20] the privilege level of hart 1, and b8 is deliberately the",
+        "OR of both harts, so that the single-hart scripts stay readable."
+      ],
+      "core_pc": {
+        "lo": "pc_lo",
+        "hi": "pc_hi",
+        "retires": "retires",
+        "priv_lsb": 12,
+        "priv_bits": 3,
+        "obs_lsb": 8,
+        "obs_bits": 3,
+        "obs_names": [
+          "retire_seen (hart 0 OR 1)",
+          "arvalid_seen",
+          "rvalid_seen"
+        ],
+        "win_err": {
+          "count": "win_err_cnt",
+          "lo": "win_err_lo",
+          "hi": "win_err_hi",
+          "sticky_bit": 2,
+          "was_write_bit": 3
+        }
+      },
+      "cores": [
+        {
+          "id": 0,
+          "name": "Rocket hart 0",
+          "long": "SiFive Rocket64t2 — hart 0",
+          "isa": "RV64IMAC Sv39",
+          "mhz": 75,
+          "mhz_note": "Design constrained to 75 MHz; the board runners set pl_clk0 explicitly (vivado/kv260_app/kv260_plclk.sh). Post-route WNS +3.466 ns, 47,019 LUT (40.2 %) / 9,320 CLB (63.7 %) — smaller AND faster than the single-hart build (M4).",
+          "enc": "enc",
+          "srcid": 0,
+          "load": "cva6",
+          "load_base": "0x64000000",
+          "load_guest_base": "0x80000000",
+          "load_size": "0x0C000000",
+          "mem": "guest 0x8000_0000 -> PS DDR 0x6400_0000 (shared)",
+          "ingress": "TCI shim",
+          "panel": "Rocket64t2 hart 0",
+          "desc": "First hart of a two-hart Rocket (rocket-chip generator, RV64IMAC, no FPU, TLBroadcast instead of L2). CLINT + PLIC + bootrom are inside the generated netlist; both harts share ONE mem_axi4 and ONE mmio_axi4, so the board wrapper needs no second memory path (M4). Its own CTTE instance sits at ENC0 @ 0xA001_0000 and is set to SrcID 0 — that field is what the decoder uses to take the merged stream apart again.",
+          "ingress_panel": "TCI → TIP Adapter (hart 0)",
+          "ingress_desc": "Rocket's trace port (TCI) converted to the RISC-V TIP by a width-parametric shim, one per hart. The shim also carries the per-hart context (satp) to the encoder: trace_core_0_context[63:0], of which CT_CONTEXT_WIDTH=22 bits are wired (M3).",
+          "facts": [
+            [
+              "encoder",
+              "ENC0 @ 0xA001_0000, SrcID 0 (SrcBits 2)"
+            ],
+            [
+              "observation",
+              "PC 0x4C/0x50, retires 0x54"
+            ],
+            [
+              "context",
+              "satp.PPN -> ctx[43:0], 22 bit wired, NO reset value (M3-2)"
+            ]
+          ]
+        },
+        {
+          "id": 1,
+          "name": "Rocket hart 1",
+          "long": "SiFive Rocket64t2 — hart 1",
+          "isa": "RV64IMAC Sv39",
+          "mhz": 75,
+          "enc": "enc1",
+          "srcid": 1,
+          "load": false,
+          "mem": "shared with hart 0 (one mem_axi4)",
+          "ingress": "TCI shim",
+          "panel": "Rocket64t2 hart 1",
+          "desc": "Second hart of the same generated core. It has no memory of its own — one image, one window, brought up by SMP Linux ('Platform HART Count : 2'). What it DOES have of its own is a full CTTE instance at ENC1 @ 0xA002_0000 with SrcID 1, its own observation channel (0x5C/0x60/0x64) and its own context path. Start/stop is shared: CONTROL b0 holds both harts.",
+          "ingress_panel": "TCI → TIP Adapter (hart 1)",
+          "ingress_desc": "Second, identical shim on trace_core_1_*. The port comparison RocketSystem t1 -> t2 shows the delta is exactly this: resetctrl_hartIsInReset_1 plus the complete trace_core_1_* set (M4).",
+          "facts": [
+            [
+              "encoder",
+              "ENC1 @ 0xA002_0000, SrcID 1 (SrcBits 2)"
+            ],
+            [
+              "observation",
+              "PC 0x5C/0x60, retires 0x64"
+            ],
+            [
+              "start/stop",
+              "shared with hart 0 (CONTROL b0)"
+            ]
+          ]
+        }
+      ],
+      "sinks": {
+        "uram": true,
+        "ddr": true,
+        "pib": true
+      },
+      "_console_comment": [
+        "Register map checked against vivado/kv260_app/rocket2_soc_top.sv, not",
+        "copied from rocket64: rdata_q case 5'd5 = CON_BYTES (0x14),",
+        "5'd6 = CON_DROPS (0x18), 5'd13 = CON_TX (0x34), 5'd14 = CON_RPTR",
+        "(0x38); segment CON = a[21:20] == 2'b11 -> 0x30_0000. A wrong",
+        "offset delivers SILENTLY wrong characters here, hence the comparison.",
+        "NO note_readonly: this build has the RX path (con_rx_wr /",
+        "con_rx_data / con_rx_used / con_rx_drops, write access 0x34 b8),",
+        "and M5 §4.1 logged in over it and issued commands",
+        "('CPU0  CPU1' from /proc/interrupts IN THE GUEST). The note came from",
+        "rocket64 and would be an unsubstantiated restriction here."
+      ],
+      "console": {
+        "region": "con",
+        "size": 65536,
+        "bytes": "con_bytes",
+        "drops": "con_drops",
+        "clear_bit": 2,
+        "tx_reg": "con_tx",
+        "rptr_reg": "con_rptr",
+        "wrapping": true,
+        "interactive": true,
+        "probe": true
+      },
+      "_decode_comment": [
+        "Two targets in ONE stream. The funnel merges message-atomically; the",
+        "separation happens host-side on the Nexus SRC field (SrcBits 2). The",
+        "counter-check from M5 belongs to the statement: with BOTH encoders on SrcID 0",
+        "the separation fails (source 1: 0 PCs)."
+      ],
+      "decode": {
+        "multi_target": true,
+        "srcbits": 2,
+        "targets": [
+          {
+            "id": 0,
+            "label": "hart 0",
+            "pcinfo": "rocket2.pcinfo",
+            "live_pcinfo": "rocket2.pcinfo"
+          },
+          {
+            "id": 1,
+            "label": "hart 1",
+            "pcinfo": "rocket2.pcinfo",
+            "live_pcinfo": "rocket2.pcinfo"
+          }
+        ]
+      },
+      "code_regions": [
+        {
+          "name": "OpenSBI",
+          "base": "0x80000000",
+          "size": "0x00200000"
+        },
+        {
+          "name": "Kernel physical",
+          "base": "0x80200000",
+          "size": "0x02000000"
+        },
+        {
+          "name": "Kernel virtual (Sv39)",
+          "base": "0xFFFFFFFF80000000",
+          "size": "0x02000000"
+        }
+      ],
+      "symbols": null,
+      "sites": null,
+      "features": [
+        "console",
+        "ddr_sink",
+        "pib",
+        "funnel",
+        "decode",
+        "live_pc",
+        "elf_load",
+        "core_pc"
+      ],
+      "fifo": {
+        "cvs_depth": 32,
+        "cdc_depth": 2,
+        "hist_bins": 16,
+        "_src": "ct_pkg.sv of the built profile: ETIP_CVS_FIFO_DEPTH = (CT_EN_DATA_TRACE||CT_EN_ACT||CT_EN_DAQ) ? 128 : 32"
+      },
+      "demo": {
+        "_src": "Live board session 2026-08-11 (Rocket64t2, SMP Linux): dashboard header 633,277 and 633,734 B/s, bpi panel 3.0 - screenshots c-trace_marketing/paper/fig/dashboard.png + dashboard-dark.png. Values for the DemoBus simulation, so that fill bars and bpi show the order of magnitude seen on the board.",
+        "byte_rate": 633000,
+        "bpi": 3.0
+      }
+    },
+    {
+      "id": "cva6_2_rv64",
+      "title": "CVA6 RV64 · 2 cores · AMP (cv64a6)",
+      "subtitle": "Two independent RV64 cores, two encoders, one merged stream",
+      "accent": "#a5b4fc",
+      "xlen": 64,
+      "app": "cva6_2_rv64_ctrace_kv260",
+      "bitbin": "cva6_2_rv64_ctrace_kv260.bit.bin",
+      "app_variants": [
+        {
+          "app": "cva6_2_rv64_ctrace_kv260",
+          "enc_xlen": 64
+        }
+      ],
+      "_amp_comment": [
+        "AMP, not SMP -- and that is a decision, not a shortcoming. In this tree the",
+        "core carries NOC_TYPE_AXI4_ATOP and no L1 coherency path (the",
+        "OpenPiton attachment sits behind an ifdef and is not compiled).",
+        "Two cores on ONE cached window would be incoherent, and the",
+        "failure mode would be silent data corruption. Therefore: one private",
+        "cached 32 MiB window per core with its own PS port; the only thing shared is",
+        "an UNCACHED mailbox from 0x6800_0000 -- coherent by construction, because",
+        "no cache is involved at all. The synchronization over it is carried by ONE",
+        "common atomics instance behind the merge; two separate ones would be",
+        "ineffective between the cores (axi_res_tbl clears address-equal and ID-blind,",
+        "package L1, 15/15 with a red mutation probe)."
+      ],
+      "_sendcfg_comment": [
+        "OPERATING DIFFERENCE, belongs in BOTH scenarios (requirement D-R-9 item 4): the",
+        "SENDCFG=once obligation depends on the ENCODER knob CT_XLEN, not on the",
+        "core width. With CT_XLEN=64 it is MANDATORY -- only from the config message",
+        "does the decoder read CAPS bit 23 and switch to 64 bit. With CT_XLEN=32",
+        "it is unnecessary. As of 2026-08-10 BOTH builds carry the profile ctte_slim64",
+        "(CT_XLEN=64), so that the area figures stay comparable (D-R-9 item 2)",
+        "-- so SENDCFG=once applies in the RV32 build too. As soon as a CT_XLEN=32",
+        "profile exists, enc_xlen AND this note change; there is no such encoder",
+        "build in the repo today (all bld/*/ctte_* carry CT_XLEN=64)."
+      ],
+      "_loadable_comment": [
+        "The bitstream has NOT been loaded on the board -- the two-hart Rocket",
+        "demonstration is running there (as of 2026-08-10). Whether the app is installed",
+        "on this board is answered by 'xmutil listapps' at run time; if it is not in",
+        "the list, the header greys the button out instead of offering a",
+        "load that ends with 'app not found'."
+      ],
+      "headline": [
+        "Two cv64a6 cores, one CTTE encoder each, ONE merged ATB stream that",
+        "splits again by Nexus SRC, exactly as in rocket2.",
+        "AMP, not SMP: this core has no L1 coherence path, so each core owns a",
+        "private cached 32 MiB window on its own PS HP port, and the two share",
+        "only an UNCACHED mailbox at 0x6800_0000 — coherent by construction,",
+        "because no cache is involved. LR/SC over it works because ONE shared",
+        "atomics instance sits behind the merge; its reservation table is ID-blind."
+      ],
+      "regions": {
+        "ctrl": {
+          "base": "0xA0000000",
+          "size": 65536,
+          "label": "SoC CTRL"
+        },
+        "enc": {
+          "base": "0xA0010000",
+          "size": 65536,
+          "label": "CTTE CSRs (core 0)"
+        },
+        "enc1": {
+          "base": "0xA0020000",
+          "size": 65536,
+          "label": "CTTE CSRs (core 1)"
+        },
+        "trace": {
+          "base": "0xA0200000",
+          "size": 1048576,
+          "label": "ATB ring, merged (1 MiB URAM)"
+        },
+        "con": {
+          "base": "0xA0300000",
+          "size": 65536,
+          "label": "Console ring (8250 TX/RX)"
+        }
+      },
+      "_ctrl_comment": [
+        "0x00..0x44 and 0x4C..0x64 are IDENTICAL to rocket2 -- intentional, so that the",
+        "existing board scripts and the dashboard map keep working unchanged.",
+        "NEW are 0x68/0x6C/0x70 (second window guard -- this build has TWO",
+        "separate memory windows, rocket2 has one) and 0x74 (guard of the",
+        "shared mailbox). 0x48 stays FREE: on rocket2 it holds EXT_IRQ for",
+        "the PLIC of the generated core, and this build has no PLIC. Source is the",
+        "header comment of rtl/board_kv260/cva6_2_soc_top.sv, cross-read against the",
+        "rdata_q case of the same file (5'd15..5'd29)."
+      ],
+      "ctrl": {
+        "control": 0,
+        "status": 4,
+        "trace_beats": 8,
+        "trace_bytes": 12,
+        "trace_bufsz": 16,
+        "con_bytes": 20,
+        "con_drops": 24,
+        "sink_ctrl": 28,
+        "ddr_base": 32,
+        "ddr_size": 36,
+        "ddr_wptr": 40,
+        "sink_stat": 44,
+        "ddr_drops": 48,
+        "con_tx": 52,
+        "con_rptr": 56,
+        "win_err_cnt": 60,
+        "win_err_lo": 64,
+        "win_err_hi": 68,
+        "pc_lo": 76,
+        "pc_hi": 80,
+        "retires": 84,
+        "funnel_ctrl": 88,
+        "pc1_lo": 92,
+        "pc1_hi": 96,
+        "retires1": 100,
+        "win1_err_cnt": 104,
+        "win1_err_lo": 108,
+        "win1_err_hi": 112,
+        "mbox_err_cnt": 116
+      },
+      "control_bits": {
+        "core_run": 0,
+        "trace_clear": 1,
+        "con_clear": 2,
+        "win_err_clear": 3,
+        "obs_clear": 4
+      },
+      "status_bits": {
+        "trace_wrapped": 0,
+        "uram_stopped": 1,
+        "win_err_sticky": 2,
+        "win_err_was_write": 3,
+        "core_rst_hold": 5,
+        "win0_err_sticky": 24,
+        "win1_err_sticky": 25,
+        "mbox_err_sticky": 26,
+        "timer_irq0": 27,
+        "timer_irq1": 28,
+        "sw_irq0": 29,
+        "sw_irq1": 30
+      },
+      "_core_pc_comment": [
+        "Observation channel PER CORE: with two cores 'the core hangs' is not",
+        "one question but two -- a shared retire counter would keep running",
+        "happily while ONE core stands still. The instrument here shows core 0; STATUS",
+        "b18/b19 carry retire_seen per core, b[22:20] the privilege level of core 1,",
+        "and b8 is deliberately the OR of both cores, so that the single-core scripts",
+        "stay readable. b[14:12] and b[22:20] are three bits wide although CVA6",
+        "delivers only two -- the upper position is fixed 0, so that the map stays",
+        "bit-identical to rocket2."
+      ],
+      "core_pc": {
+        "lo": "pc_lo",
+        "hi": "pc_hi",
+        "retires": "retires",
+        "priv_lsb": 12,
+        "priv_bits": 3,
+        "obs_lsb": 8,
+        "obs_bits": 3,
+        "obs_names": [
+          "retire_seen (core 0 OR 1)",
+          "arvalid_seen",
+          "rvalid_seen"
+        ],
+        "win_err": {
+          "count": "win_err_cnt",
+          "lo": "win_err_lo",
+          "hi": "win_err_hi",
+          "sticky_bit": 2,
+          "was_write_bit": 3
+        }
+      },
+      "cores": [
+        {
+          "id": 0,
+          "name": "cv64a6 core 0",
+          "long": "OpenHW cv64a6_imac_sv39 — core 0",
+          "isa": "RV64IMAC Sv39",
+          "mhz": 75,
+          "mhz_note": "Design constrained to 75 MHz. D2 measured the lower bound (2 cores + 2 encoders + funnel, no memory path): 88.99 % CLB, routed at WNS +0.249 ns / WHS +0.035 ns. The full build adds memory path, periph and sinks — measured in package D3.",
+          "enc": "enc",
+          "srcid": 0,
+          "load": "cva6",
+          "load_base": "0x64000000",
+          "load_guest_base": "0x64000000",
+          "load_size": "0x02000000",
+          "mem": "guest 0x6400_0000 +32 MiB cached -> PS DDR 0x6400_0000 (private); mailbox guest 0x6800_0000 +16 MiB uncached -> PS DDR 0x6800_0000 (shared)",
+          "ingress": "ITI shim",
+          "panel": "OpenHW cv64a6_imac_sv39 core 0",
+          "desc": "First cv64a6 (OpenHW's core, RV64IMAC, no FPU, Sv39, S+U, NrCommitPorts=1). It owns a private 32 MiB guest window at 0x6400_0000 translated to PS DDR 0x6400_0000, reached over its OWN PS port (S_AXI_HP1) through its OWN atomics instance — core 1 never touches this memory. Its CTTE instance sits at ENC0 @ 0xA001_0000 and is set to SrcID 0; that field is what the decoder uses to take the merged stream apart again.",
+          "ingress_panel": "ITI → TIP Adapter (core 0)",
+          "ingress_desc": "The core's instruction-trace interface (ITI) converted to the RISC-V TIP by a width-parametric shim, one per core. The context path is OFF in this build: the shim wires satp.ASID only when TIP_CONTEXT_WIDTH equals Cfg.ASIDW, and the slim64 encoder profile carries 22 (satp.PPN of the Rocket generator) while this core has 16. A silently truncated identifier would name the wrong process, so it is left out rather than shortened.",
+          "facts": [
+            [
+              "encoder",
+              "ENC0 @ 0xA0010000, SrcID 0 (SrcBits 2)"
+            ],
+            [
+              "observation",
+              "PC 0x4C/0x50, retires 0x54"
+            ],
+            [
+              "memory",
+              "own 32 MiB window, own PS HP port (HP1), own atomics"
+            ],
+            [
+              "guard",
+              "WIN_ERR_* @ 0x3C, burst envelope checked, DECERR on miss"
+            ],
+            [
+              "start/stop",
+              "shared with the other core (CONTROL b0)"
+            ]
+          ]
+        },
+        {
+          "id": 1,
+          "name": "cv64a6 core 1",
+          "long": "OpenHW cv64a6_imac_sv39 — core 1",
+          "isa": "RV64IMAC Sv39",
+          "mhz": 75,
+          "enc": "enc1",
+          "srcid": 1,
+          "load": "cva6",
+          "load_base": "0x66000000",
+          "load_guest_base": "0x64000000",
+          "load_size": "0x02000000",
+          "mem": "guest 0x6400_0000 +32 MiB cached -> PS DDR 0x6600_0000 (private); mailbox guest 0x6800_0000 +16 MiB uncached -> PS DDR 0x6800_0000 (shared)",
+          "ingress": "ITI shim",
+          "panel": "OpenHW cv64a6_imac_sv39 core 1",
+          "desc": "Second cv64a6, identical configuration — the cores differ ONLY in where their window lands in PS DDR (0x6600_0000 instead of 0x6400_0000) and in the hart ID. It runs its own image: AMP means two guests, not one kernel on two harts. Own encoder at ENC1 @ 0xA002_0000 with SrcID 1, own observation channel (0x5C/0x60/0x64), own window guard (0x68/0x6C/0x70). Start/stop is shared: CONTROL b0 holds both cores.",
+          "ingress_panel": "ITI → TIP Adapter (core 1)",
+          "ingress_desc": "The core's instruction-trace interface (ITI) converted to the RISC-V TIP by a width-parametric shim, one per core. The context path is OFF in this build: the shim wires satp.ASID only when TIP_CONTEXT_WIDTH equals Cfg.ASIDW, and the slim64 encoder profile carries 22 (satp.PPN of the Rocket generator) while this core has 16. A silently truncated identifier would name the wrong process, so it is left out rather than shortened.",
+          "facts": [
+            [
+              "encoder",
+              "ENC1 @ 0xA0020000, SrcID 1 (SrcBits 2)"
+            ],
+            [
+              "observation",
+              "PC 0x5C/0x60, retires 0x64"
+            ],
+            [
+              "memory",
+              "own 32 MiB window, own PS HP port (HP2), own atomics"
+            ],
+            [
+              "guard",
+              "WIN1_ERR_* @ 0x68, burst envelope checked, DECERR on miss"
+            ],
+            [
+              "start/stop",
+              "shared with the other core (CONTROL b0)"
+            ]
+          ]
+        }
+      ],
+      "sinks": {
+        "uram": true,
+        "ddr": true,
+        "pib": true
+      },
+      "_console_comment": [
+        "ONE console for BOTH cores, deliberately: under AMP two independent",
+        "guests write into the same ring, the output interleaves. That is the same",
+        "picture as on the two-hart Rocket and is not to be mistaken for a defect.",
+        "Two rings would have needed a second CON aperture and would have broken the",
+        "requirement 'congruent view' (D-R-9). Whoever wants to separate the sources",
+        "separates them at the trace (Nexus SRC), not at the console. The RX path is",
+        "present (con_rx_wr/con_rx_data/con_rx_used, write access CON_TX b8)."
+      ],
+      "console": {
+        "region": "con",
+        "size": 65536,
+        "bytes": "con_bytes",
+        "drops": "con_drops",
+        "clear_bit": 2,
+        "tx_reg": "con_tx",
+        "rptr_reg": "con_rptr",
+        "wrapping": true,
+        "interactive": true,
+        "probe": true
+      },
+      "_decode_comment": [
+        "Two targets in ONE stream. The funnel merges message-atomically; the",
+        "separation happens host-side on the Nexus SRC field (SrcBits 2). Unlike on",
+        "rocket2, the two cores HERE carry SEPARATE images -- one pcinfo per core,",
+        "because they do not see the same memory (AMP)."
+      ],
+      "decode": {
+        "multi_target": true,
+        "srcbits": 2,
+        "targets": [
+          {
+            "id": 0,
+            "label": "core 0",
+            "pcinfo": "cva6_linux64.pcinfo",
+            "live_pcinfo": "cva6_linux64.pcinfo"
+          },
+          {
+            "id": 1,
+            "label": "core 1",
+            "pcinfo": "cva6_linux64.pcinfo",
+            "live_pcinfo": "cva6_linux64.pcinfo"
+          }
+        ]
+      },
+      "code_regions": [
+        {
+          "name": "Guest RAM core 0",
+          "base": "0x64000000",
+          "size": "0x02000000"
+        },
+        {
+          "name": "Guest RAM core 1 (same guest view, other PS base)",
+          "base": "0x64000000",
+          "size": "0x02000000"
+        },
+        {
+          "name": "Shared mailbox (uncached)",
+          "base": "0x68000000",
+          "size": "0x01000000"
+        }
+      ],
+      "symbols": null,
+      "sites": null,
+      "features": [
+        "console",
+        "ddr_sink",
+        "pib",
+        "funnel",
+        "decode",
+        "live_pc",
+        "elf_load",
+        "core_pc"
+      ]
+    },
+    {
+      "id": "cva6_2_rv32",
+      "title": "CVA6 RV32 · 2 cores · AMP (cv32a6)",
+      "subtitle": "Two independent RV32 cores, two encoders, one merged stream",
+      "accent": "#86efac",
+      "xlen": 32,
+      "app": "cva6_2_rv32_ctrace_kv260",
+      "bitbin": "cva6_2_rv32_ctrace_kv260.bit.bin",
+      "app_variants": [
+        {
+          "app": "cva6_2_rv32_ctrace_kv260",
+          "enc_xlen": 64
+        }
+      ],
+      "_amp_comment": [
+        "AMP, not SMP -- and that is a decision, not a shortcoming. In this tree the",
+        "core carries NOC_TYPE_AXI4_ATOP and no L1 coherency path (the",
+        "OpenPiton attachment sits behind an ifdef and is not compiled).",
+        "Two cores on ONE cached window would be incoherent, and the",
+        "failure mode would be silent data corruption. Therefore: one private",
+        "cached 32 MiB window per core with its own PS port; the only thing shared is",
+        "an UNCACHED mailbox from 0x6800_0000 -- coherent by construction, because",
+        "no cache is involved at all. The synchronization over it is carried by ONE",
+        "common atomics instance behind the merge; two separate ones would be",
+        "ineffective between the cores (axi_res_tbl clears address-equal and ID-blind,",
+        "package L1, 15/15 with a red mutation probe)."
+      ],
+      "_sendcfg_comment": [
+        "OPERATING DIFFERENCE, belongs in BOTH scenarios (requirement D-R-9 item 4): the",
+        "SENDCFG=once obligation depends on the ENCODER knob CT_XLEN, not on the",
+        "core width. With CT_XLEN=64 it is MANDATORY -- only from the config message",
+        "does the decoder read CAPS bit 23 and switch to 64 bit. With CT_XLEN=32",
+        "it is unnecessary. As of 2026-08-10 BOTH builds carry the profile ctte_slim64",
+        "(CT_XLEN=64), so that the area figures stay comparable (D-R-9 item 2)",
+        "-- so SENDCFG=once applies in the RV32 build too. As soon as a CT_XLEN=32",
+        "profile exists, enc_xlen AND this note change; there is no such encoder",
+        "build in the repo today (all bld/*/ctte_* carry CT_XLEN=64)."
+      ],
+      "_loadable_comment": [
+        "The bitstream has NOT been loaded on the board -- the two-hart Rocket",
+        "demonstration is running there (as of 2026-08-10). Whether the app is installed",
+        "on this board is answered by 'xmutil listapps' at run time; if it is not in",
+        "the list, the header greys the button out instead of offering a",
+        "load that ends with 'app not found'."
+      ],
+      "headline": [
+        "Two cv32a6 cores, one CTTE encoder each, ONE merged ATB stream — the",
+        "same picture as the RV64 variant, and deliberately so: same block order,",
+        "same labels, same register map, same geometry. Only the core differs.",
+        "AMP applies unchanged: NOC_TYPE_AXI4_ATOP is a property of how the core",
+        "attaches, not of the register width, so the space saved does not buy",
+        "coherence. What it does buy is room — D2 measured 34.87 % CLB against",
+        "88.99 % for RV64 in the same lower-bound cut, at five times the margin."
+      ],
+      "regions": {
+        "ctrl": {
+          "base": "0xA0000000",
+          "size": 65536,
+          "label": "SoC CTRL"
+        },
+        "enc": {
+          "base": "0xA0010000",
+          "size": 65536,
+          "label": "CTTE CSRs (core 0)"
+        },
+        "enc1": {
+          "base": "0xA0020000",
+          "size": 65536,
+          "label": "CTTE CSRs (core 1)"
+        },
+        "trace": {
+          "base": "0xA0200000",
+          "size": 1048576,
+          "label": "ATB ring, merged (1 MiB URAM)"
+        },
+        "con": {
+          "base": "0xA0300000",
+          "size": 65536,
+          "label": "Console ring (8250 TX/RX)"
+        }
+      },
+      "_ctrl_comment": [
+        "0x00..0x44 and 0x4C..0x64 are IDENTICAL to rocket2 -- intentional, so that the",
+        "existing board scripts and the dashboard map keep working unchanged.",
+        "NEW are 0x68/0x6C/0x70 (second window guard -- this build has TWO",
+        "separate memory windows, rocket2 has one) and 0x74 (guard of the",
+        "shared mailbox). 0x48 stays FREE: on rocket2 it holds EXT_IRQ for",
+        "the PLIC of the generated core, and this build has no PLIC. Source is the",
+        "header comment of rtl/board_kv260/cva6_2_soc_top.sv, cross-read against the",
+        "rdata_q case of the same file (5'd15..5'd29)."
+      ],
+      "ctrl": {
+        "control": 0,
+        "status": 4,
+        "trace_beats": 8,
+        "trace_bytes": 12,
+        "trace_bufsz": 16,
+        "con_bytes": 20,
+        "con_drops": 24,
+        "sink_ctrl": 28,
+        "ddr_base": 32,
+        "ddr_size": 36,
+        "ddr_wptr": 40,
+        "sink_stat": 44,
+        "ddr_drops": 48,
+        "con_tx": 52,
+        "con_rptr": 56,
+        "win_err_cnt": 60,
+        "win_err_lo": 64,
+        "win_err_hi": 68,
+        "pc_lo": 76,
+        "pc_hi": 80,
+        "retires": 84,
+        "funnel_ctrl": 88,
+        "pc1_lo": 92,
+        "pc1_hi": 96,
+        "retires1": 100,
+        "win1_err_cnt": 104,
+        "win1_err_lo": 108,
+        "win1_err_hi": 112,
+        "mbox_err_cnt": 116
+      },
+      "control_bits": {
+        "core_run": 0,
+        "trace_clear": 1,
+        "con_clear": 2,
+        "win_err_clear": 3,
+        "obs_clear": 4
+      },
+      "status_bits": {
+        "trace_wrapped": 0,
+        "uram_stopped": 1,
+        "win_err_sticky": 2,
+        "win_err_was_write": 3,
+        "core_rst_hold": 5,
+        "win0_err_sticky": 24,
+        "win1_err_sticky": 25,
+        "mbox_err_sticky": 26,
+        "timer_irq0": 27,
+        "timer_irq1": 28,
+        "sw_irq0": 29,
+        "sw_irq1": 30
+      },
+      "_core_pc_comment": [
+        "Observation channel PER CORE: with two cores 'the core hangs' is not",
+        "one question but two -- a shared retire counter would keep running",
+        "happily while ONE core stands still. The instrument here shows core 0; STATUS",
+        "b18/b19 carry retire_seen per core, b[22:20] the privilege level of core 1,",
+        "and b8 is deliberately the OR of both cores, so that the single-core scripts",
+        "stay readable. b[14:12] and b[22:20] are three bits wide although CVA6",
+        "delivers only two -- the upper position is fixed 0, so that the map stays",
+        "bit-identical to rocket2."
+      ],
+      "core_pc": {
+        "lo": "pc_lo",
+        "hi": "pc_hi",
+        "retires": "retires",
+        "priv_lsb": 12,
+        "priv_bits": 3,
+        "obs_lsb": 8,
+        "obs_bits": 3,
+        "obs_names": [
+          "retire_seen (core 0 OR 1)",
+          "arvalid_seen",
+          "rvalid_seen"
+        ],
+        "win_err": {
+          "count": "win_err_cnt",
+          "lo": "win_err_lo",
+          "hi": "win_err_hi",
+          "sticky_bit": 2,
+          "was_write_bit": 3
+        }
+      },
+      "cores": [
+        {
+          "id": 0,
+          "name": "cv32a6 core 0",
+          "long": "OpenHW cv32a6_ima_sv32 — core 0",
+          "isa": "RV32IMA Sv32",
+          "mhz": 75,
+          "mhz_note": "Design constrained to 75 MHz. D2 measured the lower bound (2 cores + 2 encoders + funnel, no memory path): 34.87 % CLB with WNS +2.537 ns after place — 2.55x smaller than the RV64 twin and five times the timing margin, measured with the SAME encoder profile so the two numbers are a comparison and not two different things.",
+          "enc": "enc",
+          "srcid": 0,
+          "load": "cva6",
+          "load_base": "0x64000000",
+          "load_guest_base": "0x64000000",
+          "load_size": "0x02000000",
+          "mem": "guest 0x6400_0000 +32 MiB cached -> PS DDR 0x6400_0000 (private); mailbox guest 0x6800_0000 +16 MiB uncached -> PS DDR 0x6800_0000 (shared)",
+          "ingress": "ITI shim",
+          "panel": "OpenHW cv32a6_ima_sv32 core 0",
+          "desc": "First cv32a6 in the cv32a6_ima_sv32_fpga configuration — with MMU and S-mode, so it can run Linux. Deliberately not the RV32 core used in the trio build: that one carries MmuPresent=0 and RVS=0 and could not run a kernel, so comparing against it would measure a core that does not do the job. Private 32 MiB guest window at 0x6400_0000 translated to PS DDR 0x6400_0000, own PS port (S_AXI_HP1), own atomics instance. Encoder at ENC0 @ 0xA001_0000, SrcID 0.",
+          "ingress_panel": "ITI → TIP Adapter (core 0)",
+          "ingress_desc": "The core's instruction-trace interface (ITI) converted to the RISC-V TIP by a width-parametric shim, one per core. The context path is OFF in this build: the shim wires satp.ASID only when TIP_CONTEXT_WIDTH equals Cfg.ASIDW, and the slim64 encoder profile carries 22 (satp.PPN of the Rocket generator) while this core has 9. A silently truncated identifier would name the wrong process, so it is left out rather than shortened.",
+          "facts": [
+            [
+              "encoder",
+              "ENC0 @ 0xA0010000, SrcID 0 (SrcBits 2)"
+            ],
+            [
+              "observation",
+              "PC 0x4C/0x50, retires 0x54"
+            ],
+            [
+              "memory",
+              "own 32 MiB window, own PS HP port (HP1), own atomics"
+            ],
+            [
+              "guard",
+              "WIN_ERR_* @ 0x3C, burst envelope checked, DECERR on miss"
+            ],
+            [
+              "start/stop",
+              "shared with the other core (CONTROL b0)"
+            ]
+          ]
+        },
+        {
+          "id": 1,
+          "name": "cv32a6 core 1",
+          "long": "OpenHW cv32a6_ima_sv32 — core 1",
+          "isa": "RV32IMA Sv32",
+          "mhz": 75,
+          "enc": "enc1",
+          "srcid": 1,
+          "load": "cva6",
+          "load_base": "0x66000000",
+          "load_guest_base": "0x64000000",
+          "load_size": "0x02000000",
+          "mem": "guest 0x6400_0000 +32 MiB cached -> PS DDR 0x6600_0000 (private); mailbox guest 0x6800_0000 +16 MiB uncached -> PS DDR 0x6800_0000 (shared)",
+          "ingress": "ITI shim",
+          "panel": "OpenHW cv32a6_ima_sv32 core 1",
+          "desc": "Second cv32a6, identical configuration — window translated to PS DDR 0x6600_0000, own PS port (S_AXI_HP2), own atomics, own image. Encoder at ENC1 @ 0xA002_0000 with SrcID 1, own observation channel (0x5C/0x60/0x64), own window guard (0x68/0x6C/0x70). Start/stop shared via CONTROL b0.",
+          "ingress_panel": "ITI → TIP Adapter (core 1)",
+          "ingress_desc": "The core's instruction-trace interface (ITI) converted to the RISC-V TIP by a width-parametric shim, one per core. The context path is OFF in this build: the shim wires satp.ASID only when TIP_CONTEXT_WIDTH equals Cfg.ASIDW, and the slim64 encoder profile carries 22 (satp.PPN of the Rocket generator) while this core has 9. A silently truncated identifier would name the wrong process, so it is left out rather than shortened.",
+          "facts": [
+            [
+              "encoder",
+              "ENC1 @ 0xA0020000, SrcID 1 (SrcBits 2)"
+            ],
+            [
+              "observation",
+              "PC 0x5C/0x60, retires 0x64"
+            ],
+            [
+              "memory",
+              "own 32 MiB window, own PS HP port (HP2), own atomics"
+            ],
+            [
+              "guard",
+              "WIN1_ERR_* @ 0x68, burst envelope checked, DECERR on miss"
+            ],
+            [
+              "start/stop",
+              "shared with the other core (CONTROL b0)"
+            ]
+          ]
+        }
+      ],
+      "sinks": {
+        "uram": true,
+        "ddr": true,
+        "pib": true
+      },
+      "_console_comment": [
+        "ONE console for BOTH cores, deliberately: under AMP two independent",
+        "guests write into the same ring, the output interleaves. That is the same",
+        "picture as on the two-hart Rocket and is not to be mistaken for a defect.",
+        "Two rings would have needed a second CON aperture and would have broken the",
+        "requirement 'congruent view' (D-R-9). Whoever wants to separate the sources",
+        "separates them at the trace (Nexus SRC), not at the console. The RX path is",
+        "present (con_rx_wr/con_rx_data/con_rx_used, write access CON_TX b8)."
+      ],
+      "console": {
+        "region": "con",
+        "size": 65536,
+        "bytes": "con_bytes",
+        "drops": "con_drops",
+        "clear_bit": 2,
+        "tx_reg": "con_tx",
+        "rptr_reg": "con_rptr",
+        "wrapping": true,
+        "interactive": true,
+        "probe": true
+      },
+      "_decode_comment": [
+        "Two targets in ONE stream. The funnel merges message-atomically; the",
+        "separation happens host-side on the Nexus SRC field (SrcBits 2). Unlike on",
+        "rocket2, the two cores HERE carry SEPARATE images -- one pcinfo per core,",
+        "because they do not see the same memory (AMP)."
+      ],
+      "decode": {
+        "multi_target": true,
+        "srcbits": 2,
+        "targets": [
+          {
+            "id": 0,
+            "label": "core 0",
+            "pcinfo": "cva6_2_rv32_src0.pcinfo",
+            "live_pcinfo": "cva6_2_rv32_src0.pcinfo"
+          },
+          {
+            "id": 1,
+            "label": "core 1",
+            "pcinfo": "cva6_2_rv32_src1.pcinfo",
+            "live_pcinfo": "cva6_2_rv32_src1.pcinfo"
+          }
+        ]
+      },
+      "code_regions": [
+        {
+          "name": "Guest RAM core 0",
+          "base": "0x64000000",
+          "size": "0x02000000"
+        },
+        {
+          "name": "Guest RAM core 1 (same guest view, other PS base)",
+          "base": "0x64000000",
+          "size": "0x02000000"
+        },
+        {
+          "name": "Shared mailbox (uncached)",
+          "base": "0x68000000",
+          "size": "0x01000000"
+        }
+      ],
+      "symbols": null,
+      "sites": null,
+      "features": [
+        "console",
+        "ddr_sink",
+        "pib",
+        "funnel",
+        "decode",
+        "live_pc",
+        "elf_load",
+        "core_pc"
+      ]
+    },
+    {
+      "id": "trio",
+      "title": "Trio · MBV + TGC5B + CVA6",
+      "subtitle": "Three cores, three encoders, one stream — funnel with source tag",
+      "accent": "#ffb454",
+      "app": "trio_ctrace_kv260",
+      "_preload_comment": [
+        "Same two program RAMs as duo, at the same offsets (MBV 0x10_0000,",
+        "TGC5B 0x08_0000), so the same two images are staged. Without this",
+        "the two cores run whatever the fabric powered up with: measured",
+        "2026-08-19, a trio run produced 40 bytes of trace -- a scenario",
+        "that looks alive and carries nothing."
+      ],
+      "preload": {
+        "ram": "demo/trace_test.elf",
+        "ram1": "demo/hello_trace.hex"
+      },
+      "bitbin": "trio_ctrace_kv260.bit.bin",
+      "headline": [
+        "Three different RISC-V cores trace simultaneously into ONE stream.",
+        "The funnel tags every source; one decode run separates the two N-Trace",
+        "sources again. The third encoder carries an E-Trace back end -- measured,",
+        "not assumed: trTeProtocolSel reads 0/0/1 on this bitstream."
+      ],
+      "_protocol_comment": [
+        "MEASURED ON THE BOARD 2026-08-19, because this difference decides whether",
+        "a decode run works at all: trTeProtocolSel (offset 0x030) reads 0 on ENC0",
+        "and ENC1 (N-Trace) and 1 on ENC2 (E-Trace). The register is READ-ONLY --",
+        "the protocol is a synthesis parameter per encoder instance",
+        "(fpga/trio_kv260_top.sv picks ENC0/1 = N-Trace only, ENC2 = with the",
+        "E-Trace back end), and the runtime select of the former dual build was",
+        "retired on 2026-08-04.",
+        "",
+        "Consequence, and the reason target 2 has no listing: with the CVA6",
+        "running, the merged ring is NOT a pure Nexus stream, and a decode aborts",
+        "at the framing (MSEO='10' is not allowed) -- for ALL targets, not just the",
+        "third. The shipped capture is therefore a two-source run with the CVA6",
+        "branch stopped: 2,804,391 instructions, zero errors.",
+        "",
+        "The host-side split tool for a mixed container is",
+        "examples/kv260/trio/tools/etrace_trio_demux.py. Whether this example should",
+        "keep showing mixed protocols or be rebuilt with ENC2 as N-Trace -- one",
+        "uniform stream, three targets in one decode run -- is a product decision,",
+        "not a defect."
+      ],
+      "regions": {
+        "ctrl": {
+          "base": "0xA0000000",
+          "size": 65536,
+          "label": "SoC CTRL"
+        },
+        "enc": {
+          "base": "0xA0010000",
+          "size": 65536,
+          "label": "CTTE CSRs (MBV)"
+        },
+        "enc1": {
+          "base": "0xA0020000",
+          "size": 65536,
+          "label": "CTTE CSRs (TGC5B)"
+        },
+        "enc2": {
+          "base": "0xA0030000",
+          "size": 65536,
+          "label": "CTTE CSRs (CVA6)"
+        },
+        "ram1": {
+          "base": "0xA0080000",
+          "size": 65536,
+          "label": "TGC5B RAM (64 KiB, R/W only while the TGC5B is halted)",
+          "gate_core": 1
+        },
+        "ram": {
+          "base": "0xA0100000",
+          "size": 131072,
+          "label": "MBV RAM (128 KiB, R/W only while the MBV is halted)",
+          "gate_core": 0
+        },
+        "trace": {
+          "base": "0xA0200000",
+          "size": 1048576,
+          "label": "ATB ring, merged (1 MiB URAM)"
+        },
+        "axis": {
+          "base": "0xA0300000",
+          "size": 1048576,
+          "label": "AXIS capture"
+        }
+      },
+      "ctrl": {
+        "control": 0,
+        "status": 4,
+        "trace_beats": 8,
+        "trace_bytes": 12,
+        "axis_beats": 16,
+        "trace_bufsz": 20,
+        "sink_ctrl": 24,
+        "ddr_base": 28,
+        "ddr_size": 32,
+        "ddr_wptr": 36,
+        "sink_stat": 40,
+        "ddr_drops": 44,
+        "pib_drops": 48,
+        "funnel_ctrl": 52,
+        "ddr_beats": 56
+      },
+      "control_bits": {
+        "core_run": 0,
+        "trace_clear": 1,
+        "trace_flush": 2,
+        "irq_gen_en": 3,
+        "cva6_run": 5,
+        "core0_run": 8,
+        "core1_run": 9,
+        "cva6_run2": 10
+      },
+      "status_bits": {
+        "trace_wrapped": 0,
+        "axis_overflow": 1,
+        "core0_running": 8,
+        "core1_running": 9,
+        "cva6_running": 10
+      },
+      "cores": [
+        {
+          "id": 0,
+          "name": "MicroBlaze V",
+          "long": "AMD MicroBlaze V",
+          "isa": "RV32IM",
+          "mhz": 75,
+          "enc": "enc",
+          "load": "ram",
+          "srcid": 0,
+          "mem": "128 KiB",
+          "ingress": "TIP adapter",
+          "panel": "MicroBlaze V + SoC CTRL",
+          "run_bit": "core0_run",
+          "run_bits": [
+            "core_run",
+            "core0_run"
+          ],
+          "desc": "Board-level control (trio_soc_top @ 0xA000_0000). The PS loads the program into RAM0 while the MBV is halted, configures the encoders, then releases the cores: since U1 MBV (CONTROL b8) and TGC5B (b9) start together OR individually, b0 stays the collective bit for both; the CVA6 starts separately via CONTROL.cva6_run (b5, alias b10).",
+          "ingress_panel": "TIP Adapter (MicroBlaze V)",
+          "ingress_desc": "mbv_to_ctte_tip_adapter: converts the AMD MicroBlaze V TRACE bus into the RISC-V TIP consumed by CEDARtools.TraceEncoder. The bus is vendor-specific and version-pinned (UG1629).",
+          "facts": [
+            [
+              "RAM",
+              "128 KiB @ 0xA010_0000 (only while the MBV is halted)"
+            ],
+            [
+              "encoder",
+              "ENC0 @ 0xA001_0000 (SRC=0)"
+            ],
+            [
+              "start",
+              "CONTROL b8 core0_run (b0 = MBV+TGC5B together)"
+            ]
+          ],
+          "protocol": "ntrace"
+        },
+        {
+          "id": 1,
+          "name": "TGC5B",
+          "long": "MINRES TGC5B",
+          "isa": "RV32IMC",
+          "mhz": 75,
+          "enc": "enc1",
+          "load": "ram1",
+          "srcid": 1,
+          "mem": "64 KiB",
+          "ingress": "H2E->TIP",
+          "panel": "MINRES TGC5B",
+          "run_bit": "core1_run",
+          "run_bits": [
+            "core_run",
+            "core1_run"
+          ],
+          "desc": "Second core (shared TGC5B library): RV32IMC + CLINT/INTC, own 64 KiB RAM @ 0xA008_0000, own CEDARtools.TraceEncoder instance. Program is loaded via the drop zone; since U1 it starts and stops on its own bit (CONTROL b9), independently of the MBV — b0 still releases both (effective = b0 | b9, SPEC §10).",
+          "ingress_panel": "H2E → TIP Adapter (TGC5B)",
+          "ingress_desc": "The TGC5B wrap converts its native H2E trace interface to the RISC-V TIP inside the wrapper — no CSRs of its own.",
+          "facts": [
+            [
+              "RAM",
+              "64 KiB @ 0xA008_0000"
+            ],
+            [
+              "CLINT/INTC",
+              "internal (0x1000_0000 dBus)"
+            ],
+            [
+              "encoder",
+              "ENC1 @ 0xA002_0000 (SRC=1)"
+            ],
+            [
+              "start",
+              "CONTROL b9 core1_run (b0 = with MBV)"
+            ]
+          ],
+          "protocol": "ntrace"
+        },
+        {
+          "id": 2,
+          "name": "CVA6",
+          "long": "CVA6 cv32a60x",
+          "isa": "RV32IMA",
+          "mhz": 75,
+          "enc": "enc2",
+          "load": "cva6",
+          "load_base": "0x64000000",
+          "srcid": 2,
+          "mem": "DDR @0x6400_0000",
+          "ingress": "ITI shim",
+          "panel": "CVA6 (cv32a60x)",
+          "desc": "Third core (vendored cva6_ref, OpenHW CVA6): RV32IMA, M-mode only, WT caches — the trio build uses cv32a60x, NOT the Linux-capable cv32a6_ima_sv32_fpga. No local RAM: code/data come over its own 64-bit AXI master from the reserved PS-DDR window @ 0x6400_0000.",
+          "ingress_panel": "ITI Adapter (CVA6)",
+          "ingress_desc": "cva6_iti (upstream Instruction Trace Interface, E-Trace v2.0.2 ingress, incl. Accemic fixes D1/D2) + cva6_iti_to_ctte_tip shim.",
+          "facts": [
+            [
+              "code/data",
+              "PS DDR window @ 0x6400_0000 (+64 MiB, reserved)"
+            ],
+            [
+              "boot_addr",
+              "0x6400_0000"
+            ],
+            [
+              "encoder",
+              "ENC2 @ 0xA003_0000 (SRC=2)"
+            ],
+            [
+              "start",
+              "CONTROL b5 cva6_run (alias b10; independent of core_run)"
+            ]
+          ],
+          "run_bit": "cva6_run",
+          "run_bits": [
+            "cva6_run",
+            "cva6_run2"
+          ],
+          "protocol": "etrace"
+        }
+      ],
+      "sinks": {
+        "uram": true,
+        "ddr": true,
+        "pib": true
+      },
+      "console": null,
+      "decode": {
+        "multi_target": true,
+        "srcbits": 2,
+        "targets": [
+          {
+            "id": 0,
+            "label": "MBV",
+            "pcinfo": "mbv.pcinfo"
+          },
+          {
+            "id": 1,
+            "label": "TGC5B",
+            "pcinfo": "tgc.pcinfo"
+          },
+          {
+            "id": 2,
+            "label": "CVA6",
+            "pcinfo": "cva6.pcinfo"
+          }
+        ]
+      },
+      "symbols": null,
+      "features": [
+        "ddr_sink",
+        "pib",
+        "decode",
+        "live_pc",
+        "hotmap",
+        "funnel",
+        "elf_load",
+        "axis"
+      ],
+      "fifo": {
+        "cvs_depth": 128,
+        "cdc_depth": 8,
+        "hist_bins": 16,
+        "_src": "ct_pkg.sv of the built profile: ETIP_CVS_FIFO_DEPTH = (CT_EN_DATA_TRACE||CT_EN_ACT||CT_EN_DAQ) ? 128 : 32"
+      }
+    },
+    {
+      "id": "duo",
+      "title": "Duo · MBV + TGC5B",
+      "subtitle": "Two cores, two encoders, one stream — merged by one funnel, told apart by SRC",
+      "accent": "#ff7b72",
+      "app": "duo_ctrace_kv260",
+      "preload": {
+        "ram": "demo/trace_test.elf",
+        "ram1": "demo/hello_trace.hex"
+      },
+      "bitbin": "duo_ctrace_kv260.bit.bin",
+      "headline": [
+        "Two heterogeneous cores — an AMD MicroBlaze V and a MINRES TGC5B —",
+        "trace at the same time into ONE stream. The funnel tags every source;",
+        "a single decode run separates them again."
+      ],
+      "regions": {
+        "ctrl": {
+          "base": "0xA0000000",
+          "size": 65536,
+          "label": "SoC CTRL"
+        },
+        "enc": {
+          "base": "0xA0010000",
+          "size": 65536,
+          "label": "CTTE CSRs (MBV)"
+        },
+        "enc1": {
+          "base": "0xA0020000",
+          "size": 65536,
+          "label": "CTTE CSRs (TGC5B)"
+        },
+        "ram1": {
+          "base": "0xA0080000",
+          "size": 65536,
+          "label": "TGC5B RAM (64 KiB, R/W only while the TGC5B is halted)",
+          "gate_core": 1
+        },
+        "ram": {
+          "base": "0xA0100000",
+          "size": 131072,
+          "label": "MBV RAM (128 KiB, R/W only while the MBV is halted)",
+          "gate_core": 0
+        },
+        "trace": {
+          "base": "0xA0200000",
+          "size": 1048576,
+          "label": "ATB ring, merged (1 MiB URAM)"
+        },
+        "axis": {
+          "base": "0xA0300000",
+          "size": 1048576,
+          "label": "AXIS capture (MBV encoder only — the TGC5B branch's AXIS is not wired)"
+        }
+      },
+      "ctrl": {
+        "control": 0,
+        "status": 4,
+        "trace_beats": 8,
+        "trace_bytes": 12,
+        "axis_beats": 16,
+        "trace_bufsz": 20,
+        "sink_ctrl": 24,
+        "ddr_base": 28,
+        "ddr_size": 32,
+        "ddr_wptr": 36,
+        "sink_stat": 40,
+        "ddr_drops": 44,
+        "pib_drops": 48,
+        "funnel_ctrl": 52,
+        "ddr_beats": 56
+      },
+      "control_bits": {
+        "core_run": 0,
+        "trace_clear": 1,
+        "trace_flush": 2,
+        "irq_gen_en": 3,
+        "core0_run": 8,
+        "core1_run": 9
+      },
+      "status_bits": {
+        "trace_wrapped": 0,
+        "axis_overflow": 1,
+        "core0_running": 8,
+        "core1_running": 9
+      },
+      "cores": [
+        {
+          "id": 0,
+          "name": "MicroBlaze V",
+          "long": "AMD MicroBlaze V",
+          "isa": "RV32IM",
+          "mhz": 75,
+          "enc": "enc",
+          "load": "ram",
+          "srcid": 0,
+          "mem": "128 KiB",
+          "ingress": "TIP adapter",
+          "panel": "MicroBlaze V + SoC CTRL",
+          "run_bit": "core0_run",
+          "run_bits": [
+            "core_run",
+            "core0_run"
+          ],
+          "desc": "Board-level control (duo_soc_top @ 0xA000_0000). The PS loads the program into RAM0 while the MBV is halted, configures both encoders, then releases the cores: since U1 the MBV (CONTROL b8) and the TGC5B (b9) start together OR individually, and b0 stays the collective bit for both (effective = b0 | b8, SPEC §10).",
+          "ingress_panel": "TIP Adapter (MicroBlaze V)",
+          "ingress_desc": "mbv_to_ctte_tip_adapter: converts the AMD MicroBlaze V TRACE bus into the RISC-V TIP consumed by CEDARtools.TraceEncoder. The bus is vendor-specific and version-pinned (UG1629).",
+          "facts": [
+            [
+              "RAM",
+              "128 KiB @ 0xA010_0000 (only while the MBV is halted)"
+            ],
+            [
+              "encoder",
+              "ENC0 @ 0xA001_0000 (SRC=0)"
+            ],
+            [
+              "start",
+              "CONTROL b8 core0_run (b0 = MBV+TGC5B together)"
+            ]
+          ]
+        },
+        {
+          "id": 1,
+          "name": "TGC5B",
+          "long": "MINRES TGC5B",
+          "isa": "RV32IMC",
+          "mhz": 75,
+          "enc": "enc1",
+          "load": "ram1",
+          "srcid": 1,
+          "mem": "64 KiB",
+          "ingress": "H2E->TIP",
+          "panel": "MINRES TGC5B",
+          "run_bit": "core1_run",
+          "run_bits": [
+            "core_run",
+            "core1_run"
+          ],
+          "desc": "Second core (examples/kv260/common/tgc5b, ct_soc_synth_wrap): RV32IMC + CLINT/INTC, own 64 KiB RAM @ 0xA008_0000, own CEDARtools.TraceEncoder instance at ENC1. The two branches share nothing — different ISAs, separate RAMs, no SMP. Since U1 it starts and stops on its own bit (CONTROL b9), independently of the MBV; b0 still releases both (effective = b0 | b9, SPEC §10).",
+          "ingress_panel": "H2E → TIP Adapter (TGC5B)",
+          "ingress_desc": "The TGC5B wrap (ct_soc_synth_wrap) converts its native H2E trace interface to the RISC-V TIP inside the wrapper — no CSRs of its own.",
+          "facts": [
+            [
+              "RAM",
+              "64 KiB @ 0xA008_0000 (only while the TGC5B is halted)"
+            ],
+            [
+              "CLINT/INTC",
+              "internal (0x1000_0000 dBus)"
+            ],
+            [
+              "encoder",
+              "ENC1 @ 0xA002_0000 (SRC=1)"
+            ],
+            [
+              "start",
+              "CONTROL b9 core1_run (b0 = with the MBV)"
+            ]
+          ]
+        }
+      ],
+      "sinks": {
+        "uram": true,
+        "ddr": true,
+        "pib": true
+      },
+      "console": null,
+      "decode": {
+        "multi_target": true,
+        "srcbits": 2,
+        "targets": [
+          {
+            "id": 0,
+            "label": "MBV",
+            "pcinfo": "mbv.pcinfo"
+          },
+          {
+            "id": 1,
+            "label": "TGC5B",
+            "pcinfo": "tgc.pcinfo"
+          }
+        ]
+      },
+      "symbols": null,
+      "features": [
+        "ddr_sink",
+        "pib",
+        "decode",
+        "live_pc",
+        "hotmap",
+        "funnel",
+        "elf_load",
+        "axis"
+      ],
+      "fifo": {
+        "cvs_depth": 128,
+        "cdc_depth": 8,
+        "hist_bins": 16,
+        "_src": "ct_pkg.sv of the built profile: ETIP_CVS_FIFO_DEPTH = (CT_EN_DATA_TRACE||CT_EN_ACT||CT_EN_DAQ) ? 128 : 32"
+      }
+    },
+    {
+      "id": "mbv",
+      "title": "MicroBlaze V · single core",
+      "subtitle": "Where it started: AMD TRACE bus → TIP adapter → CTTE",
+      "accent": "#7ee787",
+      "app": "mbv_ctrace_kv260",
+      "preload": {
+        "ram": "demo/trace_test.elf"
+      },
+      "bitbin": "mbv_ctrace_kv260.bit.bin",
+      "headline": [
+        "The AMD MicroBlaze V has a proprietary TRACE bus and no RISC-V trace",
+        "encoder. Our adapter translates it into TIP — and CTTE turns that",
+        "into a standard-conforming stream."
+      ],
+      "regions": {
+        "ctrl": {
+          "base": "0xA0000000",
+          "size": 65536,
+          "label": "SoC CTRL"
+        },
+        "enc": {
+          "base": "0xA0010000",
+          "size": 65536,
+          "label": "CTTE CSRs (MBV)"
+        },
+        "ram": {
+          "base": "0xA0100000",
+          "size": 131072,
+          "label": "MBV RAM (128 KiB, R/W only while the core is halted)",
+          "gate_core": 0
+        },
+        "trace": {
+          "base": "0xA0200000",
+          "size": 1048576,
+          "label": "ATB ring (1 MiB URAM)"
+        },
+        "axis": {
+          "base": "0xA0300000",
+          "size": 1048576,
+          "label": "AXIS capture"
+        }
+      },
+      "ctrl": {
+        "control": 0,
+        "status": 4,
+        "trace_beats": 8,
+        "trace_bytes": 12,
+        "axis_beats": 16,
+        "trace_bufsz": 20,
+        "sink_ctrl": 24,
+        "ddr_base": 28,
+        "ddr_size": 32,
+        "ddr_wptr": 36,
+        "sink_stat": 40,
+        "ddr_drops": 44,
+        "pib_drops": 48,
+        "ddr_beats": 56
+      },
+      "control_bits": {
+        "core_run": 0,
+        "trace_clear": 1,
+        "trace_flush": 2,
+        "irq_gen_en": 3
+      },
+      "status_bits": {
+        "trace_wrapped": 0,
+        "axis_overflow": 1
+      },
+      "cores": [
+        {
+          "id": 0,
+          "name": "MicroBlaze V",
+          "long": "AMD MicroBlaze V",
+          "isa": "RV32IM",
+          "mhz": 75,
+          "enc": "enc",
+          "load": "ram",
+          "srcid": 0,
+          "mem": "128 KiB",
+          "ingress": "TIP adapter",
+          "panel": "MicroBlaze V + SoC CTRL",
+          "desc": "Board-level control (mbv_soc_top @ 0xA000_0000). The PS loads the program into RAM0 while core_run=0, configures the encoder, then releases the core.",
+          "ingress_panel": "TIP Adapter (MicroBlaze V)",
+          "ingress_desc": "mbv_to_ctte_tip_adapter: converts the AMD MicroBlaze V TRACE bus into the RISC-V TIP consumed by CEDARtools.TraceEncoder.",
+          "facts": [
+            [
+              "RAM",
+              "128 KiB @ 0xA010_0000"
+            ],
+            [
+              "encoder",
+              "ENC0 @ 0xA001_0000"
+            ]
+          ]
+        }
+      ],
+      "sinks": {
+        "uram": true,
+        "ddr": true,
+        "pib": true
+      },
+      "console": null,
+      "decode": {
+        "multi_target": false,
+        "srcbits": 0,
+        "targets": [
+          {
+            "id": 0,
+            "label": "MBV",
+            "pcinfo": "mbv.pcinfo"
+          }
+        ]
+      },
+      "symbols": "demo/symbols_mbv.map",
+      "features": [
+        "decode",
+        "live_pc",
+        "hotmap",
+        "elf_load",
+        "axis"
+      ],
+      "fifo": {
+        "cvs_depth": 128,
+        "cdc_depth": 8,
+        "hist_bins": 16,
+        "_src": "ct_pkg.sv of the built profile: ETIP_CVS_FIFO_DEPTH = (CT_EN_DATA_TRACE||CT_EN_ACT||CT_EN_DAQ) ? 128 : 32"
+      }
+    },
+    {
+      "id": "tgc5b2_axis_wp",
+      "title": "TGC5B ×2 · AXIS Watchpoints",
+      "subtitle": "Watchpoint hits as AXIS records — live view at /wp.html (Paket H)",
+      "accent": "#5ab6c4",
+      "app": "tgc5b2_axis_wp_c0b",
+      "bitbin": "tgc5b2_axis_wp_c0b.bit.bin",
+      "app_variants": [
+        {
+          "app": "tgc5b2_axis_wp",
+          "enc_xlen": 32,
+          "sinks": {
+            "uram": true,
+            "ddr": false,
+            "pib": false
+          },
+          "label": "D1 build (15 WP slots, direct window)",
+          "note": "Pre-D2 bitstream: 256 KiB URAM ring and no sink window -- 0x18..0x38 read 0 and writes are no-ops, so DDR and PIB are simply not there (not switched off)."
+        },
+        {
+          "app": "tgc5b2_axis_wp_c0b",
+          "enc_xlen": 32,
+          "sinks": {
+            "uram": true,
+            "ddr": false,
+            "pib": false
+          },
+          "label": "C0b build (1023 WP slots indirect + AXIS timestamp)",
+          "note": "The G1 live-demo bitstream: 256 KiB URAM ring, no sink window (0x18..0x38 read 0). DDR and PIB arrive with the C0B_SINK3 build."
+        },
+        {
+          "app": "tgc5b2_axis_wp_c0b_sink3",
+          "enc_xlen": 32,
+          "percore_run": true,
+          "bit_md5": "6dd0778b842e16f145af81c1df2e3ca8",
+          "label": "C0B_SINK3 build (three sinks: URAM 1 MiB + DDR4 256 MiB + PIB; U1 per-core run bits, U9-1 read-only window)",
+          "note": "Same encoder and watchpoint set as C0b, plus the shared three-sink subsystem (ct_trace_sinks, package T2): the URAM ring grows to 1 MiB, the DDR4 sink writes into the reserved PS-DDR window, and the parallel port drives PMOD J2. Sinks are reset-inert (SINK_CTRL=0), so the wire stream is byte-identical to C0b until one is switched on. Rebuilt for package U6 (2026-08-15): the DDR window resets to 0x5000_0000 + 256 MiB (address plan v4) and DDR_BASE/DDR_SIZE are refused while the sink is armed, with SINK_STAT b4 ddr_cfg_rej as the reason. SAME app name for all three builds, so xmutil cannot tell them apart; the bitstream is identified by md5 6dd0778b842e16f145af81c1df2e3ca8 (U1 was 0378884e…, T2 f9ff404d…). On a pre-U6 bitstream the window still resets to 0x6000_0000 + 64 MiB and b4 stays 0 — the cards read the registers, so they follow whichever build is loaded; on a pre-U1 bitstream the per-core buttons write bits that nothing reads and STATUS b8/b9 stay 0, which is exactly what the server reports back as a hint. Rebuilt again for package U11 (2026-08-16): the vendored encoder now carries the U10 CSR audit (the eight trTeInstFeatures.InstEn* bits and the DF range memory mem1 are Enable-locked, so a write while the encoder is armed is refused with 409 instead of vanishing), and DDR_BASE/DDR_SIZE are READ-ONLY IN HARDWARE (U9-1): a write is discarded whether the sink is armed or not, the registers always read the reset window, and SINK_STAT b4 latches every refused attempt. Predecessors: U6 fef8ace2, U1 0378884e, T2 f9ff404d."
+        }
+      ],
+      "_comment": [
+        "AXIS watchpoint testbed (packages D0/D1/E0/F0/F1/G0/H).",
+        "app_variants (2026-08-14, package T2/T3): tgc5b2_axis_wp_c0b_sink3",
+        "brings the shared three-sink subsystem (ct_trace_sinks) -- CTRL",
+        "0x18..0x38 offset-identical to duo, URAM ring 1 MiB instead of 256 KiB,",
+        "DDR_BEATS at 0x38 (in the C0B_DDR build the counter was at 0x30, where",
+        "PIB_DROPS sits now; docs/SPEC_axis_wp_memory_map.md §9). The two older",
+        "variants therefore carry a 'sinks' entry of their own: in them the",
+        "sink registers read 0 -- the view claims no sink there that",
+        "the loaded bitstream does not have.",
+        "app_variants (2026-08-13, live demo): the C0b rebuild",
+        "tgc5b2_axis_wp_c0b (1023 WP indirect + AXIS-TS, G1 board E2E green)",
+        "is present on the board as an xmutil app of its own -- same window layout /",
+        "register map for everything this view reads (WPCTRL/FIFOs",
+        "read-only); ONLY /api/wp/load stays bound to D1 (the direct window",
+        "0x4100 does not exist in the C0b build -- 409/ineffective there,",
+        "loading runs indirectly via tools/axis_wp_host/wp_load_indirect).",
+        "Register map from docs/SPEC_axis_wp_memory_map.md, verified on the board",
+        "in G0 (docs/handoffs/G0_board_e2e.md: MAGIC, FTIME ~75.8 MHz, 36/36",
+        "oracle sequence per core). Two TGC5B cores, each with one CTTE encoder",
+        "with watchpoint unit; WP hits leave the encoder as AXIS records",
+        "(4 words: PC, slot, TS, meta) through ct_axis_wp_shim into one",
+        "axi_fifo_mm_s (PG080) each. FIFO reading is DESTRUCTIVE (every RDFD read",
+        "pops) -- only the server drain (wp_view.py) reads the",
+        "FIFO windows; avoid /api/read on fifo0/fifo1.",
+        "WP expansion (H3, 2026-08-13): C0b bitstream = 1023 WP per encoder",
+        "(loaded indirectly) + AXIS-TS (W2 = timestamp, tstrb 0xFFF, G1",
+        "board E2E green); the D1 app carries 15 slots over the direct",
+        "window +0x4100 and delivers W2 == 0 (tstrb 0x0FF). The view",
+        "still checks no TS monotonicity (F1 --ts-mode off applies to",
+        "the D1 variant; wp_load_slots caps ONLY the /api/wp/load",
+        "direct path, which exists in the D1 app alone)."
+      ],
+      "headline": [
+        "Both TGC5B cores walk the same watchpoint set (1023 slots on the",
+        "C0b bitstream, loaded indirectly; 15 on the D1 app); every hit",
+        "leaves the encoder as a 4-word AXIS record with PC, slot, core ID",
+        "and — on C0b — an AXIS timestamp.",
+        "The live record view is at /wp.html (server-side FIFO drain)."
+      ],
+      "regions": {
+        "ctrl": {
+          "base": "0xA0000000",
+          "size": 65536,
+          "label": "SoC CTRL"
+        },
+        "enc": {
+          "base": "0xA0010000",
+          "size": 65536,
+          "label": "CTTE CSRs (TGC5B core 0)"
+        },
+        "enc1": {
+          "base": "0xA0020000",
+          "size": 65536,
+          "label": "CTTE CSRs (TGC5B core 1)"
+        },
+        "ram1": {
+          "base": "0xA0080000",
+          "size": 65536,
+          "label": "RAM core 1 (64 KiB, R/W only while core 1 is halted)",
+          "gate_core": 1
+        },
+        "ram": {
+          "base": "0xA0100000",
+          "size": 65536,
+          "label": "RAM core 0 (64 KiB, R/W only while core 0 is halted)",
+          "gate_core": 0
+        },
+        "trace": {
+          "base": "0xA0200000",
+          "size": 1048576,
+          "label": "ATB ring, merged (1 MiB URAM)"
+        },
+        "wpctrl": {
+          "base": "0xA0400000",
+          "size": 65536,
+          "label": "WPCTRL (D1-Statusregister, read-only)"
+        },
+        "fifo0": {
+          "base": "0xA0410000",
+          "size": 65536,
+          "label": "axi_fifo_mm_s core 0 (PG080; RDFD destruktiv!)"
+        },
+        "fifo1": {
+          "base": "0xA0420000",
+          "size": 65536,
+          "label": "axi_fifo_mm_s core 1 (PG080; RDFD destruktiv!)"
+        }
+      },
+      "ctrl": {
+        "control": 0,
+        "status": 4,
+        "trace_beats": 8,
+        "trace_bytes": 12,
+        "trace_bufsz": 16,
+        "sink_ctrl": 24,
+        "ddr_base": 28,
+        "ddr_size": 32,
+        "ddr_wptr": 36,
+        "sink_stat": 40,
+        "ddr_drops": 44,
+        "pib_drops": 48,
+        "ddr_beats": 56
+      },
+      "control_bits": {
+        "core_run": 0,
+        "trace_clear": 1,
+        "trace_flush": 2,
+        "core0_run": 8,
+        "core1_run": 9
+      },
+      "status_bits": {
+        "trace_wrapped": 0,
+        "core0_running": 8,
+        "core1_running": 9
+      },
+      "cores": [
+        {
+          "id": 0,
+          "name": "TGC5B core 0",
+          "long": "MINRES TGC5B — core 0",
+          "isa": "RV32IMC",
+          "mhz": 75,
+          "enc": "enc",
+          "load": "ram",
+          "srcid": 0,
+          "mem": "64 KiB @ 0xA010_0000",
+          "ingress": "H2E->TIP",
+          "ingress_block": true,
+          "panel": "TGC5B core 0",
+          "run_bit": "core0_run",
+          "run_bits": [
+            "core_run",
+            "core0_run"
+          ],
+          "desc": "First of two identical TGC5B cores (shared TGC5B library, RV32IMC). Own 64 KiB RAM @ 0xA010_0000 (accessible only while THIS core is halted), own CTTE encoder at ENC0 with the watchpoint unit armed; WP hits leave as AXIS records into FIFO0 @ 0xA041_0000. Since U1 the core starts and stops on its own bit (CONTROL b8); b0 stays the collective bit that releases both cores, effective = b0 | b8 (SPEC §10).",
+          "ingress_panel": "H2E → TIP + AXIS WP shim (core 0)",
+          "ingress_desc": "TGC5B H2E trace interface converted to the RISC-V TIP inside the wrapper (tgc5b_wp_synth_wrap, one adapter PER core); the encoder's DAQ/WP path emits one 4-word AXIS record per watchpoint hit through ct_axis_wp_shim (256-record shim FIFO, drop counter in WPCTRL).",
+          "facts": [
+            [
+              "RAM",
+              "64 KiB @ 0xA010_0000 (only while core 0 is halted)"
+            ],
+            [
+              "start",
+              "CONTROL b8 core0_run (b0 = both cores)"
+            ],
+            [
+              "encoder",
+              "ENC0 @ 0xA001_0000 · WP slots: 1023 indirect (C0b) / 15 direct @ +0x4100 (D1)"
+            ],
+            [
+              "records",
+              "FIFO0 @ 0xA041_0000 (PG080, 1024 records)"
+            ]
+          ]
+        },
+        {
+          "id": 1,
+          "name": "TGC5B core 1",
+          "long": "MINRES TGC5B — core 1",
+          "isa": "RV32IMC",
+          "mhz": 75,
+          "enc": "enc1",
+          "load": "ram1",
+          "srcid": 1,
+          "mem": "64 KiB @ 0xA008_0000",
+          "ingress": "H2E->TIP",
+          "ingress_block": true,
+          "panel": "TGC5B core 1",
+          "run_bit": "core1_run",
+          "run_bits": [
+            "core_run",
+            "core1_run"
+          ],
+          "desc": "Second identical TGC5B core. Own 64 KiB RAM @ 0xA008_0000, own H2E→TIP adapter (tgc5b_wp_synth_wrap instance), own encoder at ENC1, own AXIS record path into FIFO1 @ 0xA042_0000. Records carry core_id=1 in W3. Since U1 it starts and stops on its own bit (CONTROL b9), independently of core 0; b0 remains the collective bit, effective = b0 | b9 (SPEC §10).",
+          "ingress_panel": "H2E → TIP + AXIS WP shim (core 1)",
+          "ingress_desc": "Identical second adapter + shim; records are told apart by core_id in W3 (never by colour alone in the UI).",
+          "facts": [
+            [
+              "RAM",
+              "64 KiB @ 0xA008_0000 (only while core 1 is halted)"
+            ],
+            [
+              "start",
+              "CONTROL b9 core1_run (b0 = both cores)"
+            ],
+            [
+              "encoder",
+              "ENC1 @ 0xA002_0000 · WP slots: 1023 indirect (C0b) / 15 direct @ +0x4100 (D1)"
+            ],
+            [
+              "records",
+              "FIFO1 @ 0xA042_0000 (PG080, 1024 records)"
+            ]
+          ]
+        }
+      ],
+      "sinks": {
+        "uram": true,
+        "ddr": true,
+        "pib": true
+      },
+      "_sinks_comment": [
+        "Applies to the C0B_SINK3 bitstream (package T2). The two older",
+        "app variants carry a 'sinks' entry of their own (see app_variants):",
+        "if one of them is loaded, the view shows only the URAM ring."
+      ],
+      "sink_defaults": {
+        "ddr_en": true,
+        "ddr_circ": true
+      },
+      "_sink_defaults_comment": [
+        "U5 (field report 2026-08-15: 'nothing visibly arrives in DDR4'). SINK_CTRL",
+        "is reset-inert, and no path of the dashboard had ever set ddr_en --",
+        "the T3 proof did it by hand. The bind now establishes this default",
+        "(server.arm_default_sinks, idempotent: if the bits already match,",
+        "nothing is written; the pulse bits b1/b5 are ALWAYS masked out).",
+        "ddr_circ=1 is deliberately the RING and not one shot: measured in",
+        "T3 were ~41.5 MB/s into the 64 MiB window of that time -- one shot stood",
+        "at FULL after ~1.6 s, colored the card as an error and afterwards counted",
+        "only drops (T3 §7: 15 million in 3 s). The ring keeps the window filled,",
+        "the write pointer visibly moves on, and 'full' means there what",
+        "it is supposed to mean: the last 256 MiB are ready. Whoever needs the dump",
+        "of a completed run switches the DDR card to one shot.",
+        "U6/U8 (2026-08-15): the window is now 0x5000_0000 + 256 MiB",
+        "(address plan v4, ct_trace_sinks) -- at the 16.7 MB/s measured in U5",
+        "the ring wraps after ~16 s instead of after ~4 s. The default itself",
+        "does NOT change as a result: it names bits, not addresses, and the",
+        "window check reads base and size from the registers.",
+        "The target window is checked against /proc/device-tree/",
+        "reserved-memory before arming (DDR_BASE 0x5000_0000 +256 MiB lies in",
+        "ctrace-pl-ddr@50000000 +512 MiB); without that evidence it is NOT armed."
+      ],
+      "console": null,
+      "_decode_comment": [
+        "H3 (review finding 4, 2026-08-13): pcinfo for the E0 program is now",
+        "versioned (sw/axis_wp_demo/axis_wp_demo.pcinfo, NexRv -conv from",
+        "axis_wp_demo.dis, build.sh step) -- decode/live_pc are active as a",
+        "result. Both cores run THE SAME program in their own RAMs, hence",
+        "the same pcinfo per target (pattern rocket2). On the board,",
+        "pcinfo_path() first finds pcinfo_tgc5b2_axis_wp_src<t>.pcinfo in the",
+        "dashboard folder (deploy), on the workstation the repo path.",
+        "The CTRL map of this SoC top has NO HW retire counter",
+        "(rdata case 0..4, tgc5b2_axis_soc_top.sv) -- so the fine-window sampler",
+        "of the server delivers nothing here (bpi_win.n = 0), and that is",
+        "hardware, not an omission in this map.",
+        "U5 (field report 2026-08-15, 'bpi chart stays empty'): the chart stood",
+        "empty for that reason. It now draws the DECODED size from the",
+        "rolling window (/api/livepc -> decode.bits_per_instr: bytes of the",
+        "window times 8 divided by the instructions of ALL sources). That is",
+        "the same definition, only from the other source -- and the curve says",
+        "in its title which one. On scenarios WITH a retire counter everything",
+        "stays as before: there the hardware counters win."
+      ],
+      "decode": {
+        "multi_target": true,
+        "srcbits": 2,
+        "targets": [
+          {
+            "id": 0,
+            "label": "TGC5B core 0",
+            "pcinfo": "../kv260/tgc5b2_axis_wp/sw/axis_wp_demo.pcinfo"
+          },
+          {
+            "id": 1,
+            "label": "TGC5B core 1",
+            "pcinfo": "../kv260/tgc5b2_axis_wp/sw/axis_wp_demo.pcinfo"
+          }
+        ]
+      },
+      "code_regions": [
+        {
+          "name": "WP walk program (per-core RAM)",
+          "base": "0x00000000",
+          "size": "0x00010000"
+        }
+      ],
+      "_symbols_comment": [
+        "Canonical next to the program artifacts (pattern wp_set.txt);",
+        "produced from axis_wp_demo.dis via examples/dashboard/dis_to_symbols.py.",
+        "The board deploy places copies as",
+        "symbols_/sites_tgc5b2_axis_wp.map into the dashboard folder --",
+        "load_symbol_files() finds those as the first candidate."
+      ],
+      "symbols": "../kv260/tgc5b2_axis_wp/sw/axis_wp_demo_symbols.map",
+      "sites": "../kv260/tgc5b2_axis_wp/sw/axis_wp_demo_sites.map",
+      "features": [
+        "elf_load",
+        "axis_wp",
+        "decode",
+        "live_pc"
+      ],
+      "fifo": {
+        "cvs_depth": 128,
+        "cdc_depth": 8,
+        "hist_bins": 16,
+        "_src": "ct_pkg.sv of the built profile: ETIP_CVS_FIFO_DEPTH = (CT_EN_DATA_TRACE||CT_EN_ACT||CT_EN_DAQ) ? 128 : 32"
+      },
+      "_wp_comment": [
+        "All WPCTRL offsets from docs/SPEC_axis_wp_memory_map.md §3 -- here and",
+        "not in wp_view.py, for the same reason as the CTRL maps (no",
+        "offset as a literal in the server). ftime: reading LO latches the 64-bit",
+        "snapshot, HI delivers the upper 32 bits of the one latched last --",
+        "ALWAYS LO first. ovf is sticky, clear only via PL reset (D0 #4).",
+        "wp_set: PC->symbol name; candidates are searched in wp_view.py in",
+        "order (dashboard folder first -- the board deploy puts the file",
+        "there -- then the repo path sw/axis_wp_demo/).",
+        "wp_slots = 1023 is the C0b state (trWpCap == 1023, loaded indirectly,",
+        "G1 board E2E); wp_load_slots = 15 caps EXCLUSIVELY the",
+        "POST /api/wp/load path, because that one writes the D1 DIRECT WINDOW",
+        "+0x4100 -- which exists only in the D1 app, and there it is 15",
+        "slots. The C0b load runs indirectly (tools/axis_wp_host/",
+        "wp_load_indirect), not over this endpoint (H3, 2026-08-13).",
+        "U4 (2026-08-15): 'wp_table_off' is REMOVED here. The key",
+        "stood at 0x4100, and since the C0b rework there is NO register",
+        "there any more (SPEC §7, ct_cs_cpuif_wb.sv:220-227) -- the writes went",
+        "nowhere and the endpoint still reported ok. Without the key,",
+        "load_table rejects the call with the migration recipe instead of",
+        "writing ineffectively; the indirect loader in the dashboard remains",
+        "the open point H2 (docs/REPORT_axis_wp_completion.md §7). Whoever loads",
+        "the D1 app enters the key again -- then the direct path lives on",
+        "unchanged."
+      ],
+      "wp": {
+        "wpctrl_region": "wpctrl",
+        "magic_off": 0,
+        "magic": "0x41575031",
+        "ftime_lo": 28,
+        "ftime_hi": 32,
+        "fifo_words": 36,
+        "shim_recs": 40,
+        "clk_hz": 75000000,
+        "fifos": [
+          {
+            "core": 0,
+            "region": "fifo0",
+            "drop": 4,
+            "fill": 8,
+            "ovf": 12
+          },
+          {
+            "core": 1,
+            "region": "fifo1",
+            "drop": 16,
+            "fill": 20,
+            "ovf": 24
+          }
+        ],
+        "wp_slots": 1023,
+        "wp_load_slots": 15,
+        "wp_set": [
+          "wp_set.txt",
+          "../kv260/tgc5b2_axis_wp/sw/wp_set.txt"
+        ],
+        "record_words": 4,
+        "poll_ms": 25,
+        "drain_max": 1024,
+        "ring": 20000,
+        "demo": {
+          "rate_per_core": 300,
+          "_src": "Demo rate freely chosen (smooth table in the browser); the production rate measured on the board is ~21k rec/s per core at a drain of ~12.7k (G0 run B) -- demo mode shows the MECHANISM, not the board load, and states that in the UI."
+        }
+      }
+    }
+  ]
+}

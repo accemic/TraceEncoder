@@ -25,21 +25,21 @@ module ct_encoder_top (
 	// --------------------------------------------------------------------
 	// Clocks / resets (kept explicit)
 	// --------------------------------------------------------------------
-	input  uwire logic tip_clk,
-	input  uwire logic tip_rst,
+	input  uwire logic        tip_clk,
+	input  uwire logic        tip_rst,
 
-	input  uwire logic wb_clk,
-	input  uwire logic wb_rst,
+	input  uwire logic        wb_clk,
+	input  uwire logic        wb_rst,
 
-	input  uwire logic proc_clk,
-	input  uwire logic proc_rst,
-	input  uwire logic ct_cs_rst,
+	input  uwire logic        proc_clk,
+	input  uwire logic        proc_rst,
+	input  uwire logic        ct_cs_rst,
 
-	input  uwire logic wall_clk,
-	input  uwire logic wall_clk_rst,
+	input  uwire logic        wall_clk,
+	input  uwire logic        wall_clk_rst,
 
-	input  uwire logic atb_atclk,
-	input  uwire logic atb_atresetn,
+	input  uwire logic        atb_atclk,
+	input  uwire logic        atb_atresetn,
 
 	// --------------------------------------------------------------------
 	// Unfolded Wishbone interface (external control)
@@ -141,15 +141,42 @@ module ct_encoder_top (
 		end
 	end
 
+	// Upper address half, only in a 64-bit build. It has to TOGGLE: a
+	// constant-zero upper half would let out-of-context synthesis trim the
+	// whole upper datapath away, and the resource number would then describe
+	// a 32-bit encoder wearing a 64-bit label. Seeded differently from the
+	// low word so the two halves are not the same sequence. The generate
+	// keeps the 32-bit netlist bit-for-bit what it was.
+	uwire tip_pkg::tip_iaddr_t stim_iaddr;
+	uwire tip_pkg::tip_daddr_t stim_daddr;
+	if (ct_pkg::CT_ADDR64) begin : genAddrHi
+		logic [31:0] lfsr_hi;
+		always_ff @(posedge tip_clk) begin
+			if (tip_rst)            lfsr_hi <= ~tip_seed;
+			else if (!tip_enable)   lfsr_hi <= ~tip_seed;
+			else                    lfsr_hi <= lfsr32_next(lfsr_hi);
+		end
+		assign stim_iaddr = tip_pkg::tip_iaddr_t'({lfsr_hi,  lfsr});
+		assign stim_daddr = tip_pkg::tip_daddr_t'({~lfsr_hi, ~lfsr});
+	end
+	else begin : genAddrLo
+		assign stim_iaddr = tip_pkg::tip_iaddr_t'(lfsr);
+		assign stim_daddr = tip_pkg::tip_daddr_t'(~lfsr);
+	end
+
 	always_comb begin
 		// Control-flow defaults
 		tip._time     = time_ctr;
 		tip.itype     = '0;              // tip_pkg::OTHER
 		tip.ecause    = '0;
-		tip.tval      = 32'h0;
+		tip.tval      = '0;
 		tip.priv      = 3'b0;
-		tip.iaddr     = lfsr;
-		tip._context  = lfsr[1:0];
+		tip.iaddr     = stim_iaddr;
+		// Width-following (W2): a hard [1:0] would leave the upper context
+		// bits constant 0 in a wider build, i.e. the synthesis harness would
+		// under-report the cost of the very knob it is measuring. At the
+		// default CT_CONTEXT_WIDTH=2 this IS lfsr[1:0].
+		tip._context  = tip_pkg::tip_context_t'(lfsr);
 		tip.ctype     = '0;
 		tip.iretire   = tip_enable;      // keep pipeline active
 		tip.ilastsize = 2'd2;
@@ -158,7 +185,7 @@ module ct_encoder_top (
 		// Data-trace activity (some toggling so logic doesn't constant-fold)
 		tip.dretire   = tip_enable & lfsr[2];
 		tip.dtype     = lfsr[3] ? 4'd1 : 4'd0;   // STORE / LOAD
-		tip.daddr     = ~lfsr;
+		tip.daddr     = stim_daddr;
 		tip.dsize     = {2'b0, lfsr[5:2]};
 		tip.data      = {lfsr, ~lfsr};
 	end
@@ -214,7 +241,11 @@ module ct_encoder_top (
 	// --------------------------------------------------------------------
 	// DUT
 	// --------------------------------------------------------------------
-	ct_encoder ct_encoder_inst (
+	// CORE_XLEN (P0-07): this wrapper has no external core at all -- it
+	// generates its TIP stream internally out of tip_pkg types (see the
+	// header), so the "hart" width IS the netlist width. Same waiver as
+	// tests/lib/ct_env.sv; scripts/check_core_xlen.py tracks it.
+	ct_encoder #(.CORE_XLEN(ct_pkg::CT_XLEN)) ct_encoder_inst (
 		.tip_clk,
 		.tip_rst,
 		.tip (tip.slave),
@@ -228,6 +259,9 @@ module ct_encoder_top (
 		.atb_atclk,
 		.atb_atresetn,
 		.atb (atb.master),
+		// Framing advertisement: a constant of the compiled-in back end, so
+		// it carries no synthesis cost and needs no wrapper pin.
+		.atb_te_raw (),
 
 		.proc_clk,
 		.proc_rst,

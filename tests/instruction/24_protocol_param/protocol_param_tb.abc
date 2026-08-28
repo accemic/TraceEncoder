@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+import @rtl          : ct_encoder
+import @tests/lib    : ct_cs_cpuif_wb_helper
+
+read_sim protocol_param_tb.sv
+simulate protocol_param_tb

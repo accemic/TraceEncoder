@@ -9,7 +9,7 @@
  * @file    ct_L23_preproc_tip_delay.sv
  * @brief   TIP pipeline delay stage for multi-delay alignment.
  *
- * @description
+ * @details
  *   Implements a configurable pipeline for TIP events, providing delayed TIP outputs
  *   selectable per consumer. This enables flexible synchronization and alignment of
  *   TIP data across different analysis and filter modules downstream.
@@ -48,15 +48,15 @@ module ct_L23_preproc_tip_delay #(
 	// Keep integration/TB compatibility: other preproc modules use ct_pkg::EXTRA_DELAY_MAX.
 	int EXTRA_DELAY_MAX = ct_pkg::EXTRA_DELAY_MAX
 ) (
-	input uwire logic           clk,                    // trace input clock
-	input uwire logic           rst,                    // reset
+	input uwire logic   clk,            // trace input clock
+	input uwire logic   rst,            // reset
 	// Input / Output
-	tip_if.slave                tip,                    // TIP from CPU
-	tip_if.master               tip_delayed0,
-	tip_if.master               tip_delayed1,
-	output delay_t              internal_delay,          // delay of this component including all submodules
-	input uwire delay_t         extra_delay0,            // extra delay for tip_delayed0 to be added for syncronizing preproc modules
-	input uwire delay_t         extra_delay1             // extra delay for tip_delayed1 to be added for syncronizing preproc modules
+	tip_if.slave        tip,            // TIP from CPU
+	tip_if.master       tip_delayed0,
+	tip_if.master       tip_delayed1,
+	output delay_t      internal_delay, // delay of this component including all submodules
+	input uwire delay_t extra_delay0,   // extra delay for tip_delayed0 to be added for syncronizing preproc modules
+	input uwire delay_t extra_delay1    // extra delay for tip_delayed1 to be added for syncronizing preproc modules
 );
 
 	tip_t [EXTRA_DELAY_MAX:0]  TipPipe;
@@ -83,6 +83,12 @@ module ct_L23_preproc_tip_delay #(
 		tip_in.sdata     = tip.sdata;
 		tip_in.lresp     = tip.lresp;
 		tip_in.ldata     = tip.ldata;
+		// Event sideband: gated at the pipe INPUT so a profile with the
+		// event group compiled out folds the pipeline bits to constants.
+		tip_in.debug_mode = CT_EN_DEBUG_EVENTS ? tip.debug_mode : 1'b0;
+		tip_in.evti       = CT_EN_EVTI         ? tip.evti       : 1'b0;
+		tip_in.power_down = CT_EN_POWER_EVENTS ? tip.power_down : 1'b0;
+		tip_in.trigger    = CT_EN_TRIG_SYNC    ? tip.trigger    : 1'b0;
 		tip_in.impdef    = tip.impdef;
 	end
 
@@ -124,6 +130,10 @@ module ct_L23_preproc_tip_delay #(
 		tip_delayed0.sdata     = tip_out0.sdata;
 		tip_delayed0.lresp     = tip_out0.lresp;
 		tip_delayed0.ldata     = tip_out0.ldata;
+		tip_delayed0.debug_mode = tip_out0.debug_mode;
+		tip_delayed0.evti       = tip_out0.evti;
+		tip_delayed0.power_down = tip_out0.power_down;
+		tip_delayed0.trigger    = tip_out0.trigger;
 		tip_delayed0.impdef    = tip_out0.impdef;
 
 		tip_delayed1._time     = tip_out1._time;
@@ -144,6 +154,10 @@ module ct_L23_preproc_tip_delay #(
 		tip_delayed1.sdata     = tip_out1.sdata;
 		tip_delayed1.lresp     = tip_out1.lresp;
 		tip_delayed1.ldata     = tip_out1.ldata;
+		tip_delayed1.debug_mode = tip_out1.debug_mode;
+		tip_delayed1.evti       = tip_out1.evti;
+		tip_delayed1.power_down = tip_out1.power_down;
+		tip_delayed1.trigger    = tip_out1.trigger;
 		tip_delayed1.impdef    = tip_out1.impdef;
 
 		internal_delay = 1;

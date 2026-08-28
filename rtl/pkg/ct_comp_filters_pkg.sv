@@ -8,7 +8,7 @@
 /**
  * @author   Alexander Weiss <aweiss@accemic.com>, Albert Schulz <aschulz@accemic.com>, Alexander Lange <alange@accemic.com>
  *
- * @brief    Accemic CEDARtools.TraceEncoder Comparator/Filter Helper Package (for simulation)
+ * @brief    CEDARtools.TraceEncoder Comparator/Filter Helper Package (for simulation)
  */
 
 package ct_comp_filters_pkg;
@@ -21,7 +21,7 @@ package ct_comp_filters_pkg;
 	// Comparator /Filter Helper
 	//------------------------------------------------------------------------
 	// Example usage:
-	// The following example configures the C‑Trace control/status interface
+	// The following example configures the CTTE control/status interface
 	// to trace all instructions executed within the address range
 	// from 0x1000 to 0x1100.
 	//
@@ -37,7 +37,7 @@ package ct_comp_filters_pkg;
 	// // to trace all instruction fetches within the range.
 	// CompFilterInstEnable(cs_tip, 16'h1);
 	//
-	// At runtime, the C‑Trace will now capture trace entries
+	// At runtime, the CTTE will now capture trace entries
 	// only for instructions fetched from addresses between
 	// 0x1000 and 0x1100 (inclusive).
 	//------------------------------------------------------------------------
@@ -45,9 +45,9 @@ package ct_comp_filters_pkg;
 	//------------------------------------------------------------------------
 	// Task: CompFilterInit
 	// Resets and initializes all comparator and filter structures
-	// to default (inactive) values in the C‑Trace control/status interface.
+	// to default (inactive) values in the CTTE control/status interface.
 	// Parameter:
-	//   cs_tip - Virtual C‑Trace control/status interface.
+	//   cs_tip - Virtual CTTE control/status interface.
 	// Example usage:
 	//   CompFilterInit(cs_tip);
 	//   This call disables all trace filters and resets all
@@ -97,15 +97,17 @@ package ct_comp_filters_pkg;
 			cs_tip.trTeCompPMatchHigh[i]               = '0;
 			cs_tip.trTeCompSMatchLow[i]                = '0;
 			cs_tip.trTeCompSMatchHigh[i]               = '0;
+			cs_tip.trTeCompSMaskLow[i]                 = '0;
+			cs_tip.trTeCompSMaskHigh[i]                = '0;
 		end
 	endtask
 
 	//------------------------------------------------------------------------
 	// Task: CompFilterInstEnable
 	// Enables instruction-related filters by setting bits according
-	// to the provided mask in the C‑Trace control/status interface.
+	// to the provided mask in the CTTE control/status interface.
 	// Parameters:
-	//   cs_tip - Virtual C‑Trace control/status interface.
+	//   cs_tip - Virtual CTTE control/status interface.
 	//   value  - Bitmask for filter enable.
 	// Example usage:
 	//   CompFilterInstEnable(cs_tip, 16'h3);
@@ -122,9 +124,9 @@ package ct_comp_filters_pkg;
 	//------------------------------------------------------------------------
 	// Task: CompFilterDataEnable
 	// Enables data-related filters by setting bits according
-	// to the provided mask in the C‑Trace control/status interface.
+	// to the provided mask in the CTTE control/status interface.
 	// Parameters:
-	//   cs_tip - Virtual C‑Trace control/status interface.
+	//   cs_tip - Virtual CTTE control/status interface.
 	//   value  - Bitmask for filter enable.
 	// Example usage:
 	//   CompFilterDataEnable(cs_tip, 16'h1);
@@ -141,9 +143,9 @@ package ct_comp_filters_pkg;
 	//------------------------------------------------------------------------
 	// Task: CompFilterCheckRanges
 	// Verifies filter and comparator indices to ensure they are
-	// within their valid ranges in the C‑Trace control/status interface.
+	// within their valid ranges in the CTTE control/status interface.
 	// Parameters:
-	//   cs_tip   - Virtual C‑Trace control/status interface.
+	//   cs_tip   - Virtual CTTE control/status interface.
 	//   filter   - Filter index.
 	//   comp     - Comparator index.
 	//   comp_id  - Comparator assignment (1, 2, or 3).
@@ -176,7 +178,7 @@ package ct_comp_filters_pkg;
 	// Assigns a comparator for data address matching to a filter
 	// in the control/status interface and activates match settings.
 	// Parameters:
-	//   cs_tip   - Virtual C‑Trace control/status interface.
+	//   cs_tip   - Virtual CTTE control/status interface.
 	//   filter   - Filter index.
 	//   comp     - Comparator index.
 	//   comp_id  - Comparator assignment within filter.
@@ -230,7 +232,7 @@ package ct_comp_filters_pkg;
 	// Assigns a comparator for instruction address matching to a
 	// filter in the control/status interface and activates match settings.
 	// Parameters:
-	//   cs_tip   - Virtual C‑Trace control/status interface.
+	//   cs_tip   - Virtual CTTE control/status interface.
 	//   filter   - Filter index.
 	//   comp     - Comparator index.
 	//   comp_id  - Comparator assignment within filter.
@@ -259,7 +261,7 @@ package ct_comp_filters_pkg;
 	// Task: CompSetIaddr
 	// Configures a primary comparator for instruction address matching.
 	// Parameters:
-	//   cs_tip   - Virtual C‑Trace control/status interface.
+	//   cs_tip   - Virtual CTTE control/status interface.
 	//   comp     - Comparator index.
 	//   mode     - comparator mode
 	//                  ct_cs_cpuif__te__trTeComp__Control__trTeCompPFunction_e__TR_COMP_PFUNC_EQUAL
@@ -345,7 +347,12 @@ package ct_comp_filters_pkg;
 		cs_tip.trTeInstFilters[filter]                          = 1;
 		cs_tip.trTeFilterEnable[filter]                         = 1;
 		cs_tip.trTeFilterMatchEcause[filter]                    = 1;
-		cs_tip.trTeFilterMatchChoiceEcauseLow[filter][ecause]   = 1;
+		// The bitmap spans the {High,Low} register pair -- causes 0..31 live
+		// in Low, 32..63 in High. With the default 4-bit ecause only the Low
+		// branch is ever taken; the High branch is what makes X8b (6-bit
+		// ecause) a width change instead of a new code path.
+		if (ecause < 32) cs_tip.trTeFilterMatchChoiceEcauseLow [filter][ecause]      = 1;
+		else             cs_tip.trTeFilterMatchChoiceEcauseHigh[filter][ecause - 32] = 1;
 	endtask
 
 	//------------------------------------------------------------------------
@@ -388,7 +395,7 @@ package ct_comp_filters_pkg;
 	// Assigns a comparator for instruction address matching to a
 	// filter in the control/status interface and activates match settings.
 	// Parameters:
-	//   cs_tip     - Virtual C‑Trace control/status interface.
+	//   cs_tip     - Virtual CTTE control/status interface.
 	//   filter     - Filter index.
 	//   comp_low   - Comparator low index.
 	//   comp_high  - Comparator high index.

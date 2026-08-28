@@ -1,0 +1,6 @@
+# Default --work output tree (wp_board_gate.sh): generated host artifacts
+# (wp_table.txt/wp_real.txt/expected_full.txt/prog.hex), the packaged app
+# dir (app_pkg/, includes a multi-MB bit.bin from bootgen), phase logs, and
+# the fetched board reader logs. All reproducible from `--phase gen`
+# onward; none of it is a source file.
+/run/

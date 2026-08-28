@@ -1,15 +1,14 @@
-// vim: set ts=4 et:
+// SPDX-FileCopyrightText: 2025 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
 // -*- indent-tabs-mode: t; tab-width: 4 -*-
 
 /**
- * SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
- * Copyright (c) 2025 Accemic Technologies GmbH
- * Address: Kiefersfelden, Germany
- *
  * @file        counter.sv
  * @brief       Parameterized synchronous up/down counter with saturation and overflow modes.
  *
- * @description
+ * @details
  *   Universal synchronous counter supporting increment, decrement, and arbitrary addition.
  *   Provides two operation modes: saturation (clamping) and overflow (wrapping).
  *   Configurable counter width via type parameter and customizable overflow threshold.
@@ -83,11 +82,11 @@ interface counter_if #(
 	logic   clr;             // Synchronous clear
 	logic   inc;             // Increment enable
 	logic   dec;             // Decrement enable
-	T   	add;             // Addition value
-	T   	overflow_value;  // Upper threshold (saturation mode)
+	T       add;             // Addition value
+	T       overflow_value;  // Upper threshold (saturation mode)
 
 	// Status outputs
-	T   	value;           // Current counter value
+	T       value;           // Current counter value
 	logic   overflow;        // Overflow flag (saturation mode only)
 	logic   underflow;       // Underflow flag (saturation mode only)
 
@@ -109,25 +108,25 @@ endinterface
 import counter_pkg::*;
 
 module counter #(
-	type    T    = logic [7:0],        // Counter data type
-	mode_e  MODE = MODE_SATURATION     // Operation mode
+	type   T    = logic [7:0],    // Counter data type
+	mode_e MODE = MODE_SATURATION // Operation mode
 )(
-	input uwire logic  clk,     	// System clock
-	input uwire logic  rst,     	// Synchronous reset
-	counter_if.master  cnt      	// Counter interface
+	input uwire logic clk, // System clock
+	input uwire logic rst, // Synchronous reset
+	counter_if.master cnt  // Counter interface
 );
 
-	localparam int W = $bits(T);	// Bit width of counter type
+	localparam int W = $bits(T);    // Bit width of counter type
 
 	// Registered state variables (capitalized)
-	T 		Count;              // Counter value
-	logic 	Overflow;           // Overflow flag
-	logic 	Underflow;          // Underflow flag
+	T       Count;              // Counter value
+	logic   Overflow;           // Overflow flag
+	logic   Underflow;          // Underflow flag
 
 	// Next-state
-	T 		CountN;
-	logic 	OverflowN;
-	logic 	UnderflowN;
+	T       CountN;
+	logic   OverflowN;
+	logic   UnderflowN;
 
 	// Combinational next-state logic (lint friendly)
 	always_comb begin
@@ -151,7 +150,22 @@ module counter #(
 					if (!(OverflowN || UnderflowN)) begin
 						logic [W:0] wide;
 						wide = {1'b0, CountN} + {1'b0, cnt.add};
-						if (wide > {1'b0, cnt.overflow_value}) begin
+						// `>=`, not `>` (D1). The inc path below flags the
+						// overflow when the count REACHES overflow_value
+						// ((Count+1) == ov); the add path used to require it
+						// to be EXCEEDED. That asymmetry is formal hardening
+						// finding F-1 (formal/README.md): land exactly on
+						// overflow_value through add and the flag never sets
+						// -- with a step of 1 the inc path can then never
+						// produce equality again either, and the counter
+						// starves. It was unreachable while every add in the
+						// tree was tied to 0; the half-word sync counter
+						// (rtl/preproc/ct_L23_preproc_sync.sv) now drives add
+						// with an even step against a power-of-two threshold,
+						// i.e. landing exactly on it is the NORMAL case. No
+						// other instance drives add, so the two paths now
+						// simply agree.
+						if (wide >= {1'b0, cnt.overflow_value}) begin
 							CountN    = cnt.overflow_value;
 							OverflowN = 1'b1;
 						end else begin

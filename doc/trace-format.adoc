@@ -5,15 +5,19 @@
 :toc: macro
 :toclevels: 3
 :nexus-spec: https://github.com/riscv-non-isa/riscv-nexus-trace/blob/main/docs/nexus-standard/IEEE-ISTO-5001-2012-v3.0.1-Nexus-Standard.pdf
+:ntrace-spec: https://docs.riscv.org/reference/nexus-trace/index.html
+:etrace-spec: https://docs.riscv.org/reference/e-trace/v2.0/index.html
 
-CEDARtools.TraceEncoder emits trace messages following the
-https://github.com/riscv-non-isa/riscv-trace-spec[RISC-V N-Trace
+CEDARtools.TraceEncoder (CTTE) emits trace messages following the
+{ntrace-spec}[RISC-V N-Trace
 specification], which is a RISC-V interpretation of the
 {nexus-spec}[**IEEE-ISTO 5001-2012 (Nexus)** standard]. This page summarizes the
 message types the encoder produces and the synchronization / resource /
 error sub-codes it uses. The
 authoritative definitions live in
-link:../rtl/pkg/nexus_vendor_riscv_pkg.sv[`rtl/pkg/nexus_vendor_riscv_pkg.sv`].
+link:../rtl/pkg/nexus_vendor_riscv_pkg.sv[`rtl/pkg/nexus_vendor_riscv_pkg.sv`];
+which of them are compiled in is decided by the build switches in
+link:../rtl/pkg/ct_pkg.sv[`rtl/pkg/ct_pkg.sv`].
 
 toc::[]
 
@@ -31,107 +35,180 @@ RISC-V N-Trace fixes the interpretation of the address and
 instruction-count fields for RISC-V, and defines the program-trace,
 data-trace and synchronization messages that a compliant encoder emits.
 
-NOTE: This page covers the *encoded* MDO/MSEO trace stream. CEDARtools.TraceEncoder also
-provides a separate 96-bit *AXI-Stream* output (`axis_if.master`) that
-carries ACT-CAP / DAQ instrumentation independently of the Nexus stream —
-intended for on-chip consumers (e.g. a runtime verification) that process
-instrumentation data inside the fabric rather than off-chip. See
+NOTE: This page covers the *encoded* MDO/MSEO trace stream of the
+N-Trace backend. CTTE also builds with an alternative
+{etrace-spec}[**E-Trace 2.0**]
+(`te_inst`) backend — a different wire format, not covered here. Which
+of the two an encoder speaks is a *synthesis parameter* of that encoder
+instance (`EN_NTRACE` / `EN_ETRACE`), reported read-only in
+`trTeProtocolSel`; see link:integration.adoc[Integration]. Independently
+of either backend, a
+96-bit *AXI-Stream* output (`axis_if.master`) carries ACT-CAP / DAQ
+instrumentation for on-chip consumers that process instrumentation data
+inside the fabric rather than off-chip; see
 link:enhanced-features.adoc#axis-output[Enhanced features → Output: AXIS
 export and the ATB funnel].
 
-[#where-traceencoder-sits]
-=== Where CEDARtools.TraceEncoder sits — at a glance
+[#where-ctte-sits]
+=== Where CTTE sits — at a glance
 
-image::images/specs-overlap.drawio.png[CEDARtools.TraceEncoder relative to the Nexus and N-Trace specifications,width=400]
+image::images/specs-overlap.drawio.png[CTTE relative to the Nexus and N-Trace specifications,width=400]
 
-CEDARtools.TraceEncoder targets the *RISC-V N-Trace specification* v1.0 (ratified
+CTTE targets the *RISC-V N-Trace specification* v1.0 (ratified
 2024-11-21), a profile of *IEEE-ISTO 5001-2012 (Nexus)* v3.0.1, and aims
-for *strict* interoperability with a stock N-Trace decoder. The matrix
-shows how each message and capability is treated by the base Nexus
-standard, the N-Trace profile, and the CEDARtools.TraceEncoder implementation; the
-<<conformance>> section details only the gaps and deviations.
+for *strict* interoperability with a stock N-Trace decoder. It implements
+the **complete N-Trace 1.0 program-trace message set in both instruction
+trace modes** — history (HTM, `InstMode` = 6) and branch (BTM,
+`InstMode` = 3), which satisfies N-Trace Table 8 ("3 OR 6 settable") —
+plus the optional bandwidth optimizations of N-Trace chapter 9 and a
+small set of Accemic vendor extensions in the Nexus vendor TCODE range.
 
-[%autowidth, cols="3,^1,^1,2", options="header"]
+The matrix shows how each message and capability is treated by the base
+Nexus standard, the N-Trace profile, and the CTTE implementation; the
+three right-hand columns name the compile switch, the runtime control
+and the CAPS bit that govern it in CTTE. The <<conformance>> section
+details the remaining gaps and the opt-in extensions.
+
+[cols="3,^1,^1,2,2,2,^1", options="header"]
 |===
-| Capability / message (TCODE) | Nexus | N-Trace | CEDARtools.TraceEncoder
+| Capability / message (TCODE) | Nexus | N-Trace | CTTE | Build switch | Runtime control | CAPS
 
-4+s| Program / instruction trace
-| Program Trace Synchronization (9)          | ✔ | ✔ (req.) | ✔
-| Indirect Branch History (28) — HTM         | ✔ | ✔ (HTM)  | ✔
-| Direct / Indirect Branch w/ Sync (11/12)   | ✔ | ✔        | ✔
-| Resource Full (27) — ICNT/HIST overflow    | ✔ | ✔        | ✔
-| Direct Branch (3) / Indirect Branch (4) — BTM | ✔ | ✔ (BTM) | ○ intentionally omitted (BTM — bandwidth-inefficient)
-| Program Trace Correlation (33)             | ✔ | ✔        | ◐ CDF deviation in HTM
-| Program Trace Correction (10)              | ✔ | optional | ○
+7+s| Program / instruction trace
+| Program Trace Synchronization (9)          | ✔ | ✔ (req.) | ✔ | `CT_EN_QUOTA_SYNC` (trace-output quota cadence modes 1/4 only — the message itself and the other cadence modes are always present) | `trTeControl.InstSyncMode` / `InstSyncMax` | 18
+| Indirect Branch History (28) — HTM         | ✔ | ✔ (HTM)  | ✔ | — | `trTeControl.InstMode` = 6 | —
+| Indirect Branch History w/ Sync (29)       | ✔ | ✔        | ✔ | `CT_EN_IBHS` | `trTeInstFeatures.InstEnIbhs` | 8
+| Direct / Indirect Branch w/ Sync (11/12)   | ✔ | ✔        | ✔ | — | — | —
+| Resource Full (27) — ICNT/HIST overflow    | ✔ | ✔        | ✔ | — | — | —
+| Direct Branch (3) / Indirect Branch (4) — BTM | ✔ | ✔ (BTM) | ✔ | `CT_EN_BTM` | `trTeControl.InstMode` = 3 (WARL) | —
+| Program Trace Correlation (33)             | ✔ | ✔        | ✔ | — | — | —
 
-4+s| Program-trace optimizations (bandwidth)
-| Implicit return — infer returns from a call/return stack (≤ 32 deep; `InstImplicitReturnMode`) | — | optional (ch. 9) | ○
-| Sequential jump — infer `LUI`/`AUIPC`-loaded jump targets (`InstEnSequentialJump`) | — | optional (ch. 9) | ○
-| Repeated history — Resource Full RCODE=2 + `HREPEAT` repeat count (`InstEnRepeatedHistory`) | — | optional (ch. 9) | ○
-| Virtual-address MSB elision — skip identical address MSBs (`InstExtendAddrMSB`) | — | optional (ch. 9) | ○
-| Repeat Branch (30)                         | ✔ | optional | ○
-| Repeat Instruction / w/ Sync (31/32)       | ✔ | optional | ○
+7+s| Program-trace optimizations (bandwidth)
+| Implicit return — infer returns from a call/return stack (16 slots) | — | optional (ch. 9) | ✔ | `CT_EN_IMPLICIT_RETURN` | `trTeInstFeatures.InstEnImplicitReturn` | 0
+| Sequential jump — inferable `LUI`/`AUIPC`-loaded jump targets | — | optional (ch. 9) | ✔ | `CT_SIJUMP` (elaboration attribute) | — (ingress convention) | 6
+| Repeated history — Resource Full RCODE=2 + repeat count | — | optional (ch. 9) | ✔ | `CT_EN_REPEATED_HISTORY` | `trTeInstFeatures.InstEnRepeatedHistory` | 1
+| Repeat Branch (30)                         | ✔ | optional | ✔ | `CT_EN_REPEAT_BRANCH` | `trTeInstFeatures.InstEnRepeatBranch` | 3
+| Repeat Instruction / w/ Sync (31/32)       | ✔ | reserved | ✔ (opt-in — see <<extensions>>) | `CT_EN_REPEAT_INSTR` | `trTeInstFeatures.InstEnRepeatInstr` | 9
+| Wide instruction count — 16-bit internal ICNT cap | — | — | ✔ [CTTE] | `CT_EN_WIDE_ICNT` | `trTeInstFeatures.InstEnWideIcnt` | 2
+| Jump-target cache (57)                     | vendor | — | ✔ [CTTE] (64 entries) | `CT_EN_JTC` | `trTeInstFeatures.InstEnJumpTargetCache` | 4
+| Branch prediction (56)                     | vendor | — | ✔ [CTTE] (512 entries) | `CT_EN_BP` | `trTeInstFeatures.InstEnBranchPrediction` | 5
+| Virtual-address MSB elision (`InstExtendAddrMSB`) | — | optional (ch. 9) | ○ (measured: zero benefit at 32-bit addresses — LZS is already byte-minimal; planned with RV64/X2) | — | — | —
 
-4+s| Context / system
-| Ownership / Context (2)                    | ✔ | ✔ | ○ (planned)
-| Device ID (1)                              | ✔ | optional | ○
-| Debug Status (0)                           | ✔ | optional | ○
+7+s| Context / system
+| Ownership / Context (2)                    | ✔ | ✔ | ✔ | `CT_EN_OWNERSHIP` | `trTeControl.Context` | 7
+| Device ID (1)                              | ✔ | — | ✔ (opt-in — see <<extensions>>) | `CT_EN_DEVICE_ID` + `CT_DEVICE_ID` (elaboration value) | `trTeControl.SendDeviceId` = `DID_ONCE` | 19
+| Debug Status (0)                           | ✔ | — | ○ (no core contract for the 16 status bits — see <<conformance>>) | — | — | —
+| Watchpoint (15)                            | ✔ | — | ✔ (opt-in — see <<extensions>>) | `CT_EN_WATCHPOINT_MSG` (requires `CT_EN_ACT`) | `trWpMask.WEM` + ACT-ST command `ACT_CAP_ST_WATCHPOINT` | 20
 
-4+s| Data trace (outside the N-Trace program-trace profile)
-| Data Trace Read / Write (5/6)              | ✔ | — | ✔
-| Data Acquisition (7) — DAQ                 | ✔ (vendor) | — | ✔
+7+s| Data trace (outside the N-Trace program-trace profile)
+| Data Trace Read / Write (5/6)              | ✔ | — | ✔ (addresses XOR-compressed when `DataAddrCompress` = 1) | `CT_EN_DATA_TRACE` | `trTeDataControl.DataTracing` | 16
+| Data Trace Read / Write w/ Sync (13/14)    | ✔ | — | ✔ (opt-in — see <<extensions>>) | `CT_EN_DF_ADDR_COMPRESS` | `trTeDataControl.DataAddrCompress` = 1 (XOR; modes 2/3 WARL-legalize to 0) | 21
+| Data Acquisition (7) — DAQ                 | ✔ (vendor) | — | ✔ | `CT_EN_DAQ` | — (ACT-CAP/ACT-ST command-driven) | 17
+| Data-trace drop policy — shed data trace before the queue runs full | ✔ (TCI `DataDropEna`) | — | ✔ (opt-in — see <<extensions>>) | `CT_EN_DF_DROP` (requires `CT_EN_DATA_TRACE`) | `trTeDataControl.DataDropEna`; status `DataDrop` (RW1C) | 22
+| Data-trace stall policy (`DataStallEna`)   | ✔ (TCI) | — | ○ (no back channel to the hart — see <<conformance>>) | — | — | —
+| Data-trace field elision (`DataNoValue` / `DataNoAddr`) | ✔ (TCI) | — | ○ (deferred: opt-in format variants, decoder-visible — see <<conformance>>) | — | — | —
 
-4+s| Errors / control
-| Error (8) + ECODE (variable-length)        | ✔ | ✔ | ✔
-| Vendor Config (56)                         | vendor | — | ○ (planned)
+7+s| Errors / control
+| Error (8) + ECODE (variable-length)        | ✔ | ✔ | ✔ | — | — | —
+| Vendor Config (58)                         | vendor | — | ✔ [CTTE] | `CT_EN_CONFIG_MSG` | `trTeControl.SendConfig` | —
 
-4+s| Encoding / modes
-| MDO/MSEO framing                           | ✔ | ✔ | ✔
-| Address XOR + LSB-shift compression        | ✔ | ✔ | ✔
-| Timestamps                                 | ✔ | ✔ (absolute on sync, delta else) | ✔ (absolute on sync, delta else)
-| Message Source (SRC) field                 | ✔ | ✔ | ✔
-| Vendor SYNC reasons 12/13                  | Reserved | Reserved | ◐ deviation (see below)
+7+s| Encoding / modes
+| MDO/MSEO framing                           | ✔ | ✔ | ✔ | — | — | —
+| Address XOR + LSB-shift compression        | ✔ | ✔ | ✔ | — | — | —
+| 64-bit addresses (RV64) — the whole address path, comparators and JTC fold included | ✔ | ✔ | ✔ (build-time width; the wire fields are variable-length either way) | `CT_XLEN` = 64 (default 32) | — (a synthesis parameter, not a runtime mode) | 23
+| Timestamps                                 | ✔ | ✔ (absolute on sync, delta else) | ✔ (absolute on sync, delta else) | `CT_EN_TIMESTAMP` | `trTsControl.Enable` | 15
+| Message Source (SRC) field                 | ✔ | ✔ | ✔ | — | `trTeControl.InhibitSrc` + `trTeInstFeatures.SrcID` / `SrcBits` | —
+| Synchronization reasons                    | ✔ | ✔ | ✔ (standard codes; one vendor code 14 — see <<sync-reasons>>) | `CT_EN_DEBUG_EVENTS` / `CT_EN_POWER_EVENTS` / `CT_EN_EVTI` / `CT_EN_TRIG_SYNC` / `CT_EN_SEQ_SYNC` (one switch per switchable reason — see <<sync-reasons>>) | `trTeControl.InstTrigEnable` / `trTeControl.InstSeqSyncEnable` (SYNC 6/4 only; the remaining reasons have no runtime knob) | 10–14
+
+7+s| Beyond N-Trace and E-Trace — CTTE-only capabilities
+| ACT-CAP / ACT-ST hardware instrumentation — DAQ payload up to 192 bit, 1023 watchpoint slots | — | — | ✔ [CTTE] | `CT_EN_ACT` / `CT_EN_DAQ` | indirect watchpoint table (`trWpIndex`/`trWpData*`, capacity `trWpCap`) + CPU CSR `0x0B10` (`trActCapStCmd`) | 17
+| AXIS export — 96-bit instrumentation stream for in-fabric consumers | — | — | ✔ [CTTE] | `CT_EN_AXIS_TS` (timestamp element 2 on `DAQ_PC_CURR` beats; the sink itself has no switch) | — (per-command sink routing; the timestamp element follows `trTsControl`) | —
+| Performance-counter block — per-region counters and thresholds | — | — | ✔ [CTTE] | `CT_EN_ACT` | `pc.trPerfCntControl` + range registers | —
+| Address / range / context filters and comparators    | — | — | ✔ [CTTE] | `CT_EN_FILTERS`; anchoring `CT_EN_FILTER_SYNC` | `trTeInstFilters` / `trTeDataFilters`, `trTeFilter[]`, `trTeComp[]` (`trTeComp[].PInput` = 1 selects the TIP context bus, i.e. filtering by process) | — footnote:[A filter gap is announced with the *existing* pause vocabulary — TCODE 33 `EVCODE=Program Trace Disabled` on region exit, `SYNC=5` on region entry — so no decoder change is needed; see link:enhanced-features.adoc#filter-anchoring[Enhanced features → What a filtered stream looks like on the wire].]
+| eTIP FIFO fill-level histogram (diagnostics) | — | — | ✔ [CTTE] | `CT_EN_FIFO_HIST` | `trTeTipFifoHistCtrl` / `trTeTipFifoHistData` | —
+| Protocol choice — N-Trace *or* E-Trace, per encoder instance | — | — | ✔ [CTTE]footnote:[Synthesis parameter, not a runtime switch: `ct_encoder` takes `EN_NTRACE`/`EN_ETRACE` (defaults from the two `CT_EN_*` switches), exactly one per instance, so a multi-encoder SoC can mix protocols in one netlist. `trTeProtocolSel.Protocol` and `trTeImpl.ProtocolMajor` are read-only discovery driven by that parameter. The committed full profile builds N-Trace-only (`CT_EN_ETRACE`=0). The former dual build with a runtime select was removed in 2026-08.] | `CT_EN_NTRACE` + `CT_EN_ETRACE` | `trTeProtocolSel.Protocol` (RO) | —
+| ATB funnel — packet-aware multi-source merge | — | — | ✔ [CTTE]footnote:[Verified end to end since 2026-08-19 by `tests/instruction/39_dual_src` (gate `scripts/cli_dualsrc_test.sh`, CI stage 2): two encoder instances with `SrcBits`=2 and `SrcID` 0/1 run **different programs at disjoint addresses** and send at the same time; the merged stream is split again by source and each half decodes line for line onto its own reference, while cross-decoding fails and the filtered result is byte-identical to a single-encoder run. The disjoint addresses are the point: two sources running the *same* image differ in one bit per message, and a test that cannot fail confirms nothing.] | — (separate module `ct_L1_funnel`) | — | —
+| Overflow / overrun recovery — announced loss + re-anchor | — | — | ✔ [CTTE] | — | — | —
+| Explicit synchronization request (SYNC 14) | — | — | ✔ [CTTE] | `CT_EN_INST_SYNC_REQ` (TE-register path) · `CT_EN_SYNC_STATUS` (diagnostic CSR) | `trTeControl.InstSyncReq` (TCI, write-1) — also requestable via ACT-CAP `CF_SYNC` and the ATB input; source read back in `trTeSyncStatus.SyncReqSource` (RO) | —
+| Overflow status bit (`InstStallOrOverflow`) | ✔ (TCI) | ✔ (req.) | ✔ (overflow half; the stall half has no back channel — see <<conformance>>) | — (always present) | `trTeControl.InstStallOrOverflow` (RW1C) | —
+| External trigger configuration — TCI trigger registers `0x050`/`0x054`/`0x058` | ✔ (TCI 6.2) | ✔ (delegated to TCI) | ✔ (input #0 = `tip.trigger`; #1..7, the trigger outputs and the debug-trigger register are fixed at 0 per TCI Tables 19–21) | `CT_EN_TRIG_REGS` | `trTeTrigExtInControl.ExtInAction0` (WARL 0/2/3/4) | —
+| Timestamp unit — prescale, type, runtime width | — | — | ✔ [CTTE] | `CT_EN_TIMESTAMP`, `CT_TS_WIDTH` | `trTsControl.Type` / `Prescale` / `Width` | 15
+| `Empty` / flush shutdown contract          | — | — | ✔ [CTTE] | — | `trTeControl.Empty` (RO) | —
+| Profile scaling with register omission     | — | — | ✔ [CTTE] | — (per-feature `CT_EN_*`) | — | —
+| Self-description — CAPS/ENAB via Vendor Config (58) | — | — | ✔ [CTTE] | `CT_EN_CONFIG_MSG` | `trTeControl.SendConfig` | —
 |===
 
 [.small]
-✔ defined & implemented conformantly • ◐ partial, unverified, or deviating
-(see notes) • ○ defined by the spec but not implemented in CEDARtools.TraceEncoder • —
-not defined / not applicable in that spec.
+✔ defined & implemented conformantly • ○ defined by the spec but not
+implemented in CTTE • — not defined / not applicable in that spec. +
+*Build switch* = compile-time switch in `ct_pkg.sv` (— = no switch:
+always present, or — in the ○ rows — feature not implemented);
+*Runtime control* = CSR field per `rdl/ct_cs_cpuif.rdl` (— =
+no runtime knob); *CAPS* = bit position in the TCODE-58 CAPS/ENAB
+capability map (<<config-message>>; — = not advertised).
+`CT_EN_CONFIG_MSG` has no CAPS bit by design — it is the feature that
+transmits the map. The full `CT_EN_*` ↔ RDL ↔ CAPS reference, including
+per-profile defaults and measured LUT costs, lives in
+link:integration.adoc#feature-flags[Integration → Feature flags];
+matrix ↔ RTL ↔ RDL consistency is machine-checked by
+`scripts/check_feature_flags.py` (`make check-flags`).
 
 NOTE: The mode names *HTM* and *BTM* are RISC-V N-Trace's; the underlying
 methods are pure Nexus. {nexus-spec}[Nexus] §3.3.2 (Branch Trace Messaging) defines two
 kinds of branch message — *traditional* (per-branch, = N-Trace BTM) and
 *history* (the HIST field + Indirect Branch History messages, TCODE
-28/29, = N-Trace HTM) — so both are defined in Nexus too. CEDARtools.TraceEncoder
-implements only the history method (HTM); the traditional per-branch
-method (BTM) is intentionally omitted because it is bandwidth-inefficient.
+28/29, = N-Trace HTM). CTTE implements both and selects between them at
+run time through the WARL `trTeControl.InstMode`. HTM is the default and
+the bandwidth-lean choice; BTM exists for decoders and workflows that
+require per-branch messaging. The compression suite listed above is
+HTM-only and is inert in BTM mode by construction.
+
+[#build-profiles]
+=== Build profiles — what a given netlist actually contains
+
+Every capability marked ✔ above is present in the *full* build profile.
+Each one has its own compile switch in `ct_pkg.sv` (`CT_EN_BTM`,
+`CT_EN_OWNERSHIP`, `CT_EN_JTC`, …), so slim profiles can omit it
+entirely — the logic, its model storage and its CSR bits const away
+together. Two consequences worth knowing before reading a stream:
+
+* An omitted feature reads back as 0 / read-only in its CSR, which is the
+  spec-conformant way to advertise an absent option.
+* The *Vendor Config* message (TCODE 58, <<config-message>>) carries the
+  compiled-in capability map (`CAPS`) and the currently enabled subset
+  (`ENAB`), so a decoder can discover both without out-of-band knowledge.
 
 == Message types
 
-TCODEs are defined by `nexus_tcode_e`. The categories CEDARtools.TraceEncoder works with:
+TCODEs are defined by `nexus_tcode_e`. The categories CTTE works with:
 
 [cols="1,2,3", options="header"]
 |===
 | TCODE | Message | Notes
 
-| 3, 4   | Program Trace Direct / Indirect Branch     | Control-flow program trace.
+| 2      | Ownership / Context                        | Processor context: `PROCESS` payload (privilege + `scontext`/`hcontext`), on context events, privilege changes and after every synchronizing message.
+| 3, 4   | Program Trace Direct / Indirect Branch     | Control-flow program trace in BTM mode (`InstMode` = 3): one message per taken direct / per indirect branch.
 | 9      | Program Trace Synchronization              | Periodic / trace-enable sync; carries SYNC + ICNT + FADDR (+ timestamp).
 | 11, 12 | Program Trace Direct / Indirect Branch Sync| Branch message combined with a sync point.
 | 27     | Program Trace Resource Full                | ICNT / HIST overflow (see <<resource-codes>>).
-| 28, 29 | Indirect Branch History (+ Sync)           | History-mode indirect branch.
-| 33     | Program Trace Correlation                  | Emitted on trace-off (EVCODE = Program Trace Disabled) with residual ICNT and pending HIST.
-| 5, 6   | Data Trace Write / Read                    | Data-flow trace: DSZ, ELSZ, address, data value (+ timestamp).
-| 13, 14 | Data Trace Write / Read Sync               | Data trace combined with a sync point.
+| 28, 29 | Indirect Branch History (+ Sync)           | History-mode indirect branch. The Sync variant carries the pending history instead of pre-flushing it as a separate Resource Full.
+| 30     | Program Trace Repeat Branch                | Repeat count for identical consecutive Indirect Branch History messages.
+| 31, 32 | Program Trace Repeat Instruction (+ Sync)  | Single-instruction spin-loop compression: iterations after the first are counted into R-CNT instead of one HIST bit each.
+| 33     | Program Trace Correlation                  | Emitted on trace-off, debug entry and low-power entry with residual ICNT and pending HIST (see <<evcodes>>).
+| 5, 6   | Data Trace Write / Read                    | Data-flow trace: DSZ, ELSZ, address, data value (+ timestamp). The address is XOR-compressed against the previous data-trace message's address when `trTeDataControl.DataAddrCompress` = 1 (reset 0 = full addresses).
+| 13, 14 | Data Trace Write / Read with Sync          | Synchronizing data-trace variant carrying the full, uncompressed address (+ absolute timestamp). Emitted, with `DataAddrCompress` = 1, for the first data-trace message after a re-anchor event (see <<extensions>>).
 | 7      | Data Acquisition                           | Vendor instrumentation (DAQ); IDTAG + up to 192-bit payload.
 | 8      | Error                                      | Message loss; ETYPE + ECODE (see <<error-codes>>).
-| 56     | Vendor Config                              | Encoder configuration for the decoder.
+| 56     | Vendor Branch Predict                      | [CTTE] Count of correctly predicted direct branches instead of HIST bits; the branch after the counted run mispredicted.
+| 57     | Vendor Jump Target Cache                   | [CTTE] Indirect Branch History with a jump-target-cache index in place of UADDR.
+| 58     | Vendor Config                              | [CTTE] Encoder configuration for the decoder (see <<config-message>>).
 |===
 
 The concrete field layout per message is built by `get_msg_format()` in
 the package. The actively-tabulated formats are Program Trace Sync (9),
-Data Trace Write/Read (5/6), Program Trace Correlation (33) and Data
-Acquisition (7); the remaining program-trace messages are composed by the
-formatter from the same field primitives.
+Data Trace Write/Read (5/6) and their sync variants (13/14), Program
+Trace Correlation (33), Data Acquisition (7) and Vendor Config (58); the
+remaining program-trace messages are composed by the formatter from the
+same field primitives.
 
 === Key field widths
 
@@ -141,10 +218,11 @@ formatter from the same field primitives.
 
 | `NEXUS_MSG_ADDRESS_WIDTH` | 32  | Address (FADDR / UADDR) width.
 | `NEXUS_MSG_PC_ADDR_SHIFT` | 1   | PC addresses are right-shifted by 1 before encoding.
-| `NEXUS_MSG_I_CNT_WIDTH`   | 8   | Instruction-count field width.
+| `NEXUS_MSG_I_CNT_WIDTH`   | 8   | Instruction-count cap in the default configuration.
+| `NEXUS_MSG_I_CNT_WIDTH_WIDE` | 16 | Internal ICNT cap with `InstEnWideIcnt` (the on-wire field stays variable-length either way).
 | `NEXUS_MSG_HIST_WIDTH`    | 30  | Branch-history field width.
-| `NEXUS_MSG_DATA_WIDTH`    | 192 | Data / DAQ payload width (>64 bit for vendor DAQ).
-| `NEXUS_MSG_TSTAMP_WIDTH`  | 64  | Timestamp width.
+| `NEXUS_MSG_DATA_WIDTH`    | 192 | Data / DAQ payload width (>64 bit for vendor DAQ; narrows to 64 / 32 in profiles without DAQ / data trace).
+| `NEXUS_MSG_TSTAMP_WIDTH`  | 64  | Timestamp width (build knob `CT_TS_WIDTH`).
 | `NEXUS_MDO_WIDTH`         | 6   | MDO bits per chunk (6/14/30 supported).
 | `NEXUS_MAX_FIELDS`        | 10  | Maximum fields per message.
 |===
@@ -155,38 +233,147 @@ reference address (`GetUaddr`) and right-shifted by `NEXUS_MSG_PC_ADDR_SHIFT`.
 [#sync-reasons]
 == Synchronization reasons
 
-The SYNC field of a sync message uses `nexus_sync_reason_e`. CEDARtools.TraceEncoder
-implements:
+The SYNC field of a sync message uses `nexus_sync_reason_e`. CTTE emits:
 
 [cols="1,2,3", options="header"]
 |===
 | Value | Reason | Use
 
-| 2  | `PERIODIC`          | Periodic synchronization (implemented).
-| 5  | `TRACE_ENABLE`      | Emitted when tracing is enabled (implemented).
-| 7  | `FIFO_OVERRUN`      | Restart marker after a queue overrun.
-| 12 | `REQ_CSR`           | [CEDARtools.TraceEncoder] sync requested via CSR.
-| 13 | `REQ_ATB`           | [CEDARtools.TraceEncoder] sync requested via APB.
-| 14 | `TRACE_QUOTA`       | [CEDARtools.TraceEncoder] sync due to a trace quota limit (# messages / # bytes).
+| 0  | `EVTI`                   | External trigger marker on a `tip.evti` pulse while tracing (`CT_EN_EVTI`, optional in the spec).
+| 1  | `EXIT_FROM_SYS_RST`      | One-shot re-anchor on the first retired instruction after reset. Subsumes every other pending one-shot.
+| 2  | `PERIODIC`               | Periodic synchronization.
+| 3  | `EXIT_FROM_DEBUG`        | First synchronizing message after leaving debug mode (`CT_EN_DEBUG_EVENTS`; N-Trace Required).
+| 4  | `SEQ_INSTR_COUNTER`      | Full sync instead of the RCODE-0 pre-drain on I-CNT overflow, while `trTeControl.InstSeqSyncEnable` is set (`CT_EN_SEQ_SYNC`, reset 0 — see <<extensions>>).
+| 5  | `TRACE_ENABLE`           | First qualifying retire after the encoder was enabled mid-stream.
+| 6  | `WATCHPOINT`             | Watchpoint / trigger marker (Trace Event) while `trTeControl.InstTrigEnable` is set (`CT_EN_TRIG_SYNC`).
+| 7  | `FIFO_OVERRUN`           | Restart marker after a queue overrun.
+| 9  | `EXIT_FROM_POWERDOWN`    | First retire after power-down exit (`CT_EN_POWER_EVENTS`, optional).
+| 14 | `REQ`                    | [CTTE, Vendor-Defined range] Explicit sync request — from a write of 1 to `trTeControl.InstSyncReq` (`CT_EN_INST_SYNC_REQ`), from an ACT-CAP `CF_SYNC` command or from the ATB sync-request input.
 |===
 
-Values 0, 1, 3, 4, 6, 8–11 are defined by the standard (external
-trigger, reset/debug/powerdown exit, I-CNT overflow, watchpoint,
-contention) and reserved here for completeness.
+Values 8 and 10–13 are Reserved by the standard and are not emitted.
+
+NOTE: Code 14 is the *single* vendor sync reason. The request source is
+irrelevant to a decoder — every sync is a full re-anchor — so it is not
+encoded on the wire but recorded for diagnosis in the read-only CSR
+field `te.trTeSyncStatus.SyncReqSource` (0 = none, 1 = ACT-CAP `CF_SYNC`
+from the traced hart, 2 = ATB input, 3 = trace quota, 4 = a write to
+`trTeControl.InstSyncReq` over the control bus). A quota-triggered sync
+arrives on the wire as `PERIODIC` (2) — the quota modes are periodic
+cadences, not explicit requests — while `SyncReqSource` reports 3 for
+diagnosis. Values 1 and 4 are kept apart on purpose: the requester is a
+different actor (the hart's own instruction stream versus the external
+control/debug bus), which is exactly what the register is read for.
+
+Requesting a synchronization message through the TE register is the
+TCI-standard path (`trTeControl.InstSyncReq`, bit 27, write-1,
+self-clearing — it always reads back 0). It is not tied to a cadence:
+the field works in every `InstSyncMode`, including mode 0 (off). A
+request written while instruction tracing is paused is *deferred* — it
+is served after the resume anchor (`TRACE_ENABLE`, 5), not dropped.
+Requests arriving from two sources on the same retire are satisfied by
+that one message.
+
+The contract is one message per request, with a request depth of one in
+flight plus one remembered. A write that lands while a request is still
+outstanding is *not* swallowed: it is launched as its own request once
+the outstanding one has been served, and produces its own
+synchronization message. Only a write that arrives when a request is
+already waiting to be launched collapses into it — it asks for exactly
+what is about to be asked anyway. Measured on
+`scripts/cli_tesyncreq_test.sh` (legs `req`, `req2`, `req3`): one write
+yields one `SYNC = 14`, two writes back to back yield two, three writes
+back to back still yield two.
+
+[NOTE]
+====
+The contract is about the *encoder*, not about the link. Once the
+request has been served it is an ordinary synchronization message, and
+under an eTIP overflow it can be dropped like any other message — the
+loss is announced by the overflow `Error` message and the recovery
+anchor re-synchronizes the decoder. `SyncReqSource` still shows that
+the request was raised, which is what the overflow leg of the system
+test checks; it deliberately does not claim that the `SYNC = 14`
+reached the wire.
+====
+
+The *periodic* sync cadence is selected by `trTeControl.InstSyncMode`
+together with `InstSyncMax`. Implemented modes are 0 (off), 1 (trace
+messages), 2 (hart clock cycles), 3 (instruction half-words), 4 (trace
+bytes), 5 (wallclock cycles), 6 (instructions) and the CTTE-specific 7
+(ATB sync requests).
+
+The two fields reset to *`InstSyncMode` = 0* (no periodic cadence at
+all) and *`InstSyncMax` = 6*, i.e. a period of 2^(6+4)^ = 1024 units in
+whichever unit the mode selects. That split is deliberate: the *unit*
+depends on the sink and only the integrator knows it, while the
+*period* is the same number in every unit and can be pre-set. So
+enabling the cadence is a single write of `InstSyncMode`, and it lands
+on a period that costs 2.5 % of the trace stream (measured over 100 010
+retires, gate `tests/instruction/37_sync_cadence`) instead of on the
+tightest period the hardware has. `InstSyncMax` = 0 (every 16 units)
+remains available as an explicit stress configuration; on the same
+workload it costs a factor 2.4 in bytes and loses trace against a
+finite sink. Mode 3 counts the half-words of *retired
+instructions* — a compressed instruction is one half-word, an
+uncompressed one two, and a block ingress contributes the whole block —
+so it bounds the re-anchor distance in *binary size*, whereas mode 6
+bounds it in instruction count.
+
+The two trace-*quota* modes 1 and 4
+(`CT_EN_QUOTA_SYNC`, CAPS bit 18) measure the trace *output* itself,
+with a threshold of 2^(`InstSyncMax`+4)^ units. Counting-point
+semantics: mode 4 counts bytes as accepted on ATB — whole beats,
+including alignment padding and flush idle beats, i.e. exactly what a
+downstream ring buffer stores — and mode 1 counts on-wire messages at
+their end-of-message boundary (flush pseudo-slots that carry no message
+do not count). The counter runs in whichever egress path the build uses
+(MSEO/MDO formatter, compact packer or E-Trace packetizer), raises a
+held request at the threshold and rearms when the sync is emitted; the
+sync message's own bytes count into the *new* window, and no second
+request is raised while one is pending. Compiled out
+(`CT_EN_QUOTA_SYNC = 0`) both modes stay writable but inert. For the
+ring-buffer window recipe built on mode 4 — including the measured
+re-anchor distance — see
+link:integration.adoc#quota-sync-live[Integration → Live / ring
+operation].
 
 [#resource-codes]
 == Resource codes
 
-The Resource Full message (TCODE 27) uses `nexus_rcode_e`:
+The Resource Full message (TCODE 27) uses `nexus_rcode_e`. On the wire
+only three values occur:
 
 [cols="1,2,3", options="header"]
 |===
 | Value | RCODE | Meaning
 
-| 0 | `ICNT_OVERFLOW`          | Instruction count exceeded the 8-bit field.
-| 1 | `HIST_OVERFLOW`         | Branch history filled the HIST field.
-| 2 | `HIST_OVERFLOW_REPEATED`| History overflow with pending bits.
+| 0 | `ICNT_OVERFLOW`          | Instruction count exceeded the ICNT cap.
+| 1 | `HIST_OVERFLOW`          | Branch history filled the HIST field.
+| 2 | `HIST_OVERFLOW_REPEATED` | History overflow with a repeat count (`InstEnRepeatedHistory`).
 |===
+
+Values 3–5 (`TRACE_DISABLED`, `CORR_DEBUG_ENTRY`, `CORR_LOW_POWER`) are
+CTTE-internal markers on the composer → `msg_gen` path that request a
+Program Trace Correlation message with the matching EVCODE. They are
+consumed inside `msg_gen` and never leave it.
+
+[#evcodes]
+== Correlation event codes
+
+The Program Trace Correlation message (TCODE 33) carries an EVCODE:
+
+[cols="1,2,3", options="header"]
+|===
+| Value | EVCODE | Emitted on
+
+| 0 | Entry into Debug Mode      | Debug-mode entry (`CT_EN_DEBUG_EVENTS`; N-Trace Required — not substituted by code 4).
+| 1 | Entry into Low-power Mode  | Power-down entry (`CT_EN_POWER_EVENTS`, optional).
+| 4 | Program Trace Disabled     | Trace-off, flushing the residual ICNT and pending HIST.
+|===
+
+In HTM the CDF field is always 1 and the HIST field is always present
+(empty if no history is pending), per N-Trace 1.0 Table 24.
 
 [#error-codes]
 == Error codes
@@ -212,69 +399,311 @@ indicating which message classes were lost:
 The ECODE is transmitted as a variable-length field, so unused high bits
 cost no bytes.
 
+CTTE only sets the bits for message classes the build can actually
+produce: `0x04` (control flow) unconditionally, `0x02` with
+`CT_EN_DATA_TRACE`, `0x20` with `CT_EN_DAQ`/`CT_EN_ACT`, `0x08` with
+`CT_EN_OWNERSHIP` and `0x01` with `CT_EN_WATCHPOINT_MSG`. `0x10`
+(Status) is never set — CTTE emits no Debug Status message. `ETYPE` = 1
+(HIGH_PRIO contention) is structurally unreachable: there is no priority
+preemption between message classes.
+
+The data-trace **drop policy** (`trTeDataControl.DataDropEna`,
+<<extensions>>) uses the same message with a *single* ECODE bit,
+`0x02`, and — unlike the generic overflow path — **without** a following
+`SYNC = 7` re-anchor: only data-trace messages were shed, the
+instruction trace is intact and must not be forced to re-anchor. One
+such marker is emitted per drop *episode*.
+
+NOTE: A lost **Device ID** message has no ECODE bit — the Nexus ECODE
+map defines none for TCODE 1. That is not a gap in CTTE: the Device ID
+is emitted on the trace-on edge, and an overflow episode there is
+announced by the ERROR message plus the `SYNC = 7` re-anchor like any
+other loss. Software that needs the identity reliably re-arms the trace
+(the message is re-emitted on the next trace-start edge).
+
+NOTE: Until P4 the Watchpoint bit `0x01` was gated by `CT_EN_TRIG_SYNC`,
+which claimed a message class that did not exist (the trigger feature
+only upgrades a CF message to `SYNC = 6`). It now follows
+`CT_EN_WATCHPOINT_MSG`. P7 completed the same clean-up for `0x02`
+(Data Trace) and `0x20` (DAQ), which were unconditional and therefore
+claimed losses a control-flow-only profile can never produce. The full
+profile has all of these features on, so its ECODE value is unchanged
+(`0x2F`); profiles without the watchpoint message now report `0x2E`, and
+a CF-only profile reports `0x04` instead of `0x26`.
+
+[#config-message]
+== Vendor Config message (TCODE 58)
+
+The Vendor Config message makes the stream *self-describing*: it tells
+the decoder which features this netlist contains and which of them are
+currently switched on, so no out-of-band configuration file is needed.
+Emission is controlled by `trTeControl.SendConfig`: `CFG_NONE` (0),
+`CFG_ONCE` (1) or `CFG_ON_SYNC` (2, additionally after every periodic
+sync). The full profile resets to `CFG_ONCE`. `CFG_ONCE` fires on
+**every** trace-on edge (rising edge of effective instruction tracing),
+not once per session — after an instruction-tracing pause the config is
+sent again. Same trigger as `SendDeviceId = DID_ONCE`; both are visible
+twice in the `didtwice` leg of `tests/instruction/31_status_msgs`.
+
+Payload version 1 — one fixed field followed by six variable-length
+fields (leading zeros suppressed, as everywhere in Nexus):
+
+[cols="1,1,4", options="header"]
+|===
+| Field | Max bits | Content
+
+| `CFGVER` | 4 (fixed) | Config-message format version (`CT_CFGMSG_VER` = 1).
+| `CAPS`   | 24 | Compiled-in capability map — one bit per feature: 0 IR, 1 RH, 2 WIDE_ICNT, 3 RB, 4 JTC, 5 BP, 6 SIJUMP, 7 OWNERSHIP, 8 IBHS, 9 REPEAT_INSTR, 10 DEBUG_EVENTS, 11 POWER_EVENTS, 12 EVTI, 13 TRIG_SYNC, 14 SEQ_SYNC, 15 TIMESTAMP, 16 DATA_TRACE, 17 DAQ, 18 QUOTA_SYNC, 19 DEVICE_ID, 20 WATCHPOINT_MSG, 21 DF_ADDR_COMPRESS, 22 DF_DROP, 23 ADDR64.
+| `ENAB`   | 24 | Same bit positions, masked with the *runtime* enables (`trTeInstFeatures`, `trTeControl`, `trTeDataControl`, `trTsControl`; bit 18 = a trace-quota cadence mode is selected in `trTeControl.InstSyncMode`; bit 21 = a non-full `DataAddrCompress` mode is selected; bit 19 = `trTeControl.SendDeviceId` != `DID_NONE`; bit 20 = a non-zero `trWpMask.WEM`; bit 22 = `trTeDataControl.DataDropEna`; bit 23 has no runtime enable and mirrors CAPS).
+| `PARAM0` | 16 | `trTeSrcID`, `trTeSrcBits`.
+| `PARAM1` | 12 | `trTeInhibitSrc`, `trTeInstSyncMax`, `trTeInstSyncMode`, `trTeInstMode`.
+| `PARAM2` | 12 | `trTsWidth`, `trTsPrescale`, `trTsType`, `trTsEnable`.
+| `PARAM3` | 13 | Structural sizes: `[12:8]` return-stack depth (16), `[7:4]` log2 branch-predictor entries (512), `[3:0]` jump-target-cache index bits (64 entries).
+|===
+
+`PARAM3` is built from the same `ct_pkg` constants the implementing
+modules consume, so the advertised sizes cannot drift from the built
+hardware. The forward-compatibility rule for future versions is
+append-only.
+
+CAPS bit 23 (`ADDR64`) is the one entry that is not a feature: it says
+whether this netlist carries 64-bit addresses (`ct_pkg::CT_XLEN` = 64).
+The information has to be on the wire because a decoder cannot derive it
+from the stream — `F-ADDR` and `U-ADDR` are variable-length with leading
+zeros stripped, so a 40-bit address and a 64-bit address whose top bits
+happen to be zero are byte-for-byte the same field. A decoder reads the
+bit and sizes its own PC state and its jump-target-cache index fold
+accordingly (`NexRvDeco.c`). It has no runtime enable — the width is what
+the hardware is — so `ENAB` mirrors `CAPS` for it, and `CFGVER` stays 1:
+the information is boolean and needs no new payload field.
+
 [#conformance]
 == Nexus / N-Trace conformance
 
-The matrix in <<where-traceencoder-sits>> gives the status at a glance; this
-section details only the gaps and deviations (the ◐ / ○ rows).
+The matrix in <<where-ctte-sits>> gives the status at a glance; this
+section details the opt-in extensions and the remaining gaps.
 
-=== Known deviations
+[#extensions]
+=== Extensions beyond strict N-Trace 1.0 (opt-in)
 
-[cols="2,2,3,2", options="header"]
+CTTE's *reset* configuration produces a stream that is strictly within
+N-Trace 1.0 — with the single exception of the config message, see the
+note below. The following features leave that envelope when a user
+switches them on; each is a deliberate, documented Accemic extension:
+
+[cols="2,3", options="header"]
 |===
-| Item | Spec reference | CEDARtools.TraceEncoder behavior | Status
+| Feature | Why it is outside N-Trace 1.0
 
-| Vendor SYNC reasons
-| Nexus Table 4-13 (12–13 Reserved, 14–15 Vendor)
-| `REQ_CSR` = 12 and `REQ_ATB` = 13 use *Reserved* sync codes for vendor
-  meaning (`nexus_vendor_riscv_pkg.sv`).
-| **Deviation — to fix.** For strict interop these must move to the
-  Vendor-Defined range (14/15); a stock decoder sees 12/13 as Reserved.
+| Branch prediction (TCODE 56) and jump-target cache (TCODE 57), via
+  `trTeInstFeatures.InstEnBranchPrediction` / `InstEnJumpTargetCache`
+| Vendor TCODEs in the Nexus vendor range 56–62. Both sides must run the
+  bit-identical predictor / cache model; a decoder without it cannot
+  reconstruct the flow. Reset 0.
 
-| Correlation CDF in HTM
-| N-Trace Table 24 (HTM: CDF must be 1, HIST always present)
-| When no branch history is pending, the encoder emits CDF = 0 and omits
-  HIST (`ct_L2_nexus_formatter.sv`); it uses the Nexus-base CDF semantics
-  (CDF signals HIST presence).
-| **Deviation — to fix.** For strict interop, always emit CDF = 1 + HIST
-  in HTM. The bundled NexRv decoder tolerates both forms; a stock decoder
-  may not.
+| Repeat Instruction (TCODE 31/32), via `InstEnRepeatInstr`
+| IEEE-ISTO 5001-2012 §4.3.14/15 messages, but N-Trace 1.0 Table 9 marks
+  31/32 "Reserved for future extensions". Enabling this makes the stream
+  an Accemic/ISTO extension. Reset 0.
+
+| Sequential-instruction-counter sync (SYNC = 4) in HTM, via
+  `trTeControl.InstSeqSyncEnable`
+| N-Trace binds SYNC = 4 to BTM. Using it in HTM as a full sync instead
+  of the RCODE-0 pre-drain is a documented Accemic extension. Reset 0.
+
+| Vendor Config (TCODE 58), via `trTeControl.SendConfig`
+| Vendor TCODE (range 56–62), no N-Trace counterpart. A decoder that
+  does not know it still frames it correctly through MSEO and can skip
+  it. **This is the one feature whose full-profile reset is not "off"**
+  (`CFG_ONCE`) — set `SendConfig = CFG_NONE` for a stream that contains
+  standard TCODEs only.
+
+| Wide ICNT (`InstEnWideIcnt`)
+| Internal accounting only — the on-wire ICNT field stays variable-length
+  per Nexus, so an enabled wide cap is *not* a wire-format extension. It
+  only reduces how often Resource Full (ICNT) messages appear. Reset 0.
+
+| Data Trace with Sync (TCODE 13/14) + XOR data-address compression, via
+  `trTeDataControl.DataAddrCompress` = 1
+| Nexus data-trace messages — the N-Trace 1.0 profile excludes data
+  trace altogether, so both the 13/14 sync variant and the
+  XOR-compressed DF address sit outside it. Contract: with mode 1 the
+  5/6 address is XOR-compressed against the previous data-trace
+  message's address; the first DF after a re-anchor event (any
+  synchronizing message, a `DataTracing` 0→1 edge, an ERROR message,
+  reset) is emitted as the synchronizing 13/14 form carrying the full
+  address, which re-seeds the decoder's reference. Reset 0 (full
+  addresses — the legacy stream stays byte-identical).
+  **Data-only caveat:** a stream with `InstTracing` = 0 carries no
+  Config message, so a decoder joining such a stream mid-stream cannot
+  auto-detect the compression mode from the stream itself — keep a
+  Config message in the stream (`SendConfig`, requires a synchronizing
+  program-trace stream) or provide the mode to the decoder out-of-band.
+
+| Device ID (TCODE 1), via `trTeControl.SendDeviceId` = `DID_ONCE`
+| Nexus standard message (IEEE-ISTO 5001 §4.3.2), but N-Trace 1.0
+  Table 9 does not adopt TCODE 1 — for a strict N-Trace decoder it falls
+  under "Reserved for future extensions" (which such a decoder must skip
+  by MSEO framing, so the stream stays parsable). Emitted on **every**
+  trace-on edge — the rising edge of effective instruction tracing —
+  *before* the Config message and before the first synchronizing
+  message, so a decoder learns the device identity first. `DID_ONCE`
+  therefore means "one message per trace-on edge", *not* "once per
+  session": after an instruction-tracing pause the message is sent
+  again. That is the same trigger `SendConfig = CFG_ONCE` uses, and it
+  is what a decoder attaching during the pause needs. Measured by the
+  `didtwice` leg of `tests/instruction/31_status_msgs`
+  (`DIDTWICE two TCODE 1: PASS (2)` next to
+  `DIDTWICE pause happened (33): PASS (1)`). Payload = the
+  `CT_DEVICE_ID` elaboration parameter of the encoder instance, laid out
+  per IEEE-ISTO 5001 Table B-5 (RN | PN | MID). Reset `DID_NONE`.
+  **Deviation from Table 4-7:** CTTE emits the ID as a *variable-length*
+  field (leading zeros stripped) instead of "Fixed 32". Reason: a fixed
+  field would need a special case in both egress paths and in the
+  decoder's table mechanism, for a message whose value a decoder reads
+  as an integer anyway. A decoder that expects 32 fixed bits must be
+  told; the pinned CTTD reads the variable form.
+
+| Watchpoint (TCODE 15), via `trWpMask.WEM` + the ACT-ST command
+  `ACT_CAP_ST_WATCHPOINT`
+| Nexus standard message (IEEE-ISTO 5001 §4.3.23), also not adopted by
+  N-Trace 1.0 Table 9. It names *which* watchpoint fired, where the
+  trigger path (`InstTrigEnable`) only marks *that* something fired
+  (SYNC = 6). WPHIT = the command's `DirectData[15:0]` AND `WEM`, so the
+  bit↔slot assignment is a **software convention**: give each
+  watchpoint-table entry the DirectData bit you want to see and enable
+  that bit in `WEM`. Reset `WEM` = 0 masks every hit, so the feature is
+  byte-neutral until software opts in. Requires the ACT blocks
+  (`CT_EN_ACT`).
+  **Specification conflict (documented choice):** §4.3.23 prose says the
+  WPHIT field is "masked by 1", which reads like an inverted mask, while
+  Table B-26 defines `WEM` as "1 = enabled". CTTE follows **Table B-26**
+  (a 1 enables reporting).
+
+| Data-trace drop policy, via `trTeDataControl.DataDropEna`
+| The policy itself is standard (TCI / N-Trace `DataDropEna`, "allow
+  dropping data trace to avoid instruction trace overflows"), but data
+  trace as such is outside the N-Trace 1.0 program-trace profile, so the
+  whole feature sits with the other data-trace rows here.
+  Contract: while armed, the encoder suppresses data-trace messages as
+  soon as the eTIP queue fill reaches `ct_pkg::CT_DF_DROP_WATERMARK`
+  (3/4 of the queue depth), keeping the remaining capacity for the
+  instruction trace. Each drop *episode* is announced by exactly ONE
+  Error message (TCODE 8) with `ETYPE` = QueueOverrun and `ECODE` =
+  `0x02`, **without** the `SYNC = 7` re-anchor of the generic overflow
+  path — the instruction trace was not lost and must not be forced to
+  re-anchor for a data-trace drop. No new wire format: `ERROR`/`ECODE`
+  is standard, so every decoder *parses* the marker unchanged. The
+  *semantics* are not free: a decoder that treats any `Error` as a full
+  desync discards exactly the instruction trace this marker promises is
+  intact (measured on `tests/data/06_df_drop`: 269 of 760 PCs with the
+  pre-P7 NexRv pin, 760 after the fix). A consumer must scope
+  `ECODE = 0x02` to the data-trace reference; the reference decoder
+  does. Sticky status:
+  `trTeDataControl.DataDrop` and `DataStallOrOverflow` (both RW1C).
+  Unlike the configuration fields, `DataDropEna` is a runtime policy and
+  may be armed/disarmed while the trace runs. Reset 0.
+
+| External trigger input actions, via
+  `trTeTrigExtInControl.ExtInAction0` (`CT_EN_TRIG_REGS`)
+| The register is the Trace Control Interface's (TCI 6.2, Table 20), and
+  N-Trace delegates it there, so using it is conformant — it is listed
+  here because two of its three implemented actions reach *into* the
+  encoder's runtime state. Actions: 0 = none (reset), 2 = trace-on, 3 =
+  trace-off (both gated by `trTeControl.InstTrigEnable`, exactly as the
+  TCI text prescribes; CTTE has no `trTeDataTrigEnable`, so data tracing
+  is not affected), 4 = trace-notify = the existing `SYNC = 6` Trace
+  Event marker. Everything else WARL-legalizes to 0.
+  **Documented deviation:** CTTE used `InstTrigEnable` as the enable of
+  the `SYNC = 6` notify marker long before this register existed. That
+  behaviour is unchanged; action 4 is an *additional* source of the same
+  one-shot, so a configuration with `InstTrigEnable` = 1 **and**
+  `Action0` = 4 still produces exactly ONE marker per trigger pulse.
+  Reset 0 keeps every existing stream byte-identical.
 |===
+
+Sync reason 14 (`REQ`) sits in the Nexus Vendor-Defined range (14–15) and
+is therefore conformant use of a vendor code, not a deviation.
 
 === Not yet implemented
 
-The most significant gap:
+Optional messages and modes CTTE does not currently generate:
 
-* **Ownership / Context message (TCODE 2)** — process/privilege
-  correlation (`scontext`/`hcontext`, privilege mode). The control bit
-  (`trTeControl.Context`) and the TIP context fields exist, but the message
-  is not generated. Needed for OS-aware and multi-hart decode.
+* **Debug Status (0)** — optional in Nexus; *not* part of the N-Trace 1.0
+  profile (Table 9 does not adopt it). Deliberately **not implemented**,
+  and the reason is a missing contract, not missing effort: the message
+  carries a 16-bit status register (IEEE-ISTO 5001 §B.5.8) whose bits
+  describe the *core's* debug state, and CTTE has no source for them.
+  All three real ingress adapters tie the debug-related TIP inputs to 0
+  (`mbv_to_ctte_tip.sv`, `cva6_iti_to_ctte_tip.sv`,
+  `rocket_tci_to_ctte_tip.sv`), so only the DBS (debug status) and STP
+  (stopped) bits could be filled at all — and those two facts CTTE
+  already states more precisely, and with the flow position attached, as
+  Correlation `EVCODE` 0/1 plus `SYNC` 3/9. A status field with invented
+  bit contents would be worse than none.
+  **Condition for implementing it:** a core that delivers a halt reason
+  over the TIP (the `tip_if` ingress would gain the field). Sibling
+  messages Device ID (1) and Watchpoint (15) *are* implemented — see
+  <<extensions>>.
+* **Data-address compression modes 2 (DIFF) and 3 (dynamic)**
+  (`trTeDataControl.DataAddrCompress`) — only mode 1 (XOR, with the
+  TCODE 13/14 re-anchor variant, see <<extensions>>) is implemented.
+  DIFF turns negative for descending addresses (stack, backwards
+  copies) and the wire format carries no sign encoding; the dynamic
+  mode is not decodable without an extra wire bit. WARL: writes of 2/3
+  legalize to 0.
+* **Virtual-address MSB elision** (`InstExtendAddrMSB`, N-Trace ch. 9) —
+  the only bandwidth optimization of chapter 9 still open; the control
+  field is stubbed and commented out in `rdl/ct_cs_cpuif.rdl`.
+* **Debug-trigger and trigger-output registers** (`trTeTrigDbgControl`
+  `0x050`, `trTeTrigExtOutControl` `0x058`) — both registers exist and
+  read 0, which is what the Trace Control Interface spec prescribes for
+  a trigger that does not exist ("If external trigger output #0 does not
+  exist, then all bits are fixed at 0", TCI Table 21; Table 19 is a
+  vendor-defined field with nothing behind it here). CTTE has no
+  debug-module trigger sideband on its ingress port and no trigger
+  *output* port — adding one would change the encoder's top-level signal
+  contract and is therefore a separate, approval-bearing scope. The
+  external trigger *input* side **is** implemented
+  (`trTeTrigExtInControl` `0x054`, input #0 = the generic `tip.trigger`
+  port, actions 0/2/3/4; inputs #1..7 fixed at 0 per TCI Table 20).
+* **Data-trace hart stall** (`DataStallEna` and the stall half of
+  `trTeControl.InstStallOrOverflow` / `trTeDataControl.DataStallOrOverflow`)
+  — **blocked, not deferred**: stalling a hart needs a back channel from
+  the encoder to the core, and the CTTE ingress port (`rtl/pkg/tip_if.sv`)
+  is unidirectional by construction — the encoder drives no signal
+  towards the hart, and none of the three adapters could route one. The
+  *overflow* half of both status bits is implemented (P7); the drop
+  policy `DataDropEna` is the implemented alternative to stalling
+  (see <<extensions>>).
+* **Data-trace field elision** (`trTeDataControl.DataNoValue` /
+  `DataNoAddr`) — deferred until a concrete request (decision E-P7-1,
+  2026-08-04). Both are opt-in **format variants**: a field disappears
+  from the data-trace message, and because the Nexus field list is
+  positional a decoder cannot self-detect that — each would need its own
+  CAPS/ENAB bit *and* a decoder change, and `DataNoAddr` would make the
+  XOR address reference and the TCODE 13/14 re-anchor (P3) meaningless.
+  The RDL keeps the stubs commented with that reasoning.
 
-Lower-priority optional messages and modes:
+=== Not applicable by design
 
-* **Indirect Branch History with Sync (29)** — functionally covered by a
-  pre-flush Resource Full (HIST) followed by a plain synchronization
-  message, rather than the dedicated combined message.
-* **Data Trace with Sync (13/14)** and **Program Trace Correction (10)**.
-* **Bandwidth optimizations** — none implemented; see the
-  _Program-trace optimizations_ rows in the capability table above
-  (implicit return, sequential jump, repeated history, virtual-address MSB
-  elision, and the Repeat Branch / Repeat Instruction messages). Their
-  control fields are stubbed but commented out in `rdl/ct_cs_cpuif.rdl`.
-
-=== Intentionally not implemented
-
-* **BTM mode** — traditional Branch Trace Messaging (Nexus DirectBranch /
-  IndirectBranch, TCODE 3/4; N-Trace `ITR_BRANCH`). CEDARtools.TraceEncoder implements
-  history mode (HTM) only. Per-branch BTM messaging is bandwidth-inefficient
-  — HTM conveys the same control flow at far lower bandwidth — so BTM is
-  omitted by design, not pending. The `ITR_BRANCH` encoding is reserved in
-  `rdl/ct_cs_cpuif.rdl` and must not be programmed; the encoder emits no
-  control-flow message for it.
+NOTE: **Program Trace Correction (10)** is deliberately absent from the
+matrix altogether: it is a Nexus message that ratified N-Trace 1.0 did
+*not* adopt (the draft's "Later (maybe not needed)" entry was dropped;
+TCODE 10 is Reserved in Table 9). It is not a CTTE capability gap. Per
+the spec, decoders ignore Reserved TCODEs for flow reconstruction and
+may report them as a warning.
 
 === Notes
 
-* **I-CNT field width.** The wire I-CNT field is 8 bits, so long linear
+* **I-CNT field width.** The default ICNT cap is 8 bits, so long linear
   code emits frequent Resource Full (ICNT_OVERFLOW) messages. This is
   legal (the decoder concatenates) but bandwidth-suboptimal; N-Trace
-  notes a wider field (≈ 22 bits) is typical.
+  notes a wider field (≈ 22 bits) is typical. `InstEnWideIcnt` raises the
+  internal cap to 16 bits and cuts those drains without changing the wire
+  format.
+* **Correlation semantics.** Earlier CTTE revisions emitted CDF = 0 and
+  omitted HIST in HTM when no branch history was pending, and used the
+  Reserved sync codes 12/13 for vendor sync requests. Both are fixed:
+  CDF is always 1 with HIST present (N-Trace Table 24), and vendor sync
+  requests use the Vendor-Defined code 14.

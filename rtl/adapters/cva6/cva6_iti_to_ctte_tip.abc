@@ -1,0 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+import	@rtl/pkg : tip_if tip_pkg
+import	@rtl/adapters/cva6 : cva6_riscv_itype_refine
+
+read_sv	cva6_iti_to_ctte_tip.sv

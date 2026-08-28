@@ -1,0 +1,38 @@
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CC-BY-4.0
+
+= Ingress-adapter characterization -- index
+
+Specification-level documents for the ingress adapters under
+link:../../rtl/adapters/[`rtl/adapters/`]. These are truth tables:
+empirically measured signal semantics of a specific core/tool version, not
+architecture prose. Migrated 2026-08 from an internal predecessor
+repository; see link:../../rtl/adapters/README.md[`rtl/adapters/README.md`]
+for the package-level provenance and what is deliberately not here.
+
+[cols="2,3,3", options="header"]
+|===
+| Document | Adapter | Covers
+
+| link:microblaze_v_trace_semantics.adoc[`microblaze_v_trace_semantics.adoc`] | link:../../rtl/adapters/amd_microblaze_v/[amd_microblaze_v] | Gate G1: the AMD `TRACE` bus retirement/trap truth table (rounds 1-8)
+| link:microblaze_v_trace_ports.adoc[`microblaze_v_trace_ports.adoc`] | amd_microblaze_v | Confirmed port list + widths (Gate G0)
+| link:microblaze_v_adapter_mapping.adoc[`microblaze_v_adapter_mapping.adoc`] | amd_microblaze_v | AMD signal -> TIP field mapping table
+| link:microblaze_v_supported_configurations.adoc[`microblaze_v_supported_configurations.adoc`] | amd_microblaze_v | Verified IP/Vivado versions, MVP config, explicit non-goals
+| link:itype_decoder_vectors.csv[`itype_decoder_vectors.csv`] | amd_microblaze_v | Source data for `rtl/adapters/amd_microblaze_v/test/tb_mbv_itype_decoder.sv`'s `itype_vectors.vec`
+| link:cva6_iti_semantics.adoc[`cva6_iti_semantics.adoc`] | link:../../rtl/adapters/cva6/[cva6] | Gate C1: the CVA6 ITI truth table (RV32/Sv32/RV64) + the I1 itype-refinement measurement
+| link:rocket_tci_semantics.adoc[`rocket_tci_semantics.adoc`] | link:../../rtl/adapters/rocket/[rocket] | Gate G1/R3.2a: the Rocket TraceCoreInterface truth table + the M3 context-key measurement
+|===
+
+**Not migrated:** `microblaze_v_native_trace_port.md` (AMD's competing
+native N-Trace encoder -- characterizes a different, non-CTTE signal path;
+out of scope for "the adapter's specification", see
+link:../../rtl/adapters/README.md[`rtl/adapters/README.md`]).
+
+**Scope note:** these documents empirically describe AMD's proprietary,
+non-standardized `TRACE` bus (MicroBlaze V) and rocket-chip's generated
+netlist internals (including line numbers into generated Verilog). They
+record *measurements of third-party interfaces*, made in order to build the
+adapters in link:../../rtl/adapters/[`rtl/adapters/`]; they are neither a
+specification of nor a claim about those third-party designs, and every
+statement in them is bound to the tool and core revision named in the
+document.

@@ -9,11 +9,11 @@
  * Address: Kiefersfelden, Germany
  *
  * @file    ct_L23_preproc_perfcnt.sv
- * @brief   Accemic CEDARtools.TraceEncoder performance counter preprocessing unit.
+ * @brief   CEDARtools.TraceEncoder performance counter preprocessing unit.
  *
- * @description
+ * @details
  *   This module implements a preprocessing unit for performance counter measurement
- *   within the CEDARtools.TraceEncoder architecture. It tracks read and write accesses to data address
+ *   within the CTTE architecture. It tracks read and write accesses to data address
  *   ranges and fetches within instruction address ranges.
  *   Internal counters are instantiated for each monitored range, counting hits and misses,
  *   with saturation mode for overflow protection. Threshold handling and range selection
@@ -36,7 +36,7 @@
  *   - Counters operate in saturation mode; no wrapping is performed on overflow.
  *   - Internal clear and reset signals ensure robust, glitch-free operation.
  *   - No mode or option for down-counting; all counters increment only.
- *   - Module is designed for integration into CEDARtools.TraceEncoder stage 2 preprocessing of performance metrics.
+ *   - Module is designed for integration into CTTE stage 2 preprocessing of performance metrics.
  */
 
 `undef  MY_DEBUG
@@ -46,19 +46,19 @@
 `define MY_MARK_DEBUG
 `endif
 
-module ct_L23_preproc_perfcnt
+module                ct_L23_preproc_perfcnt
 	import tip_pkg::*;
 	import ct_pkg::*;
 	import counter_pkg::*;
 	import ct_cs_cpuif_pkg::*;
-#(  int IADDR_RANGES = 4,
-	int DADDR_RANGES = 4
-)(  input uwire logic           clk,                    // trace input clock
-	input uwire logic           rst,                    // reset
-	tip_if.slave                tip,                    // TIP from CPU
-	ct_cs_tipclk_if.slave       cs_tip,                 // control / status interface
-	ct_perfcnt_if.master        perfcnt,
-	output delay_t              internal_delay          // delay of this component including all submodules
+#(  int               IADDR_RANGES           = 4,
+	int               DADDR_RANGES           = 4
+)(  input uwire logic clk, // trace input clock
+	input uwire logic     rst,           // reset
+	tip_if.slave          tip,           // TIP from CPU
+	ct_cs_tipclk_if.slave cs_tip,        // control / status interface
+	ct_perfcnt_if.master  perfcnt,
+	output delay_t        internal_delay // delay of this component including all submodules
 );
 
 	//----------------------------------------------------------------------------

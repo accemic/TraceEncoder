@@ -1,0 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+import @examples/kv260/common : ct_soc_ddr_sink
+
+read_sim tb_ddr_sink_window.sv
+simulate tb_ddr_sink_window

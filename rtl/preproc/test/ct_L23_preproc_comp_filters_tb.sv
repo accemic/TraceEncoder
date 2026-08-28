@@ -1,10 +1,13 @@
-// -*- indent-tabs-mode:t; tab-width:4 -*-
-// vim: tabstop=4:noexpandtab
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
+// -*- indent-tabs-mode: t; tab-width: 4 -*-
 
 /**
  * @file    ct_L23_preproc_comp_filters_tb.sv
  * @brief   Directed comparator and trap-window testbench for ct_L23_preproc_comp_filters.
- * @description Exercises comparator modes, latch behavior, exception-window
+ * @details Exercises comparator modes, latch behavior, exception-window
  *   tracking, interrupt and ecause matching, and data predicate filtering in
  *   isolation.
  * @environment Runs the standalone component-filter DUT on tip_clk with
@@ -119,8 +122,8 @@ module ct_L23_preproc_comp_filters_tb;
 		FilterSetDtype(cs_tip, 3, LOAD);
 		FilterSetDsize(cs_tip, 3, 4);
 
-		cs_tip.trTeDataTracingSet 	= 0;
-		cs_tip.trTeDataTracingClr 	= 0;
+		cs_tip.trTeDataTracingSet   = 0;
+		cs_tip.trTeDataTracingClr   = 0;
 		cs_tip.trTeDataTracing      = 1;
 
 	endtask

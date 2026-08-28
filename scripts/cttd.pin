@@ -1,0 +1,33 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: ISC
+#
+# Pinned CTTD (CEDARtools.TraceDecoder) build used by this repository's gates.
+# Read by scripts/fetch_cttd.py. Format: "key = value", '#' starts a comment.
+#
+# WHY THIS FILE EXISTS. Every decode verdict in this repository -- every
+# "all N PCs match", every golden CTXP comparison -- is only worth what the
+# decoder is. Naming a version is not enough: a rebuilt binary with the same
+# version string can decode differently. So the pin carries the sha256 per
+# platform, and fetch_cttd.py treats a mismatch as a hard error.
+#
+# HOW TO BUMP. Deliberately, in its own commit, with the behavioural reason in
+# the message: what changed in CTTD, and which verdicts here move because of
+# it. The per-pin behavioural record lives in the CTTD repository's changelog,
+# not here -- this file only points at one build.
+#
+# If base_url or version are ever left unset, fetch_cttd.py refuses to run
+# rather than silently doing nothing -- a fetch script that quietly skips is
+# worse than one that says why it cannot.
+
+base_url = https://github.com/accemic/CTTD/releases/download
+version  = v2.3.0-cttd3
+
+# sha256 per platform asset, filled from the release the line above names.
+# Asset names come from the CTTD release workflow (.github/workflows/release.yml
+# there): cttd-linux-x86_64, cttd-linux-arm64, cttd-windows-x64.exe.
+#
+# linux-arm64 is not optional and not a nicety: it is what the KV260 boards
+# run, so a board deploy that decodes on the target needs it.
+sha256.linux-x86_64 = 98fbd06ff608981a225998cc8137c656a44e8fbdf68fa3e9b120a1df0fb4c537
+sha256.linux-arm64  = d41e7492d8e3ca138b31ff457d76a9b35156acf27e2e08122dc15db85e95984b
+sha256.windows-x64  = 17fb81419bd0c46610c78cbaec82e6cddfbcbc00d035b199e2bdd985dde559c8

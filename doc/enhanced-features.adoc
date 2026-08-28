@@ -6,7 +6,8 @@
 :toclevels: 3
 :nexus-spec: https://github.com/riscv-non-isa/riscv-nexus-trace/blob/main/docs/nexus-standard/IEEE-ISTO-5001-2012-v3.0.1-Nexus-Standard.pdf
 
-Beyond the baseline RISC-V N-Trace program- and data-trace, CEDARtools.TraceEncoder adds
+Beyond the baseline RISC-V N-Trace program- and data-trace,
+CEDARtools.TraceEncoder (CTTE) adds
 a set of vendor extensions on top of the {nexus-spec}[Nexus] framework. They reuse the
 standard message machinery (vendor TCODEs, reserved sync reasons,
 variable-length fields) so a Nexus-aware decoder can still frame the
@@ -23,7 +24,7 @@ toc::[]
 
 == Data Acquisition (DAQ) and ACT-CAP / ACT-ST
 
-CEDARtools.TraceEncoder can export instrumentation data as **Data Acquisition** messages
+CTTE can export instrumentation data as **Data Acquisition** messages
 (TCODE 7): an `IDTAG` plus a variable-length payload up to
 `NEXUS_MSG_DATA_WIDTH` (192 bits), optionally timestamped. This carries
 more than the 64 bits a standard data-trace message allows, which is why
@@ -46,10 +47,59 @@ IMPORTANT: `0x0B10` is a CPU-side CSR, **not** a Wishbone register. It is
 documented in the RDL only so the register exporter can describe it; the
 encoder hardware does not decode `0x0B10` on the Wishbone bus.
 
+[IMPORTANT]
+.ACT-CAP needs a data channel on the ingress port, and most integrations do not have one
+====
+ACT-CAP is decoded off the **TIP data channel**: `ct_L23_preproc_act_cap`
+fires on `dretire && dtype == CSR_READ_WRITE && daddr == 0x0B10` and reads
+the command word from `tip.data`. A core therefore has to do two separate
+things for ACT-CAP to work: accept the CSR access without trapping *and*
+**report it on its trace port as a CSR-write data beat**. The second is the
+one integrations miss.
+
+Of the four cores wired up in this repository, **none** reports CSR writes,
+and three of them expose no data channel at all — the CVA6, Rocket and
+MicroBlaze V adapters tie `tip.dretire` to 0
+(see link:../examples/kv260/README.md[the KV260 example README], section
+"What each core's trace ingress can and cannot carry"). ACT-ST is
+unaffected: it triggers on a retired PC and needs only `iaddr`.
+
+Where the ingress *does* carry stores, an integration can close the gap
+without touching the core: convert a store to a chosen doorbell address into
+the CSR beat the encoder expects, taking the command word from the store
+data. Note that on a split-data ingress the adapter must also drive
+`tip.data` (ACT-CAP reads `data`, not `sdata`) — an adapter that leaves
+`tip.data` at 0 decodes every command as `ACT_CAP_ST_NONE`, which is a
+silent no-op rather than an error.
+
+ACT-CAP's verification in this repository is simulation-only
+(`tests/lib/cpu_model.sv` synthesises the beat; scenario
+`sim-hsi-csr-cap`). There is no silicon evidence for it yet, so treat a
+first hardware use as bring-up with its own verdict.
+====
+
 The `Sink` routing lets the same instrumentation event go to the Nexus
 trace stream, to the 96-bit AXIS instrumentation port, or both — see the
 `sim-hsi-csr-cap` scenario in link:verification.adoc[Verification], which
 fires the full command set and self-checks the AXIS beat.
+
+**ACT-ST watchpoint table (1023 slots, indirect access).** ACT-ST
+dispatches a command word without CPU involvement when a retired PC
+matches a table entry. The table is a RAM-backed binary search tree
+(ten levels, `trWpCap.Entries` = 1023 slots, one lookup per cycle) and
+is loaded through an indirect register pair — `trWpIndex` (`0x400C`)
+picks the slot, `trWpDataLow`/`trWpDataHigh` (`0x4010`/`0x4014`) stage
+and commit one 64-bit entry per `DataHigh` write, auto-advancing the
+index; `trWpReadLow`/`trWpReadHigh` read the table back the same way.
+The three *load* registers (`trWpIndex`/`trWpDataLow`/`trWpDataHigh`)
+are locked while `trTeControl.Enable` = 1; readback stays live — a
+`trWpReadHigh` read still advances the index (by design, so a debugger
+can inspect the table of a running session without unlocking it).
+*Breaking change (C0b):* the former direct memory window at `0x4100` is
+gone — 1023 entries no longer fit below the `df` component; see the
+integration manual (`integration.adoc`, _Indirect watchpoint table
+access_) for the migration recipe and the unchanged programming rules
+(fill all slots, strictly ascending keys).
 
 == Filtering and watchpoints
 
@@ -67,21 +117,124 @@ flow before messages are generated:
 These let a user restrict tracing to a region of interest, cutting trace
 bandwidth at the source.
 
+NOTE: the exception-cause match is a *bitmap* spanning the whole
+`MatchChoiceEcause{Low,High}` register pair — 64 bits, one per cause —
+and the RTL carries it at that width rather than reading only the low
+register, which is what it used to do. That is not the same as being able
+to select 64 causes: the TIP cause bus is four bits wide in the default
+configuration (`TIP_ECAUSE_WIDTH`), so only bits 0..15 are reachable at
+all. The high half exists for a wider cause bus and is inert until one
+does — a register that can hold a value is not evidence that anything
+produces it.
+
+[[filter-anchoring]]
+=== What a filtered stream looks like on the wire
+
+A filter does not merely delete messages — it creates a *gap* the decoder
+has to be told about, otherwise it keeps walking from the position it had
+before the gap. `CT_EN_FILTER_SYNC` closes that with the machinery a
+software trace pause already uses, so no decoder learns anything new:
+
+* leaving the filter region emits a **Program Trace Correlation** (TCODE
+  33, `EVCODE = Program Trace Disabled`) carrying the residual `ICNT` and
+  the pending branch history, and both sides drop their call stacks;
+* re-entering it emits a **`SYNC = 5` (Trace Enable)** re-anchor with the
+  full address;
+* a sync verdict that happens to land on an instruction the filter
+  rejects is *held* until the next qualified retire instead of being
+  dropped with the message that would have carried it.
+
+The block is armed by `trTeInstFilters` being non-zero. With the reset
+value 0 ("trace all") it is dead, so every unfiltered stream is
+byte-identical to earlier builds by construction.
+
+The filter suppresses **at the source**, it does not mark: a rejected
+instruction never reaches the message-generating block at all, so it
+contributes nothing — not even to the instruction count. That is what
+makes the residual `ICNT` in the correlation message exact rather than
+an approximation, and it is what a consumer measures when it checks that
+a filtered run reconstructs the selected process *completely* and the
+other one *not at all* (see
+link:verification.adoc#process-filter[Verification — tracing one
+process, end to end]).
+
+Two things a filtered stream deliberately does *not* do. **Trap delivery
+is always traced**, whatever the filter selects — exception and interrupt
+beats bypass the control-flow qualifier (`is_trap_event` in the eTIP
+composer), because losing the entry into a handler would desynchronise
+the reconstruction rather than narrow it. And the correlation message
+says *that* there was a gap, not *how long* it was: the skipped
+instructions are gone, which is the point of filtering.
+
+A worked example — two processes on one hart, told apart by
+`satp.ASID`, and the trace restricted to one of them — was measured on a
+CVA6 RV64 Linux integration; the simulation driver for it is not part of
+this repository.
+
 == Synchronization variants
 
-In addition to the standard periodic and trace-enable sync, CEDARtools.TraceEncoder
-defines vendor sync reasons (see link:trace-format.adoc#sync-reasons[Trace
-format]):
+Beyond the standard reset / trace-enable / periodic sync, CTTE can be
+asked for a synchronization explicitly. All three request paths — a
+write of 1 to `trTeControl.InstSyncReq` (the TCI-standard field,
+`CT_EN_INST_SYNC_REQ`), an ACT-CAP `CF_SYNC` CSR command and the ATB
+sync-request input — produce the *same* on-wire sync reason, the single
+Vendor-Defined code 14 (`REQ`). A decoder does not care where the
+request came from, since every sync is a full re-anchor; the source is
+recorded for diagnosis in the read-only CSR field
+`te.trTeSyncStatus.SyncReqSource`. The request field is independent of
+the cadence (it works in every `InstSyncMode`) and carries a one-message
+-per-request contract with a depth of one request in flight plus one
+remembered: a write during an outstanding request gets its own message,
+and only a further write on top of the queued one collapses into it. A
+request written during a tracing pause is served after the resume anchor
+instead of being dropped. See
+link:trace-format.adoc#sync-reasons[Trace format → Synchronization
+reasons] for the complete list, including the event-driven reasons
+(debug exit, power-down exit, external trigger, watchpoint) and the
+periodic-cadence modes.
 
-* **`REQ_CSR` / `REQ_ATB`** — a sync explicitly requested by software via
-  CSR or APB.
-* **`TRACE_QUOTA`** — a sync emitted when a configured quota (number of
-  trace messages or trace bytes) is reached, bounding how long a decoder
-  must wait to re-synchronize.
+NOTE: The trace-*quota* cadences are implemented (`CT_EN_QUOTA_SYNC`,
+CAPS bit 18): `trTeControl.InstSyncMode` 1 counts on-wire messages,
+mode 4 counts bytes as accepted on ATB (whole beats, incl. alignment
+padding and flush idle beats), each against a 2^(`InstSyncMax`+4)^
+threshold. A dedicated counter in the active egress path raises a held
+request at the threshold; the resulting sync is an ordinary `PERIODIC`
+(2) on the wire and reports `SyncReqSource = 3` for diagnosis. This
+bounds decoder re-synchronization by *emitted volume* — the property a
+ring-buffer consumer needs. Window recipe and measured re-anchor
+distance: link:integration.adoc#quota-sync-live[Integration →
+Live / ring operation].
 
-Periodic sync is arbitrated against the actual emitted byte count: the
-MSEO/MDO formatter reports bytes back to the preprocessor so sync cadence
-tracks real output, not just cycles.
+== Program-trace compression suite
+
+On top of the N-Trace chapter 9 optimizations, CTTE bundles a set of
+individually switchable compression features, each with its own compile
+switch in link:../rtl/pkg/ct_pkg.sv[`ct_pkg.sv`] and its own runtime
+enable in `trTeInstFeatures` (full flag reference incl. CAPS bits,
+profile defaults and measured costs:
+link:integration.adoc#feature-flags[Integration → Feature flags]):
+
+[cols="2,2,1,3", options="header"]
+|===
+| Feature | Build switch | Enable | Effect
+
+| Implicit return       | `CT_EN_IMPLICIT_RETURN` | `InstEnImplicitReturn`   | Returns matching a 16-slot call/return stack become inferable — no address on the wire.
+| Repeated history      | `CT_EN_REPEATED_HISTORY` | `InstEnRepeatedHistory`  | Identical consecutive history patterns collapse into Resource Full RCODE=2 plus a repeat count.
+| Wide instruction count| `CT_EN_WIDE_ICNT` | `InstEnWideIcnt`         | Raises the internal ICNT cap from 8 to 16 bit, cutting Resource Full (ICNT) drains. Wire format unchanged.
+| Repeat Branch         | `CT_EN_REPEAT_BRANCH` | `InstEnRepeatBranch`     | Identical repeated Indirect Branch History messages collapse into TCODE 30 with a repeat count.
+| Repeat Instruction    | `CT_EN_REPEAT_INSTR` | `InstEnRepeatInstr`      | Single-instruction spin loops are counted into TCODE 31/32 instead of one history bit per iteration.
+| Indirect Branch History w/ Sync | `CT_EN_IBHS` | `InstEnIbhs`   | Synchronizing messages carry the pending history (TCODE 29) instead of pre-flushing it — one message where two went before.
+| Jump-target cache     | `CT_EN_JTC` | `InstEnJumpTargetCache`  | [vendor] Indirect targets seen before are sent as a 64-entry cache index (TCODE 57) instead of a full address.
+| Branch prediction     | `CT_EN_BP` | `InstEnBranchPrediction` | [vendor] A 512-entry predictor runs bit-identically on both sides; only the run length up to the next mispredict is sent (TCODE 56).
+|===
+
+All of them reset to 0. The two vendor features and Repeat Instruction
+take the stream outside strict N-Trace 1.0 — see
+link:trace-format.adoc#extensions[Trace format → Extensions beyond strict
+N-Trace 1.0]. Sequential-jump inference is not a runtime switch but an
+ingress convention of the attached core, fixed at build time by the
+`CT_SIJUMP` parameter of `ct_encoder` and advertised in the config
+message.
 
 == Performance counters and timestamping
 
@@ -94,7 +247,7 @@ along as the `TSTAMP` field of sync, data and DAQ messages.
 == Overflow and overrun recovery
 
 Under sustained back-pressure (ATB stalled while TIP keeps retiring), the
-internal queues can overrun. CEDARtools.TraceEncoder handles this explicitly:
+internal queues can overrun. CTTE handles this explicitly:
 
 * The composer injects a **QueueOverrun** condition; the encoder emits an
   **Error** message (TCODE 8, `ETYPE = QUEUE_OVERRUN`) whose **ECODE**
@@ -137,7 +290,7 @@ The element layout per command (`ct_L23_preproc_composer_axis.sv`):
 |===
 | Command (`tid`) | element 0 | element 1 | element 2
 
-| `DAQ_PC_CURR`      | current PC        | direct-data tag                    | —
+| `DAQ_PC_CURR`      | current PC        | direct-data tag                    | timestamp[31:0] (`CT_EN_AXIS_TS`)
 | `DAQ_PC_CURR_LAST` | current PC        | last PC before exception/interrupt | direct-data tag
 | `DAQ_DIRECT_DATA`  | direct-data tag   | —                                  | —
 | `DAQ_DATA`         | last data value   | dtype/dsize                        | —
@@ -146,14 +299,37 @@ The element layout per command (`ct_L23_preproc_composer_axis.sv`):
 | `DAQ_DATA_RD` / `_WR` / `IFETCH_TH` / `DATA_RD_TH` | perf-counter value (region from direct-data) | — | —
 |===
 
+With `CT_EN_AXIS_TS` (full-profile default 1) a `DAQ_PC_CURR` beat carries
+the selected timestamp — lower 32 bit of the value the timestamp unit
+produces per `trTsControl.Type` / `Active` / `Count` / `Prescale` — as
+element 2, so an in-fabric consumer can order and correlate PC samples
+without a Nexus decoder. Compiled out, the beat keeps the historical
+two-element shape (strobe `0xFF`). Note the split: `trTsControl.Enable`
+gates only the TSTAMP fields of the Nexus/E-Trace messages, not this
+element; requires `CT_EN_TIMESTAMP` and `CT_EN_ACT` (elaboration guards).
+
 The `sim-hsi-csr-cap` scenario fires every command above to the AXIS sink
 and self-checks the decoded beat (`ct_axis_decoder.sv`); see
 link:verification.adoc[Verification].
 
 == Vendor configuration message
 
-A **Vendor Config** message (TCODE 56, in the Nexus vendor range) is
-*defined* to convey the encoder's configuration to the decoding device,
-so a decoder could adapt to the active feature set without out-of-band
-knowledge. It is **not currently emitted** — the formatter path is
-stubbed (commented out) pending finalization of the payload.
+A **Vendor Config** message (**TCODE 58**, in the Nexus vendor range)
+conveys the encoder's configuration to the decoding device, so a decoder
+adapts to the active feature set without out-of-band knowledge. It
+carries the format version, the compiled-in capability map (`CAPS`), the
+currently enabled subset (`ENAB`) and the structural sizes of the return
+stack, jump-target cache and branch predictor.
+
+The feature is compile-gated by `CT_EN_CONFIG_MSG` (profiles without it
+read `SendConfig` as a `CFG_NONE` constant). Emission is selected by
+`trTeControl.SendConfig`: `CFG_NONE`, `CFG_ONCE` (at trace start) or
+`CFG_ON_SYNC` (additionally after every periodic sync). The full build
+profile resets to `CFG_ONCE`, so a default full build produces a
+self-describing stream. The field layout is documented in
+link:trace-format.adoc#config-message[Trace format → Vendor Config
+message].
+
+NOTE: TCODE **56** is *not* the config message — it is the vendor
+branch-prediction message. The config message moved to 58 when 56 was
+taken; a decoder that still assumes 56 will misparse.

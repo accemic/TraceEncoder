@@ -16,7 +16,7 @@ SPDX-License-Identifier: CC-BY-4.0
 - [ ] If `rdl/ct_cs_cpuif.rdl` changed, `make rdl` was re-run and the
       regenerated `rtl/pkg/ct_cs_cpuif*.sv` + `tests/lib/ct_cs_cpuif_wb_helper.sv`
       are committed in the same PR (likewise `make rdl-soc` →
-      `examples/tgc5b_soc/pkg/ct_soc_regs*.sv`)
+      `examples/kv260/common/tgc5b/pkg/ct_soc_regs*.sv`)
 - [ ] CLA agreed (see [CONTRIBUTING.md](../CONTRIBUTING.md))
 
 ## Notes for reviewers

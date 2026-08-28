@@ -8,7 +8,7 @@ Scope
 
 It applies to the third-party core vendored in this repository:
 
-    examples/tgc5b_soc/cpu/TGC5B_AXI4L_H2E.sv
+    examples/kv260/common/tgc5b/cpu/TGC5B_AXI4L_H2E.sv
     Copyright 2020-2022 MINRES Technologies GmbH
     Core config TGC5B_AXI4L_H2E
     Config hash ecababb8345510fc9133035ddf2a3116ca7a57bf

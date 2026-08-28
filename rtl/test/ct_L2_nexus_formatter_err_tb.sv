@@ -1,4 +1,7 @@
-// vim: set ts=4 et:
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
 // -*- indent-tabs-mode: t; tab-width: 4 -*-
 `default_nettype none
 
@@ -6,7 +9,7 @@
  * @file    ct_L2_nexus_formatter_err_tb.sv
  * @brief   Unit test for ct_L2_nexus_formatter -- error / edge paths.
  *
- * @description Tests backpressure hold/release, reset mid-stream, the
+ * @details Tests backpressure hold/release, reset mid-stream, the
  *   FLUSH message (TCODE-only, no SRC, no TSTAMP), and the ERROR message.
  *
  * SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
@@ -67,7 +70,6 @@ module ct_L2_nexus_formatter_err_tb;
 		cs_proc.trTeInstMode     = ct_cs_cpuif__te__trTeControl__trTeInstMode_e__ITR_BRANCH_HIST;
 		cs_proc.trTeInstSyncMode = ct_cs_cpuif__te__trTeControl__trTeInstSyncMode_e__ITR_SYNC_TRACE_MSG;
 		cs_proc.trTeInstSyncMax  = '0;
-		cs_proc.trTeInstSyncReq  = '0;
 		cs_proc.trTeContext      = '0;
 		cs_proc.trTeDataAddrCompress = ct_cs_cpuif__te__trTeDataControl__trTeDataAddrCompress_e__DTR_ADDR_FULL;
 		cs_proc.trTeNexusMdoBits = 5'd6;
@@ -87,7 +89,7 @@ module ct_L2_nexus_formatter_err_tb;
 	int msg_id = 0;
 
 	function automatic nexus_msg_struct_t make_cf_sync(
-		input logic [31:0] curr_iaddr,
+		input nexus_addr_t curr_iaddr,
 		input logic [63:0] ts
 	);
 		nexus_msg_struct_t m = '0;

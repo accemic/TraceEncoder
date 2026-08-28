@@ -29,18 +29,18 @@ module ct_L2_mseo_mdo_formatter_mseo_controller #(
 	bit          USE_DUAL_MSEO = 1'b0,
 	int unsigned MSEO_WIDTH    = (USE_DUAL_MSEO ? 2 : 1)
 ) (
-	input  var logic clk,
-	input  var logic rst,
+	input  var logic              clk,
+	input  var logic              rst,
 
-	input  var logic start_of_message,
-	input  var logic end_of_message,
+	input  var logic              start_of_message,
+	input  var logic              end_of_message,
 
-	input  var logic slice_valid,
-	input  var logic slice_fire,
-	input  var logic slice_ends_variable_field,
-	input  var logic slice_ends_field,
+	input  var logic              slice_valid,
+	input  var logic              slice_fire,
+	input  var logic              slice_ends_variable_field,
+	input  var logic              slice_ends_field,
 
-	output logic                 stall_data,
+	output logic                  stall_data,
 	output logic [MSEO_WIDTH-1:0] mseo_bits
 );
 	typedef enum logic [2:0] {

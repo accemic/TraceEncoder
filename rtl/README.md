@@ -5,7 +5,8 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # RTL sources
 
-SystemVerilog implementation of the CEDARtools.TraceEncoder, driven by
+SystemVerilog implementation of the CEDARtools.TraceEncoder (CTTE) encoder,
+driven by
 [abc-flow](https://github.com/accemic/abc-flow) (paired `.sv` + `.abc` files).
 
 ## Layout
@@ -18,7 +19,9 @@ rtl/
 ├── pkg/                 type and parameter packages
 ├── preproc/             stage-2/3 preprocessor modules + preproc/test/
 ├── mseo_mdo/            MSEO/MDO formatter submodules + mseo_mdo/test/
-└── external/            vendored deps from sibling repos (each with its own test/)
+└── external/            Accemic's own building-block library (AMBA, Wishbone,
+                         FIFO/CDC, memory, utilities) -- "external" = outside the
+                         encoder core, NOT third-party; see external/README.md
 ```
 
 ## Module test convention

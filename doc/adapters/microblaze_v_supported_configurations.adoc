@@ -1,0 +1,87 @@
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CC-BY-4.0
+
+= MicroBlaze V CTTE adapter -- supported configurations (living doc)
+
+Migrated 2026-08 from an internal predecessor repository; see
+link:../../rtl/adapters/README.md[`rtl/adapters/README.md`] for the
+package-level provenance.
+
+[NOTE]
+====
+Version-bound support (AD-07, R1): the AMD `TRACE` bus is **not
+standardized / not version-stable**. Every row holds only for the named
+Vivado/MBV version. No generic future-compatibility claim. Source: the
+MicroBlaze V implementation concept §1/§6/Appendix A and the technical
+integration report Appendix A+C (both in `forge_kb`).
+====
+
+== Verified IP + part (2026-07-15)
+
+* **IP:** `xilinx.com:ip:microblaze_riscv:1.0` (= "MicroBlaze V"), Vivado **2026.1**.
+* **Part/board:** Kria **KR260** -- `xck26-sfvc784-2LV-c`,
+  `xilinx.com:kr260_som:part0:2.0` (matches KriaTracer2).
+* **Verified config property names:** `C_TRACE` (trace bus on),
+  `C_USE_COMPRESSION` (C-ext), `C_USE_MMU`, `C_USE_MULDIV` (M-ext),
+  `C_DEBUG_TRACE_SIZE`/`C_DEBUG_EXTERNAL_TRACE` (native N-Trace),
+  `C_BASE_VECTORS=0x0` (reset vector, matches the linker script).
+* **M-extension ON** (`C_USE_MULDIV=1`): the rv32im software emits `mul`;
+  under `-nostdlib` this avoids a libgcc `__mulsi3`. M-extension
+  instructions are program-flow-neutral (itype=OTHER).
+* **`Trace_Privilege_Mode` / `Trace_PID_Reg` are NOT exposed on this IP
+  version** (the original integration report §17.1 assumed them) -> the
+  `priv`/`_context` mapping does not apply; MVP: priv=M constant,
+  `_context=0`. Full port list:
+  link:microblaze_v_trace_ports.adoc[`microblaze_v_trace_ports.adoc`].
+
+== MVP target configuration (Appendix A)
+
+----
+MicroBlaze V:  RV32 - C-extension OFF - M-ext ON (C_USE_MULDIV=1) - Machine mode - MMU OFF -
+               Trace Bus Interface ON - native AMD N-Trace OFF (or reference instance only)
+Adapter:       IADDR_WIDTH=32 - DATA_WIDTH=32 - SUPPORT_RVC=0 - SUPPORT_DATA_TRACE=0 -
+               tval=0 - context=disabled - time=64-bit core cycle counter
+CTTE:          TIP_IRETIRE_WIDTH=1 - TIP_IADDRESS_WIDTH=32 - program-trace mode HTM -
+               SPLIT_DATA_ACCESS=0 - output=ATB -> sim/on-chip - decoder=CTTD
+----
+
+== Support matrix (fill in as verified)
+
+[cols="1,2,1,1,1,1,1,3,2", options="header"]
+|===
+| Vivado | MBV IP version | RV32 | Trace bus | G0 | G1 | G6 (FPGA) | Adapter fingerprint | Status
+
+| 2026.1 | `microblaze_riscv:1.0` | Yes | Yes | Yes | Yes | **Yes, KV260 2026-07-21/22 hardened** | `mbv_to_ctte_tip` (sijump off) | **G6 + hardening: 7/7 programs green on silicon -- trace/branch/sijump/trap/illegal/misaligned with an exact reference prefix (26.6-26.8k PCs), interrupt_test with an HW IRQ pulse generator (CONTROL b3) + mei_handler evidence; WNS +2.38 ns @ 75 MHz, ~25.3k LUTs**
+| 2025.2 (comparison, optional) | TBD | No | No | No | No | No | TBD | --
+|===
+
+== Explicitly NOT supported in the MVP (per the original "list of not-yet-supported features")
+
+* **RVC / C-extension** -- Gate G7. **Update 2026-07-16:** the RVC
+  raw-encoding question (risk R3) is **empirically resolved** --
+  `Trace_Instruction` carries the **original** RVC encoding, `ilastsize` is
+  **directly derivable** via `Trace_Instruction[1:0]!=2'b11`
+  (link:microblaze_v_trace_semantics.adoc[semantics table 5] / round 7). G7
+  is therefore significantly cheaper; the MVP still keeps C-ext OFF (a
+  scope decision, no longer risk-driven). Experiment switch:
+  `MBV_USE_COMPRESSION=1` on the `create_project.tcl` run.
+* **Data trace** (load/store/AMO) -- Gate G8; store first, a full load only
+  with a bus monitor (§4.2).
+* **CSR trace** -- **not** traceable via the `TRACE` bus (only via instruction decode).
+* **`tval`** -- MVP=0 (no program-flow blocker; relevant only for extended
+  exception diagnostics).
+* **Context/ASID, ownership** -- P2 (`tip_context_t` narrow at the time of writing).
+* **RV64** -- P3.
+* **Supervisor/user mode, MMU, page faults** -- the MVP is machine-mode, MMU off.
+* **External PIB pin sink** -- CTTE does not directly speak AMD's PIB
+  protocol (packetizer/bridge, §6).
+* **AXI4-Lite CSR** -- the MVP uses CTTE's Wishbone (a small
+  wrapper/static init); AXI4-Lite is G9.
+
+== Version fingerprint (adapter manifest)
+
+The adapter carries a version fingerprint
+(`rtl/adapters/amd_microblaze_v/mbv_trace_pkg.sv`) with: the tested Vivado
+version, the MBV IP version, the CTTE pin commit, the adapter's SemVer.
+Regression per Vivado release (G9). A fingerprint mismatch at
+runtime/elaboration is an **error**, not a silent pass.

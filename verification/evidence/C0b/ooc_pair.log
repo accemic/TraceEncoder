@@ -1,0 +1,25 @@
+# gate    : c0b_ooc_pair (OOC synthesis resource pair, ct_encoder, full profile)
+# package : C0b (watchpoint table 15 -> 1023 + indirect load path)
+# command : bash scripts/c0b_ooc_pair.sh 64ae043979 b4cc804692
+#           (post leg repeated standalone after a transient Vivado error
+#           "couldn't read .../rtSynthParallelPrep.tcl" on the first attempt:
+#           vivado -mode batch -source scripts/synth_encoder_ooc.tcl
+#           -tclargs xck26-sfvc784-2LV-c in the c0b_ooc_meas worktree at
+#           b4cc804692)
+# HEAD    : b4cc804692
+# when    : 2026-08-13 03:18 WEDT
+# note    : pre = 64ae043979 (C0a endpoint, M0_DIM=4, direct 0x4100 window)
+#           post = b4cc804692 (C0b, M0_DIM=10, indirect trWpIndex/trWpData*)
+#           Both legs Vivado 2022.1.2 (the .abc.config pin), OOC,
+#           xck26-sfvc784-2LV-c, committed full profile each.
+
+pre  (ooc_pre_util_flat.rpt):  CLB LUTs 26307 | FF 20743 | Block RAM Tile  9.5
+post (ooc_post_util_flat.rpt): CLB LUTs 30432 | FF 31204 | Block RAM Tile 14.5
+
+delta post - pre: +4125 LUTs | +10461 FFs | +5 BRAM tiles
+
+Reading: the FF growth is the PREPROC_DELAY_MAX 20 -> 44 alignment-pipe
+cost predicted in FINDINGS_axis_wp_analyse.md 1.4 (estimate +8-11k FFs --
+measured +10461); the BRAM growth carries the ten-level search tree and
+the 1024x64 readback shadow (now a true BRAM instead of the historical
+reset-cleared registers).

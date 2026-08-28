@@ -1,29 +1,29 @@
-// vim: set ts=4 et:
+// SPDX-FileCopyrightText: 2021 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
 // -*- indent-tabs-mode: t; tab-width: 4 -*-
 `default_nettype none
 /**
-* Copyright (c) 2021 by Accemic Technologies GmbH Kiefersfelden Germany
-* SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
-*
-* @brief    A compacting FIFO for a counted vector stream
-*           which allows to acknowledge parts of the offered vector
-*
-* @author   Albert Schulz <aschulz@accemic.com>
-*/
+ * @brief    A compacting FIFO for a counted vector stream
+ *           which allows to acknowledge parts of the offered vector
+ *
+ * @author   Albert Schulz <aschulz@accemic.com>
+ */
 module cvs_fifo2 #(
-	type			T = logic[7:0],
-	int unsigned	P,               // Input parallelism
-	int unsigned	PO = P,          // Output parallelism
-	int unsigned	MIN_DEPTH,       // Number of P elements to buffer
-	parameter		CVS_FIFO_STYLE = "auto"
+	type         T              = logic[7:0],
+	int unsigned P,                  // Input parallelism
+	int unsigned PO             = P, // Output parallelism
+	int unsigned MIN_DEPTH,          // Number of P elements to buffer
+	parameter    CVS_FIFO_STYLE = "auto"
 )(
-	input	uwire	clk,
-	input	uwire	rst,
+	input   uwire                           clk,
+	input   uwire                           rst,
 
-	cvsink_if.impl		d,
-	cvsource_if2.impl	q,
+	cvsink_if.impl                          d,
+	cvsource_if2.impl                       q,
 
-	output	uwire [$clog2(MIN_DEPTH+1)-1:0]  cnt_avail	// Available Px T FIFO slots
+	output  uwire [$clog2(MIN_DEPTH+1)-1:0] cnt_avail // Available Px T FIFO slots
 );
 	import math::min;
 

@@ -3,42 +3,18 @@ SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
 SPDX-License-Identifier: CC-BY-4.0
 -->
 
-# `bin/` — vendored tools
+# bin/ — the fetched decoder lives here
 
-## `NexRv`
+The reference decoder is **CTTD (CEDARtools.TraceDecoder)** and is no longer
+committed. Get the pinned build:
 
-The **NexRv** reference decoder for the Nexus RISC-V trace stream. This
-is a dedicated port/fork maintained for CEDARtools.TraceEncoder compatibility —
-<https://github.com/accemic/NexRv-for-C-Trace> — not the upstream
-IAR Systems tool. Used by the testbenches as a post-simulation
-verification step: the encoder emits an ATB byte stream, NexRv decodes
-it back into PCs using the program description (`*.nexrv.info`), and the
-result is diffed address-for-address against the sequence the
-`cpu_model` claims it executed.
+    py scripts/fetch_cttd.py            # this host
+    py scripts/fetch_cttd.py --all      # all three platforms (board deploys need linux-arm64)
 
-```
-NexRv -deco <atb.bin> -pcinfo <nexrv.info> -pcout <decoded.pcout> -full
-```
-
-The version bundled here is a **pinned binary** built from the CEDARtools.TraceEncoder
-port at <https://github.com/accemic/NexRv-for-C-Trace>. This directory
-may later become a git submodule (or a tiny build script) so the binary
-drops out.
-
-### License
-
-NexRv (the CEDARtools.TraceEncoder port,
-<https://github.com/accemic/NexRv-for-C-Trace>) is derived from the
-IAR Systems NexRv tool and is distributed under the **ISC License**
-(Copyright (c) 2020 IAR Systems AB,
-Copyright (c) 2026 Accemic Technologies GmbH). This is independent of
-CEDARtools.TraceEncoder's own CERN-OHL-S-2.0 / Accemic-Commercial dual license. The
-SPDX record for the binary lives in [`REUSE.toml`](../REUSE.toml) and
-the license text in [`LICENSES/ISC.txt`](../LICENSES/ISC.txt).
-
-### Why a pre-built binary in the repo?
-
-NexRv is small (~85 KB) and the decode step is part of every test's
-PASS criterion. Vendoring the binary keeps the testsuite self-contained
-and reproducible. Rebuild it from the CEDARtools.TraceEncoder port at
-<https://github.com/accemic/NexRv-for-C-Trace> when an update is needed.
+The pin (version + sha256 per platform) is `scripts/cttd.pin`; a checksum
+mismatch is a hard error, because every decode verdict in this repository is
+worth exactly what the decoder is. CTTD's home is
+[github.com/accemic/CTTD](https://github.com/accemic/CTTD); `base_url` in
+the pin names where its release assets are fetched from. The pin-by-pin
+behavioural record that used to fill this file lives in the git history of
+this README and in CTTD's `CHANGELOG.md`.

@@ -1,0 +1,25 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+#
+# SymbiYosys job for ovf_injector (P-INJ-1..4, unbounded via k-induction).
+# The input file build/ovf_injector_formal.v is produced by run.sh
+# (sv2v -E Assert over cvsink_if.sv + ovf_injector.sv + wrapper.sv).
+
+[tasks]
+prove
+cover
+
+[options]
+prove: mode prove
+cover: mode cover
+depth 30
+
+[engines]
+smtbmc yices
+
+[script]
+read -formal ovf_injector_formal.v
+prep -top f_top
+
+[files]
+build/ovf_injector_formal.v

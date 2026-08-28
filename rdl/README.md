@@ -5,7 +5,8 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Register description (SystemRDL)
 
-This directory holds the **SystemRDL** source that describes CEDARtools.TraceEncoder's
+This directory holds the **SystemRDL** source that describes
+CEDARtools.TraceEncoder's
 control / status register map. The RDL is the **single source of
 truth** for the register layout; the generated SystemVerilog is committed
 alongside it (under `../rtl/pkg/` and `../tests/lib/`) so the repo is
@@ -56,7 +57,7 @@ the pins in `requirements.txt` deliberately and regenerate in that commit.
 same toolchain) renders the browsable HTML register reference into
 `bld/rdl-html/`: the bare encoder map from `ct_cs_cpuif.rdl` and the example
 SoC's KV260 app map (absolute `devmem` addresses, encoder CSRs included) from
-`../examples/tgc5b_soc/rdl/ct_soc.rdl`.
+`../examples/kv260/common/tgc5b/rdl/ct_soc.rdl`.
 
 ## Conventions
 

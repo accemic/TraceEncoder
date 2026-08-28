@@ -1,0 +1,4 @@
+# file	caps_value	caps_width	minted	head	derivation	reason
+REF_FINAL_caps22_20260804-2123_4ee06f3.txt	0x27ffbf	22	20260804-2123	4ee06f3	recomputed-from-4ee06f3	CAPS 22 -- P3 DF address compression (CT_EN_DF_ADDR_COMPRESS, CAPS bit 21 + reserved 19/20), commit db4211a; delta proven config-message-only (OFF build == REF_
+REF_FINAL_caps23_20260805-1037_a04b37b.txt	0x7fffbf	23	20260805-1037	a04b37b	recomputed-from-a04b37b	CAPS 23 -- P4 Device ID (bit 19) + Watchpoint (bit 20) are real (commit 106de0a, P4 audit condition B-1); the HEAD full profile ALSO carries P7's DF_DROP (bit 2
+REF_FINAL_caps24_20260813-1717_c2a0bdfb13.txt	0x7fffbf	24	20260813-1717	c2a0bdfb13	header	M0 merge 22ee86a3 (aweiss/axis-wp-c0b -> gold-standard): C0b deepens the ACT alignment pipes (PREPROC_DELAY_MAX 20->44, 1023-slot indirect WP table) -- 6 of 31 

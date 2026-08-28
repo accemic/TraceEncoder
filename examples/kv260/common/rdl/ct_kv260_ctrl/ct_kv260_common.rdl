@@ -1,0 +1,116 @@
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// KV260 example-SoC CTRL window: the "core" registers every top implements
+// AHEAD of the shared sink window (ct_kv260_sinks.rdl @ 0x18) -- CONTROL,
+// STATUS, the two trace-ring counters, AXIS_BEATS and TRACE_BUFSZ.
+//
+// Like examples/kv260/common/tgc5b/rdl/ct_soc/ct_ps_ctrl.rdl, this regfile is
+// DOCUMENTATION of a hand-implemented register block: every kv260 top's own
+// AXI4-Lite front-end (the `always_ff` CONTROL/STATUS case in its
+// `*_soc_top.sv`) implements these bits itself, there is no shared RTL
+// module behind CONTROL/STATUS the way there is for the sink window. It is
+// still included in the ONE generated addrmap (ct_kv260_ctrl_periph, see
+// ../ct_kv260_ctrl.rdl) because AS-Entscheid 5 fixes ONE offset scheme for
+// every top, not just the sink registers -- a future top wiring this
+// generated regblock in gets the offsets right by construction instead of
+// copy-pasting a case statement.
+//
+// Measured inventory (examples/kv260/common/rdl/README.md
+// table 1) found ONLY two bits identical in position AND meaning on every
+// one of the nine as-built tops: CONTROL.core_run (b0) and
+// CONTROL.trace_clear (b1); and one bit alike in position and INTENT (the
+// exact set of conditions differs per top) on every top: STATUS bit 0, "the
+// trace ring/buffer has wrapped/overflowed". Every other CONTROL/STATUS bit
+// is top-specific (per-core run bits, console clear, window-guard clear,
+// IRQ generator enable, observation-sticky bits, privilege-level fields,
+// ...) and is therefore modelled here as an undifferentiated `top_*`
+// passthrough field, NOT as named bits -- inventing a shared meaning for
+// bits that mean different things per top (see the CONTROL b2 and STATUS b1
+// collisions in README.md) would misdocument the hardware, which is
+// worse than leaving the field open. Read the owning top's own module
+// header for the bit assignment that top actually implements.
+regfile ct_kv260_common_rf {
+    name = "KV260 example SoC - common CTRL registers (CONTROL..TRACE_BUFSZ)";
+
+    reg {
+        desc = "Board-level control, written over devmem to drive the SoC.
+                Bits 2..31 are top-specific -- see top_ctrl and the owning
+                top's own module header (e.g. b2 is trace_flush on
+                mbv/duo/trio/tgc5b2_axis_wp but con_clear on the
+                cva6_linux/cva6_linux64/rocket_linux/rocket2/cva6_2 family;
+                README.md 'CONTROL b2' finding).";
+        field { sw = rw; hw = r; desc = "0 = hold the core(s) in reset, 1 = run.
+                On multi-core tops this is the COLLECTIVE bit (b0 OR each
+                top's own per-core run bit in top_ctrl); on single-core tops
+                it is the only run bit there is."; }                          core_run[0:0] = 0;
+        field { sw = rw; hw = r; desc = "Level: while set, re-arm the trace
+                capture path (ring, and where present AXIS/sink counters).
+                Universal across every observed top."; }                      trace_clear[1:1] = 0;
+        field { sw = rw; hw = r; desc = "Top-specific control bits (b2..b31):
+                trace_flush, con_clear, win_err_clear, obs_clear,
+                irq_gen_en, per-core run bits (core0_run/core1_run/
+                cva6_run/cva6_run2), etc. -- see the owning top's header.
+                NOT wired to any hardware behaviour by this shared
+                regblock; a future per-top instantiation drives its own
+                subset of these bits itself."; }                              top_ctrl[31:2] = 0;
+    } control @ 0x0;
+
+    reg {
+        desc = "Board-level status (read-only). Bits 1..31 are top-specific
+                -- see top_status and the owning top's own module header
+                (e.g. b1 is axis_overflow on mbv/duo/trio but uram_stopped
+                on the cva6_linux/cva6_linux64/rocket_linux/rocket2/cva6_2
+                family; README.md 'STATUS b1' finding).";
+        field { sw = r; hw = w; desc = "1: the trace ring/capture buffer has
+                wrapped or overflowed at least once since the last
+                trace_clear (naming differs -- trace_wrapped on most tops,
+                trace_overflow on duo/trio/tgc5b2_axis_wp -- the condition
+                is the same: capture continues, nothing stalls, the oldest
+                beats are gone). Universal across every observed top."; }     trace_wrapped[0:0] = 0;
+        field { sw = r; hw = w; desc = "Top-specific status bits (b1..b31):
+                axis_overflow, uram_stopped, win_err_sticky(+_was_write),
+                core_ndreset/core_rst_hold, per-core running mirrors,
+                observation-channel stickies, last-seen privilege level,
+                timer_irq/sw_irq, etc. -- see the owning top's header."; }     top_status[31:1] = 0;
+    } status @ 0x4;
+
+    reg {
+        desc = "ATB beats captured since the last trace_clear (monotonic,
+                does NOT stop at the ring capacity -- read TRACE_BUFSZ for
+                the capacity). Ring write position = TRACE_BEATS %
+                (TRACE_BUFSZ/4). Identical offset and meaning on every
+                observed top.";
+        field { sw = r; hw = w; } value[31:0] = 0;
+    } trace_beats @ 0x8;
+
+    reg {
+        desc = "ATB bytes captured since the last trace_clear (monotonic).
+                Poll delta = live trace bandwidth. Identical offset and
+                meaning on every observed top.";
+        field { sw = r; hw = w; } value[31:0] = 0;
+    } trace_bytes @ 0xC;
+
+    reg {
+        desc = "AXIS instrumentation beats captured (read-only). Populated
+                only on tops with an AXIS capture path (mbv, duo, trio, per
+                README.md); reads 0 on every other top,
+                consistent with the 'outside the window reads 0' convention
+                ct_trace_sinks.sv already establishes for its own CTRL
+                indices. This is the canonical slot for AXIS_BEATS in the
+                unified layout -- see README.md for the per-top
+                offset this displaces (AXIS_BEATS was already at this
+                offset on mbv/duo/trio; TRACE_BUFSZ moves off of it on the
+                tops that used to park it here, see @0x14 below).";
+        field { sw = r; hw = w; } value[31:0] = 0;
+    } axis_beats @ 0x10;
+
+    reg {
+        desc = "Trace ring capacity in bytes (read-only; TRACE_DEPTH * 4).
+                Identical MEANING on every observed top; this is the
+                canonical offset (0x10 TRACE_BUFSZ on six of the nine
+                tops already; AXIS_BEATS moves off of 0x10 on the other
+                three -- see README.md).";
+        field { sw = r; hw = w; } value[31:0] = 0;
+    } trace_bufsz @ 0x14;
+};

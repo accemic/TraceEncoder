@@ -1,9 +1,9 @@
-// -*- indent-tabs-mode:t; tab-width:4 -*-
-// vim: tabstop=4:noexpandtab
+// SPDX-FileCopyrightText: 2024 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
+// -*- indent-tabs-mode: t; tab-width: 4 -*-
 /**
- * Copyright (c) 2024 by Accemic Technologies GmbH Kiefersfelden Germany
- * SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
- *
  * @brief   Wishbone to PeakRDL CPUIF Passthrough Bridge
  * @note    Supports both combinatorial and sequential implementations
  *          Select via IMPLEMENTATION parameter: "COMB" or "SEQ"
@@ -12,9 +12,9 @@
  */
 
 module wb_to_cpuif #(
-	parameter int ADDR_WIDTH = 32,
-	parameter int DATA_WIDTH = 32,
-	parameter string IMPLEMENTATION = "SEQ"  // "COMB" or "SEQ"
+	parameter int    ADDR_WIDTH     = 32,
+	parameter int    DATA_WIDTH     = 32,
+	parameter string IMPLEMENTATION = "SEQ" // "COMB" or "SEQ"
 )
 (
 	input uwire logic                   clk,        // Required for SEQ, unused for COMB

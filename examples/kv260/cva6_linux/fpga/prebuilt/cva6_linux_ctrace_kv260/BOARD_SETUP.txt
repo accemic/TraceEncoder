@@ -1,0 +1,8 @@
+ONE-TIME BOARD SETUP for Linux-payload apps (cva6_linux_ctrace_kv260)
+The soft core boots from a reserved PS-DDR window. Apply ctrace_resmem.dtso to the
+BOOT devicetree once per board (needs a reboot), e.g. on the KV260 Ubuntu image:
+  dtc -@ -I dts -O dtb -o ctrace_resmem.dtbo ctrace_resmem.dtso
+  # merge into the boot DT / user-override.dtb per your image's overlay mechanism, reboot,
+  ls /sys/firmware/devicetree/base/reserved-memory/   # must list ctrace-pl-ddr@...
+The runtime overlay cva6_linux_ctrace_kv260.dtso (xmutil loadapp) does NOT do this. Board driver:
+examples/kv260/cva6_linux/board/cva6_linux_boot_trace.sh in Accemic/TraceEncoder.

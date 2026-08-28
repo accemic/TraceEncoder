@@ -1,0 +1,80 @@
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: ISC
+//
+// BOOT-TIME device-tree overlay: reserves the PL DDR window
+// 0x5000_0000..0x6FFF_FFFF (512 MiB, address plan v4) for
+//   0x5000_0000 +256 MiB  ct_soc_ddr_sink -- since U6 (2026-08-15) the
+//                         DDR_BASE/DDR_SIZE reset of ALL ct_trace_sinks designs
+//                         (tgc5b2_axis, duo, trio), and still the one used by
+//                         rocket2. AW: "one central DDR4 implementation is
+//                         better than several different ones."
+//   0x6000_0000  +64 MiB  CLEARANCE -- and at the same time the OLD trace
+//                         window, which only the tops with their OWN sink
+//                         wiring (rocket_soc_top, cva6_2, cva6_linux*) still
+//                         run as a reset default, until they move over to
+//                         ct_trace_sinks
+//   0x6400_0000 +192 MiB  guest code/data  (CVA6 boot_addr / Rocket PS_BASE)
+//
+// RAISED 256 -> 512 MiB on 2026-08-10 (AW: "trace memory 256 MB, otherwise the
+// write pointer slides through it that fast"). Measured: at 29.7 MB/s a 64 MiB
+// window wraps every 2.3 s, a 256 MiB window every 9.0 s. The encoder lever is
+// NO help here -- InstSyncMax 6 -> 15 (factor 512 on the synchronization
+// period) moves the byte rate by 0.3 %
+// (docs/handoffs/C1_sink_overrun.md §3.5).
+//
+// WHY DOWNWARDS AND NOT UPWARDS: cacheable memory above 0x6800_0000 is taken by
+// the board, with an outage within ~5 s (D2/CVA6_PIN D5). Placing the guest
+// higher would run straight into it. Downwards costs host memory only
+// (3647 -> ~3391 MB), and the guest stays where it is: load path, payload,
+// PS_BASE and WIN_SIZE stay unchanged.
+//
+// THE CHANGE IS STRICTLY ADDITIVE. The old window 0x6000_0000 +64 MiB is still
+// inside the reservation, it is merely no longer written. Every app sitting on
+// the old reset default keeps running unchanged -- and the block that came free
+// is exactly the clearance that was missing so far: trace window and guest used
+// to butt against each other without a single byte in between (0x6000_0000 +
+// 64 MiB == 0x6400_0000 == guest base).
+//
+// ⚠ TAKES EFFECT ONLY AFTER A REBOOT. reserved-memory is a
+// boot-time reservation (memblock); without the reboot
+// 0x5000_0000..0x5FFF_FFFF still belongs to the Ubuntu kernel (`/proc/iomem`:
+// "00000000-5fffffff : System RAM"). A sink writing there at 29.7 MB/s without
+// the reservation corrupts the HOST instead of the guest.
+// rocket2_linux_run.sh therefore checks this against the LIVE device tree
+// BEFORE arming, and refuses otherwise (function ddr_window_setup).
+//
+// Raised 128 -> 256 MiB on 2026-07-26 (PLAN_cva6_linux_ctrace L6): the CVA6 is
+// meant to boot Linux, and 64 MiB is not enough for that -- OpenSBI + kernel +
+// the embedded Busybox initramfs (38.6 MB compressed, considerably more once
+// unpacked) need working memory. 192 MiB is the ceiling reachable without a new
+// collision: 0x6FFF_FFFF still sits below the u-boot ramdisk zone
+// (~0x75fd_0000) that was the undoing of plan v1.
+// as seen by the Ubuntu kernel (no-map: the kernel never touches the region).
+// Address plan v2 (C6 finding 2026-07-24): the original upper low-DDR end
+// 0x7800_0000 collides with the u-boot staging (ramdisk relocation ended at
+// 0x78ff_fee2) -> "reserving fdt memory region failed". 0x6000_0000 sits
+// safely between FIT staging (~0x1500_0000) and ramdisk zone (~0x75fd_0000).
+//
+// IMPORTANT: reserved-memory only takes effect at BOOT time (memblock). This
+// overlay must therefore NOT arrive (only) via `xmutil loadapp` (runtime
+// configfs overlay) -- it has to be in the boot device tree, see
+// docs/SPEC_board_memory_map.md (section on applying it to the board). The app
+// overlay mbv_ctrace_kv260.dtso is unaffected by this.
+//
+// Compile: dtc -@ -I dts -O dtb -o ctrace_resmem.dtbo ctrace_resmem.dtso
+
+/dts-v1/;
+/plugin/;
+
+&{/} {
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		ctrace_pl_ddr: ctrace-pl-ddr@50000000 {
+			reg = <0x0 0x50000000 0x0 0x20000000>;
+			no-map;
+		};
+	};
+};

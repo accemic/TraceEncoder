@@ -1,0 +1,361 @@
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// -----------------------------------------------------------------------------
+// Register model of the RV/CFI demo (tgc5b2_rvcfi): two TGC5B cores, one CTTE
+// encoder each, the shared memory they race over, the ACT-CAP doorbells, the
+// per-core consoles, and the two DDR record rings.
+//
+// Three address maps are described below:
+//
+//   tgc5b2_rvcfi_soc_top  the 22-bit aperture decoded by the SoC top
+//                         (CTRL / ENC0 / ENC1 / SHARED / RAM1 / RAM0 / TRACE).
+//   tgc5b2_rvcfi_kv260_top  the bitstream top: that SoC at 0xA000_0000 behind
+//                         the 1:4 AXI4-Lite router, next to WPCTRL and the two
+//                         axi_fifo_mm_s instances.
+//   ct_rvcfi_core_view    what a RISC-V core sees (the same shared memory from
+//                         both sides, plus its own doorbell) -- the one map
+//                         that is NOT reachable from the PS.
+//
+// WHY THIS FILE EXISTS, AND WHAT IT IS NOT
+// ----------------------------------------
+// The CTRL block of this demo is HAND-WRITTEN RTL, like every other KV260
+// example's: only the encoder CSRs are RDL-generated (`ct_cs_cpuif.rdl`, via
+// -I). Nothing here generates hardware. It exists so the demo's register map
+// is readable in ONE place -- and because this demo grew three register banks
+// of its own (observation 0x40, console 0x60, record rings 0x80/0xA0) that no
+// shared model covers: `examples/kv260/common/rdl/ct_kv260_ctrl.rdl` stops at
+// 0x38 by design (its README, layout decision D4: everything at CTRL >= 0x3C
+// is each top's own business).
+//
+// Keep in sync with:
+//   rtl/tgc5b2_rvcfi_soc_top.sv    (@details "Address map", "CTRL", the banks)
+//   fpga/tgc5b2_rvcfi_kv260_top.sv (router table + the WPCTRL read case)
+//   board/rvmon/rvmon.h            (the host's copy of these offsets)
+//   TUTORIAL_runtime_verification.md section 10c (the ring contract)
+//
+// As-built date: 2026-08-27, measured against the sources above after the N3
+// (DDR record ring) package landed.
+// -----------------------------------------------------------------------------
+
+`include "ct_cs_cpuif.rdl"
+
+// --- CTRL 0x00..0x14: core start/stop and ring accounting --------------------
+// Same first five registers as every other KV260 example (the common model's
+// D1 assignment: TRACE_BUFSZ at 0x10, no AXIS_BEATS -- this demo's records
+// leave through the shims, not through an AXIS capture window).
+regfile rvcfi_ctrl_common_rf {
+    name = "tgc5b2_rvcfi_soc_top control / status";
+
+    reg {
+        desc = "Control register, written over devmem. The two cores have
+                nothing to do with each other -- own RAM, own CLINT, own
+                encoder, no SMP. Effective run state of core i is
+                core_run OR core_i_run.
+
+                LOADER CONTRACT, PER CORE: only write RAM_i while core_i_run
+                (and core_run) are 0. An access to a RUNNING core's RAM never
+                gets ready and hangs the transaction.
+
+                SHARED-MEMORY CONTRACT: the PS window onto SHARED is muxed
+                away while EITHER core runs. Publish the control area and open
+                the barrier BEFORE the release; a write afterwards never gets
+                ready.";
+        field { sw = rw; hw = r; desc = "Collective bit: run BOTH cores.";        } core_run[0:0] = 0;
+        field { sw = rw; hw = r; desc = "Level: while set, re-arm the ATB ring."; } trace_clear[1:1] = 0;
+        field { sw = rw; hw = r; desc = "Request a global funnel flush.";         } trace_flush[2:2] = 0;
+        field { sw = rw; hw = r; desc = "Run core 0 individually.";               } core0_run[8:8] = 0;
+        field { sw = rw; hw = r; desc = "Run core 1 individually.";               } core1_run[9:9] = 0;
+    } control @ 0x0;
+
+    reg {
+        desc = "Status register. Cleared by trace_clear.";
+        field { sw = r; hw = w; desc = "ATB ring wrapped -- capture truncated."; } trace_overflow[0:0] = 0;
+        field { sw = r; hw = w; desc = "Core 0 running (effective state).";      } core0_running[8:8] = 0;
+        field { sw = r; hw = w; desc = "Core 1 running (effective state).";      } core1_running[9:9] = 0;
+    } status @ 0x4;
+
+    reg { desc = "Merged ATB beats captured into the ring (one 32-bit word per beat).";
+          field { sw = r; hw = w; } value[31:0] = 0; } trace_beats @ 0x8;
+    reg { desc = "Valid ATB bytes captured. Only the last beat can be partial.";
+          field { sw = r; hw = w; } value[31:0] = 0; } trace_bytes @ 0xC;
+    reg { desc = "ATB ring capacity in bytes (TRACE_DEPTH * 4).";
+          field { sw = r; hw = w; } value[31:0] = 0; } trace_bufsz @ 0x10;
+};
+
+// --- CTRL 0x40..0x5C: RV/CFI observation bank (read-only) --------------------
+// Three counters at three points of the SAME path. Together with the shim's
+// drop counter they separate three failure modes that otherwise all look like
+// "records are missing": the program never instrumented (DBx_HITS flat), the
+// conversion did not happen (ACTCAPx flat while DBx_HITS rises), or the record
+// was dropped downstream (both rise, records missing).
+//
+// Writes into this bank are ignored and must NOT reach CONTROL or the sink
+// window -- offset 0x40 differs from CONTROL in address bit 6 only, and an
+// alias there would start both cores by accident.
+regfile rvcfi_obs_rf {
+    name = "RV/CFI observation bank";
+
+    reg { desc = "Doorbell stores accepted, core 0 (saturating).";
+          field { sw = r; hw = w; } value[31:0] = 0; } db0_hits @ 0x0;
+    reg { desc = "Last ACT-CAP command word written by core 0.";
+          field { sw = r; hw = w; } value[31:0] = 0; } db0_last @ 0x4;
+    reg { desc = "Doorbell stores accepted, core 1 (saturating).";
+          field { sw = r; hw = w; } value[31:0] = 0; } db1_hits @ 0x8;
+    reg { desc = "Last ACT-CAP command word written by core 1.";
+          field { sw = r; hw = w; } value[31:0] = 0; } db1_last @ 0xC;
+    reg { desc = "TIP beats CONVERTED into ACT-CAP by the adapter, core 0.";
+          field { sw = r; hw = w; } value[31:0] = 0; } actcap0 @ 0x10;
+    reg { desc = "TIP beats CONVERTED into ACT-CAP by the adapter, core 1.";
+          field { sw = r; hw = w; } value[31:0] = 0; } actcap1 @ 0x14;
+    reg { desc = "Shared memory size in bytes (SHARED_KIB * 1024).";
+          field { sw = r; hw = w; } value[31:0] = 0; } shared_sz @ 0x18;
+    reg { desc = "0x5256_4349 (\"RVCI\"). The probe that says THIS design is
+                  in the PL -- an app listed by xmutil is not evidence.";
+          field { sw = r; hw = w; } value[31:0] = 0x52564349; } magic @ 0x1C;
+};
+
+// --- CTRL 0x60..0x78: per-core console (N1) ----------------------------------
+// A character channel per core, 2 KiB FIFO each direction. Reading POP has a
+// SIDE EFFECT (it pops the core's TX FIFO), which is why bit 31 carries the
+// valid flag instead of the reader having to poll a count first.
+regfile rvcfi_console_rf {
+    name = "Per-core console";
+
+    reg {
+        desc = "Core 0 console status.";
+        field { sw = r; hw = w; desc = "Bytes waiting in the core's TX FIFO."; } tx_cnt[31:16] = 0;
+        field { sw = r; hw = w; desc = "Free space in the core's RX FIFO.";    } rx_free[15:0] = 0;
+    } con0_stat @ 0x0;
+    reg {
+        desc = "Core 0 TX pop. READING THIS REGISTER POPS one character.";
+        field { sw = r; hw = w; desc = "1: data valid -- 0: FIFO was empty."; } valid[31:31] = 0;
+        field { sw = r; hw = w; desc = "The popped character.";               } data[7:0] = 0;
+    } con0_pop @ 0x4;
+    reg {
+        desc = "Core 0: WRITE pushes one character into the core's RX FIFO;
+                READ returns the RX overflow counter (pushes dropped because
+                the FIFO was full -- counted, never silent).";
+        field { sw = rw; hw = r; } value[31:0] = 0;
+    } con0_push_drops @ 0x8;
+
+    reg {
+        desc = "Core 1 console status.";
+        field { sw = r; hw = w; desc = "Bytes waiting in the core's TX FIFO."; } tx_cnt[31:16] = 0;
+        field { sw = r; hw = w; desc = "Free space in the core's RX FIFO.";    } rx_free[15:0] = 0;
+    } con1_stat @ 0x10;
+    reg {
+        desc = "Core 1 TX pop. READING THIS REGISTER POPS one character.";
+        field { sw = r; hw = w; desc = "1: data valid -- 0: FIFO was empty."; } valid[31:31] = 0;
+        field { sw = r; hw = w; desc = "The popped character.";               } data[7:0] = 0;
+    } con1_pop @ 0x14;
+    reg {
+        desc = "Core 1: WRITE pushes into RX; READ returns the RX overflow count.";
+        field { sw = rw; hw = r; } value[31:0] = 0;
+    } con1_push_drops @ 0x18;
+};
+
+// --- CTRL 0x80 / 0xA0: DDR record ring, one bank per core (N3) ---------------
+// Each core's record stream goes EITHER to its MM-FIFO (route_ddr = 0, the
+// default and the pre-N3 behaviour) OR into a 128-MiB ring in the reserved
+// DDR window. In ring mode the shim sees an always-ready consumer, so the
+// "host drains too slowly" loss mode is structurally gone.
+//
+// THE WARL WINDOW IS NOT PEDANTRY. An AXI write outside the reservation on
+// S_AXI_HP does not return an error on this PS -- it wedges the interconnect
+// until the power switch (measured on this board family). base/size are
+// therefore checked in hardware, and a rejected write latches cfg_rej instead
+// of half-taking effect.
+regfile rvcfi_ring_rf {
+    name = "DDR record ring (one instance per core)";
+
+    reg {
+        desc = "Ring control. Switch the route only with the cores stopped and
+                a clear pulse issued -- a mid-record switch tears one record
+                across the two consumers.";
+        field { sw = rw; hw = r; desc = "Enable the sink.";                        } en[0:0] = 0;
+        field { sw = rw; hw = r; desc = "Write-1 pulse: clear wptr/stat/beats.
+                                         Use while en = 0.";                       } clear[1:1] = 0;
+        field { sw = rw; hw = r; desc = "1: circular (wrap) -- 0: one shot.";       } circ[2:2] = 1;
+        field { sw = rw; hw = r; desc = "1: records go to the ring -- 0: to the
+                                         MM-FIFO (default, pre-N3 behaviour).";    } route_ddr[3:3] = 0;
+    } ring_ctrl @ 0x0;
+
+    reg {
+        desc = "Ring base address. WARL: 32-byte aligned and inside
+                [0x5000_0000, 0x6000_0000); writes while en = 1 are rejected
+                and set cfg_rej. Reset: 0x5000_0000 (core 0) / 0x5800_0000
+                (core 1) -- the two halves of the 256-MiB reserved window.";
+        field { sw = rw; hw = r; } value[31:0] = 0x50000000;
+    } ring_base @ 0x4;
+
+    reg {
+        desc = "Ring size in bytes. WARL: multiple of 32, non-zero, and
+                base + size within the window (an exact fit at the window end
+                is legal); writes while en = 1 are rejected. Reset: 128 MiB.";
+        field { sw = rw; hw = r; } value[31:0] = 0x08000000;
+    } ring_size @ 0x8;
+
+    reg {
+        desc = "TOTAL bytes written, monotonic -- NOT an offset. The write
+                offset is wptr % size; when wrapped, the oldest record starts
+                there and the host re-orders [off..size) ++ [0..off).";
+        field { sw = r; hw = w; } value[31:0] = 0;
+    } ring_wptr @ 0xC;
+
+    reg {
+        desc = "Ring status.";
+        field { sw = r; hw = w; desc = "One-shot mode only: buffer full.";        } full[0:0] = 0;
+        field { sw = r; hw = w; desc = "Sticky: a write response was not OKAY."; } axi_err[1:1] = 0;
+        field { sw = r; hw = w; desc = "Circular mode: wrapped at least once.";  } wrapped[2:2] = 0;
+        field { sw = r; hw = w; desc = "Sticky: a base/size write was rejected
+                                        (illegal value, or arrived while
+                                        enabled). Cleared by the clear pulse."; } cfg_rej[3:3] = 0;
+    } ring_stat @ 0x10;
+
+    reg {
+        desc = "Records the sink itself had to drop (its FIFO was full),
+                saturating. At record rates this must stay 0 -- the bench and
+                rvmon both treat any nonzero value as a failed run.";
+        field { sw = r; hw = w; } value[31:0] = 0;
+    } ring_drops @ 0x14;
+
+    reg {
+        desc = "Words offered to the sink while enabled: the proof that the
+                feed reaches it at all. wptr = 4 * beats in a healthy run.
+                Cleared by the clear pulse.";
+        field { sw = r; hw = w; } value[31:0] = 0;
+    } ring_beats @ 0x18;
+};
+
+// --- The SoC aperture ---------------------------------------------------------
+addrmap tgc5b2_rvcfi_soc_top {
+    name = "RV/CFI demo SoC (22-bit AXI4-Lite aperture)";
+    desc = "Two TGC5B cores with one CTTE encoder each, a shared memory, the
+            merged ATB ring, and the RV/CFI banks. Hand-written decode in
+            rtl/tgc5b2_rvcfi_soc_top.sv; only the ENC windows are generated.";
+
+    rvcfi_ctrl_common_rf  ctrl        @ 0x00_0000;
+    // The sink window at CTRL 0x18..0x38 is `ct_trace_sinks` (see
+    // ../../common/rdl/ct_kv260_ctrl/ct_kv260_sinks.rdl for its register
+    // model). In THIS demo the module is parameterized EN_DDR = 0: the ATB
+    // observer leg is compiled away, because the reserved DDR window belongs
+    // to the two record rings above. Its DDR_* fields read 0 and ddr_en /
+    // ddr_circ are write-masked; the URAM ring and PIB behave as elsewhere.
+    rvcfi_obs_rf          obs         @ 0x00_0040;
+    rvcfi_console_rf      console     @ 0x00_0060;
+    rvcfi_ring_rf         ring0       @ 0x00_0080;
+    rvcfi_ring_rf         ring1       @ 0x00_00A0;
+
+    ct_cs_cpuif           enc0        @ 0x01_0000;
+    ct_cs_cpuif           enc1        @ 0x02_0000;
+
+    external mem {
+        name = "Shared memory (RV/CFI)";
+        desc = "The memory both programs race over. UltraRAM: no bitstream
+                initialization, and NO byte-write enables -- a partial strobe
+                is refused (SLVERR at the block), so every write is a whole
+                word. One 32-bit word per address, deliberately: two words per
+                URAM row would collide exactly on Peterson's flag pair.
+
+                Reachable from the PS ONLY while both cores are held.";
+        mementries = 65536;      // SHARED_KIB = 256 -> 64 Ki words
+        memwidth   = 32;
+    } shared @ 0x04_0000;
+
+    external mem {
+        name = "TGC5B-1 program/data RAM";
+        desc = "Load only while core1_run = 0 (loader contract).";
+        mementries = 16384; memwidth = 32;
+    } ram1 @ 0x08_0000;
+
+    external mem {
+        name = "TGC5B-0 program/data RAM";
+        desc = "Load only while core0_run = 0 (loader contract).";
+        mementries = 16384; memwidth = 32;
+    } ram0 @ 0x10_0000;
+
+    external mem {
+        name = "Merged ATB ring";
+        desc = "Both encoders' ATB streams after the funnel. Read-only; a
+                write is ignored. mementries mirrors TRACE_DEPTH.";
+        mementries = 262144; memwidth = 32;
+    } trace @ 0x20_0000;
+};
+
+// --- What a RISC-V core sees --------------------------------------------------
+// Deliberately a separate map: these addresses do NOT exist for the PS, and
+// the doorbell in particular is a CORE-side address. Deviation (d)/(e) of
+// tgc5b_rvcfi_synth_wrap.
+addrmap ct_rvcfi_core_view {
+    name = "Core-side map (identical for both cores)";
+
+    external mem { name = "Own program/data RAM";
+                   mementries = 16384; memwidth = 32; } ram @ 0x0000_0000;
+    external mem { name = "Own CLINT / INTC";
+                   mementries = 16384; memwidth = 32; } periph @ 0x1000_0000;
+    ct_cs_cpuif  encoder @ 0x2000_0000;
+    external mem { name = "Shared memory -- the SAME view from both cores";
+                   mementries = 65536; memwidth = 32; } shared @ 0x3000_0000;
+
+    reg {
+        name = "ACT-CAP doorbell";
+        desc = "One store here becomes the CSR-write beat ACT-CAP decodes:
+                the adapter turns the store into a TIP beat carrying this
+                word, which is how software emits a RUNTIME payload at all.
+
+                Layout from the encoder's RDL (trActCapStCmd):
+                [5:0] Cmd, [7:6] Sink, [31:8] DirectData (the 24-bit tag).
+
+                CONTRACT: leave a few uninstrumented instruction slots after
+                the store. If an ACT-ST site retires while the doorbell beat
+                lands, the encoder's instrumentation processor gives ACT-ST
+                priority and DROPS this command (upstream property of
+                ct_L23_preproc_act_proc). Measured: 42 of 42 commands lost
+                without the padding, 0 of 42 with it.";
+        field { sw = w; hw = r; desc = "Command word (see trActCapStCmd)."; } cmd[31:0] = 0;
+    } actcap_doorbell @ 0x4000_0000;
+};
+
+// --- The bitstream top --------------------------------------------------------
+addrmap tgc5b2_rvcfi_kv260_top {
+    name = "RV/CFI demo, KV260 bitstream top";
+    desc = "The SoC behind the 1:4 AXI4-Lite router, plus the shim status
+            block and the two PG080 FIFOs the records are drained from in
+            FIFO mode. Router select bits: address [17:16] within the 4 MiB
+            region above the SoC.";
+
+    tgc5b2_rvcfi_soc_top soc @ 0xA000_0000;
+
+    regfile {
+        name = "WPCTRL -- watchpoint shim status";
+        desc = "Per-shim record accounting. The drop counters are CUMULATIVE
+                since bitstream load and have no clear register on purpose (a
+                counter that can be cleared can be cleared by accident): a run
+                is judged by the DELTA over its own window.";
+        reg { desc = "Shim 0: records dropped because its FIFO was full.";
+              field { sw = r; hw = w; } value[31:0] = 0; } shim0_drops @ 0x04;
+        reg { desc = "Shim 0: current FIFO occupancy (watch it approach the depth).";
+              field { sw = r; hw = w; } value[31:0] = 0; } shim0_fill @ 0x08;
+        reg { desc = "Shim 0: sticky 'it overflowed at least once'.";
+              field { sw = r; hw = w; } value[31:0] = 0; } shim0_overflow @ 0x0C;
+        reg { desc = "Shim 1: records dropped because its FIFO was full.";
+              field { sw = r; hw = w; } value[31:0] = 0; } shim1_drops @ 0x10;
+        reg { desc = "Shim 1: current FIFO occupancy.";
+              field { sw = r; hw = w; } value[31:0] = 0; } shim1_fill @ 0x14;
+        reg { desc = "Shim 1: sticky overflow flag.";
+              field { sw = r; hw = w; } value[31:0] = 0; } shim1_overflow @ 0x18;
+    } wpctrl @ 0xA040_0000;
+
+    external mem {
+        name = "axi_fifo_mm_s 0 (PG080 lite register set)";
+        desc = "Core 0's record FIFO in FIFO mode. Idle when that core's
+                ring_ctrl.route_ddr is set.";
+        mementries = 16384; memwidth = 32;
+    } fifo0 @ 0xA041_0000;
+
+    external mem {
+        name = "axi_fifo_mm_s 1 (PG080 lite register set)";
+        mementries = 16384; memwidth = 32;
+    } fifo1 @ 0xA042_0000;
+};

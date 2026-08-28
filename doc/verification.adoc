@@ -3,25 +3,76 @@
 
 = Verification — test harness and checking principle
 
+NOTE: The product name is *CEDARtools.TraceEncoder*, abbreviated *CTTE*.
+The earlier name *C-Trace* is retired from prose; it survives only in the
+`ct_*` identifier prefix (the IP's public API), in board- and
+bundle-visible names (`*_ctrace_kv260`, `ctrace_resmem.dtso`,
+`ctrace-pl-ddr`, the `mbv_ctrace_soc` block design) and in recorded
+captures and evidence files, which are raw data with published checksums.
+See the naming note in the README.
+
 A scripted CPU model is **both the stimulus and the answer key**: it
 drives the encoder's instruction input *and* records what it executed.
 The encoder turns that into an N-Trace byte stream; an independent
-reference decoder (NexRv) turns the bytes back into a trace, which is
+reference decoder (CTTD, see below) turns the bytes back into a trace, which is
 compared to what the model recorded. If the encoder mangles the trace,
 the reconstruction won't match — and the check fails.
 
 == The loop
 
-image::images/verification-loop.drawio.png[Verification loop — cpu_model drives the encoder and records what it ran; NexRv reconstructs the trace from the captured bytes; the decoded and expected streams are compared,width=900]
+image::images/verification-loop.drawio.png[Verification loop — cpu_model drives the encoder and records what it ran; CTTD reconstructs the trace from the captured bytes; the decoded and expected streams are compared,width=900]
 
-NexRv reconstructs two views from the bytes: the **PC stream**
+CTTD reconstructs two views from the bytes: the **PC stream**
 (instruction trace) and the
-https://github.com/accemic/C-Trace-eXPort-format[**CTXP**] export —
-C-Trace eXPort records for
+https://github.com/accemic/CTXP-format[**CTXP**] export —
+CTTE eXPort records for
 control flow (`SYNC`, `BRANCH_*`, `CALL`, `RETURN`), memory accesses
 (`MEMREAD_n` / `MEMWRITE_n`, with the data value) and instrumentation
 (`DAQ_*`). The `cpu_model` emits the matching expected files, and each is
 compared.
+
+[#gate-falsifiability]
+== What makes a check a gate
+
+A passing check proves nothing by itself; what makes it evidence is that
+it *would have failed*. **A gate that cannot turn red for its own defect
+class is not a gate** — it is a green light with no lamp behind it. Every
+mechanism in this document therefore carries the counterpart that turns
+it red, in one of four shapes:
+
+Historical counter-proof:: the check is run against a git worktree of the
+pre-fix commit and must fail there. Used wherever the defect class really
+occurred — the two 2026-08 emission-core classes are red at a named BMC
+step on their pre-fix trees, and `RED=1` runs those legs
+(<<formal-gates>>).
+
+Mutation counter-proof:: where no historical defect commit exists, the
+check is run against a deliberately broken copy: a wrong end-of-message
+code, a suppressed EOM, a context cast narrowed back to its old width, a
+filter made ineffective, one instruction shifted by two bytes in a
+listing. Per formal target this is `run_red.sh`; for the script gates it
+is `MUTATE=1` or an explicit `-ExpectFail` leg.
+
+Vacuity leg:: an implication whose antecedent never occurs is green for
+free. Assertions of that shape need a scenario in which the antecedent
+demonstrably holds — I10 has one (a run that really raises two DAQ slots),
+and without it the invariant would cost nothing and prove nothing.
+
+Reachability:: a check nobody runs is not a check. Three instances are
+recorded in this document rather than quietly fixed, because the class
+keeps coming back: a bound checker whose counter was too narrow to
+*represent* the violation it guards; assertion failures that xsim writes
+only into a log the scripts silence (now scanned, see
+<<in-rtl-invariants>>); and the reference decoder's own five test
+runners, which were wired into no pipeline at all (<<ci-stages>>). The
+sibling SoC project contributed two more of the same shape in the same
+month — a disassembly sniff blind to an instruction alias, and an
+instruction counter blind to compressed instructions.
+
+The fourth shape is the one that is easiest to miss in review, because
+the check looks present and reports success. The question to ask of any
+gate below is therefore not "does it pass" but "what was done to make it
+fail".
 
 == Components
 
@@ -35,23 +86,114 @@ link:../tests/lib/cpu_model.sv[`tests/lib/cpu_model.sv`]
 is both the stimulus and the reference. The `ct_env` harness wires it
 to the DUT and the trace sinks.
 
-| `NexRv` +
-link:../bin/NexRv[`bin/NexRv`]
-| The RISC-V N-Trace reference decoder, independent of CEDARtools.TraceEncoder. Vendored
-as a binary.
+| CTTD (CEDARtools.TraceDecoder) +
+link:../scripts/fetch_cttd.py[`scripts/fetch_cttd.py`] → `bin/cttd-<platform>`
+| The reference decoder for the RISC-V N-Trace stream — a *second,
+independent implementation* of the wire format, not a CTTE component.
+Derived from the RISC-V Nexus Trace TG reference decoder NexRv (ISC) and
+extended by Accemic (E-Trace `-decoe`, DAQ, multi-target `-target`, CTXP
+export). Since 2026-08-17 it is **no longer committed**: `scripts/cttd.pin`
+names the release and the sha256 per platform, `fetch_cttd.py` downloads it
+from the CTTD GitHub release assets (`base_url` in the pin file) into
+the gitignored `bin/`, and a checksum mismatch is a hard error.
+Which build is pinned and why is the pin file plus the CTTD changelog; see
+<<decoder-pin>> for why that record is part of the verification argument.
+
+| CTTD's own regression runners
+| The decoder repository ships five runners of its own — `run_etrace_ctxp`,
+`run_callstack`, `run_ctxswitch`, `run_reserved_tcode`, `run_addr64` —
+collected behind one exit code in its `tests/run_all.sh`. They run
+when `NEXRV_SRC` points at a decoder source tree; a plain
+clone of *this* repository has none, so the step reports `SKIP` there
+(see <<ci-stages>>).
 
 | `decode_and_check.sh` +
 link:../scripts/decode_and_check.sh[`scripts/decode_and_check.sh`]
-| Runs NexRv on the captured `.atb.bin` and compares against the
+| Runs CTTD on the captured `.atb.bin` and compares against the
 expected files. Check flags: `--pc` (PC stream), `--ctxp` (CTXP records —
 memory accesses *with data values* and DAQ instrumentation), `--data`
 (loads/stores, address + size only), `--sync N` (at least N sync
-messages), `--hist N` (at least N branch-history messages — guards against
-a config that degrades to sync-only), `--disabled` (trace-off correlation
-message), `--overflow` (an Error/QueueOverrun message must be present),
-`--tsmono` (the reconstructed absolute timestamps are monotonic), `--soft`
-(report divergence but do not fail).
+messages), `--disabled` (trace-off correlation message), `--overflow`
+(an Error/QueueOverrun message must be present), `--soft` (report
+divergence but do not fail). +
+ +
+It also fixes one decoder *policy* for the whole regression suite: the
+decode runs with `-csstrict`, the strict reading of the return-address
+mirror. A scripted `cpu_model` never switches task, so a mirror
+mismatch there is a defect and must be fatal. A test that legitimately
+switches context sets `NEXRV_CS_LENIENT=1` and gets the lenient
+reading instead — see <<decoder-pin>>.
 |===
+
+[#decoder-pin]
+== The reference decoder is a gate input, not a given
+
+Every PASS in this suite is a statement about *two* implementations: the
+encoder wrote the bytes and the decoder read them back. That makes the
+decoder binary a measuring instrument, and a measuring instrument has to
+be verified before its readings are believed. Concretely: **changing the
+pin changes every gate in the repository**, so a re-pin is treated like
+a wire-format change — it is only accepted with evidence, and the
+evidence is recorded with the pin bump (`scripts/cttd.pin` commit message
+naming what changed in CTTD and which verdicts here move) and in the CTTD
+repository's changelog, not in an unrelated commit message.
+
+The evidence a re-pin has to carry:
+
+* **the defect it removes**, reproduced on the *old* binary with the
+  same input — not argued from source reading;
+* **byte neutrality on everything that already passed**: the old and
+  the new binary are run over the frozen corpora and every output is
+  compared, including the `-full` log and the exit code, not just the
+  PC list;
+* **its price**, measured. A decoder change that removes an abort also
+  removes whatever that abort happened to catch.
+
+Two re-pins in 2026-08 show what that looks like in practice.
+
+*64-bit addresses (and then: one width per source).* The decoder in the
+tree could not decode a 64-bit address at all — on an Sv39 kernel window
+it truncated to the low 32 bits, printed `0x00000000` and exited 9.
+Every RV64 gate run against it would therefore have been not merely
+weaker but meaningless. The replacement derives its output width from
+CAPS bit 23 (`ADDR64`) in the configuration message rather than from a
+CLI switch, and mirrors the widened jump-target-cache fold of
+`rtl/ct_L2_msg_gen.sv`. On 32-bit streams it was shown byte-identical to
+the binary it replaced across 525 of 525 artefacts. Its immediate
+successor fixed the follow-on defect that the first one had: the width
+lived in a process-global flag while the rest of the decode state was
+per target, so in a funnel stream one RV64 source switched the printed
+width of the RV32 sources as well (guard `run_addr64`: PASS=16 FAIL=6
+before, PASS=22 FAIL=0 after; 440 of 440 artefacts unchanged at 32 bit).
+
+*A context switch is not a decoder error.* The return-address mirror the
+decoder keeps for implicit-return compression predicts where a `ret`
+goes. When a preemptive kernel schedules a different task, the
+prediction is wrong *and the stream is right* — the target is carried
+explicitly. The pinned decoder treated that as fatal, so **any
+multitasking kernel was decodable only up to its first context switch**.
+The current pin reports a visible re-anchor instead and keeps decoding;
+on the same recorded board stream that moves the decode from 34 537
+instructions plus an abort to 818 663 instructions with `Decoded OK` and
+zero error messages.
+
+The price of that change was measured rather than assumed: a one-byte
+mutation sweep over 40 cases is detected 25 times by the new binary and
+27 times by the old one. The two lost detections are `UADDR` flips at
+returns that the strict mirror caught by accident. The counter-measure
+is the `-csstrict` default described above — it restores the old
+detection strength for the scripted suite and was shown byte-free on all
+56 corpora, so the regression path loses nothing while a real kernel
+stream can still be decoded.
+
+CAUTION: the general rule behind this section is worth stating on its
+own, because it applies to every tool in a verification chain: *a gate
+that can only fail together with its own tool judges nothing.* It is why
+the 64-bit emission gate `instruction/35_addr64` reads its verdict off
+the raw bytes instead of asking the decoder (see the gate table below),
+and why the decoder is cross-checked against independent artefacts —
+oracles, listings, its own fixtures — rather than against the encoder
+alone.
 
 == Test scenarios
 
@@ -67,7 +209,7 @@ and prints a per-category PASS/FAIL summary, `make sim-<name>` runs one.
 | `sim-stress`           | `tests/instruction/03_stress`       | Dense control flow, HIST overflow, inferable calls/returns; branch-HIST sync-seed regression gate.
 | `sim-periodic-sync`    | `tests/instruction/04_periodic_sync`| Periodic sync without HIST loss (pre-flush ResourceFull regression gate).
 | `sim-exceptions`       | `tests/instruction/05_exceptions`   | Synchronous exceptions, including the illegal-instruction shape where the faulting instruction never retires (`iretire=0`).
-| `sim-data-basic`       | `tests/data/01_basic`               | Data-trace address, size and data value vs. NexRv CTXP (`--ctxp`).
+| `sim-data-basic`       | `tests/data/01_basic`               | Data-trace address, size and data value vs. CTTD CTXP (`--ctxp`).
 | `sim-overrun-recovery` | `tests/overflow/01_overrun_recovery`| Full overrun lifecycle: queue-overrun injection, FIFO-overrun resync, soft-reset recovery (`--overflow` is hard).
 | `sim-hsi-csr-cap`      | `tests/hsi/01_csr_cap`              | ACT-CAP CSR-driven DAQ; AXIS beat self-check + CTXP DAQ records.
 | `sim-combined`         | `tests/combined/01_all`             | Instruction + data + ACT-CAP sync end-to-end.
@@ -96,7 +238,626 @@ suite covers, not a per-test average. Plain `make sim` stays uninstrumented
 
 It writes into `bld/coverage/`: `merged.info` (lcov, for `genhtml` or the
 VS Code Coverage Gutters extension), an HTML report under `html/`, and
-`coverage-badge.json` — a https://shields.io[shields.io] endpoint document,
-ready to be published and pointed at by a badge (the README does not carry a
-coverage badge today). The suite still runs to completion if a test FAILs, so
-the rate reflects whatever data was produced.
+`coverage-badge.json` (a https://shields.io[shields.io] endpoint document)
+for the README badge. The suite still runs to completion if a test FAILs,
+so the rate reflects whatever data was produced.
+
+Current suite-wide numbers (Verilator 5.040, full profile incl. E-Trace,
+2026-07-25, *pre-P9* — see the note below): **93.42 % measured** line
+coverage (4 972 / 5 322 product-RTL lines), **100.00 % effective** —
+every uncovered line is either
+auto-classified trivial (error detectors, empty `default` arms) or carries
+an ACCEPTED waiver with justification and source. The waiver ledger, the
+per-gap dispositions and the triage tooling that maintains them are *not*
+part of the published tree, so the effective rate cannot be recomputed
+from this repository — only the measured one can: `make coverage`
+regenerates the report and the measured rate from the sources here.
+
+NOTE: The 2026-07-25 figures were measured on the pre-P9 RTL and are not
+line-for-line comparable to a run on the current tree. P9 removed the
+dual-protocol arm of `ct_encoder` (~135 lines) and with it the
+`etrace_dual_tb` leg plus the DUAL coverage profile in
+`scripts/coverage_etrace.sh` — numerator *and* denominator move. The
+rate has not been re-measured since; run `make coverage` +
+`scripts/coverage_etrace.sh` + `scripts/coverage_report.sh` before
+quoting a current number.
+
+== Robustness gates (state across discontinuities)
+
+Every cross-message compression state (JTC mirror, branch predictor,
+implicit-return stack, ICNT/HIST accounting) must be re-converged at every
+stream discontinuity — FIFO overrun recovery, trace pause, session stop.
+Each class that was found on real hardware (KV260 robustness campaigns)
+has a standing regression gate with a documented red counter-proof:
+
+[cols="1,2,3", options="header"]
+|===
+| Gate | Script | Contract it guards
+
+| `overflow/01_overrun_recovery` | `cli_sim.sh overrun_recovery` | Full overrun lifecycle (inject, resync, soft reset).
+| `overflow/02_natural_overflow` | `cli_natovf_test.sh` | Natural (non-injected) overflow reaches ERROR + recovery, bounded error count.
+| `overflow/03_jtc_overflow` | `cli_jtcovf_test.sh` | JTC valid-mirror cleared on both sides across the recovery anchor (board class B1).
+| `overflow/04_ir_overflow` | `cli_irovf_test.sh` | Implicit-return stack emptied at the recovery anchor (board class B3).
+| `overflow/05_bp_hwsync` | `cli_bphws_test.sh` | BP × halfword-sync interaction (negative datum for the sync-boundary family).
+| `overflow/06_suite_isync` | `cli_suiteisync_test.sh` | Full feature suite × instruction-sync.
+| `overflow/07_board_replay` | `cli_boardreplay_test.sh` | Oracle replay of a real board sequence through the encoder core (bisector: core vs. SoC path).
+| `overflow/08_bp_syncbranch` | `cli_bpsyncbr_test.sh` | No sync may anchor on a plain direct-branch retire in BP mode (`sync_anchor_ok` deferral); phase-swept forced collision.
+| `overflow/09_bp_ovfanchor` | `cli_bpovfanchor_test.sh` | Overflow anchor never collides with a branch retire in the emission cycle (`inject_hold`); transitions-exact decode over hundreds of recoveries.
+| `overflow/10_replay_ovf` | `cli_replayovf_test.sh` | Board mix/calls sequence with real predictor training + ATB throttle: transitions-exact across back-to-back recoveries.
+| `overflow/11_pause_edge` | `cli_pausedge_test.sh` | Trace-pause contract (async `InstTracing` toggles, phase-swept): no count-carrying message between the trace-off correlation and the re-anchor sync; re-anchor `ICNT=0`; `trTeControl.Empty` reads 1 after stop+flush.
+| `instruction/33_te_sync_req` | `cli_tesyncreq_test.sh` | Explicit sync request over the TE register: one request one message, the negative leg (no request, no `SYNC = 14`, `SyncReqSource` unmoved), the queue-depth measurement (two back-to-back writes → two messages, three → still two), the collision with an ACT-CAP `CF_SYNC` on the same retire (one message for both — with the CF_SYNC-only control leg that makes the statement meaningful), a request inside a running trace-byte quota as well as after it, a request inside an overflow storm, and the activity check that the switched-on *and requested* feature changes the byte stream exactly by that one anchor.
+| `instruction/35_addr64` | `cli_addr64_test.sh` | Address width on the wire (X2a): the raw ATB bytes carry the FULL instruction address in both builds of `ct_pkg::CT_XLEN`. Leg 32 is the committed tree (base PC `0x0000_1000`); leg 64 builds a detached worktree with `CT_XLEN` = 64 and a base PC of `0xFFFF_FFC0_0000_1000` — above 2^32 and with a plausible-looking low half, so a path that truncates anywhere produces a *valid-looking* stream instead of an obviously broken one. The verdict is read off the byte stream (`scripts/check_addr64_emission.py` reconstructs `PC_FADDR` from the MDO nibbles between the last end-of-field and the end-of-message marker; the testbench inhibits SRC and switches timestamps off so that field is the last one), **not** from a decoder: a gate that can only fail together with its tool judges nothing, and at the time this gate was written the reference decoder could not read 64-bit addresses at all. The gate keeps that property deliberately — it says the bytes carry the address, nothing more. The *round trip* is a separate claim with separate evidence: the decoder pin that reads CAPS bit 23 (<<decoder-pin>>) and the RV64 board decode (<<rv64-cores>>).
+| `instruction/15_trig_seq_own` (context width) | `cli_ctxwidth_test.sh` | The TIP context bus reaches the wire at the width the build knob names (W2). Rebuilds the ownership testbench in a detached worktree with `ct_pkg::CT_CONTEXT_WIDTH` = _w_ and requires the *predicted* `PROCESS` value in the decoded message dump — `(context << 5) \| (v << 4) \| (prv << 2) \| format`, at _w_ = 16 that is `0x1fffee`. Two built-in counter-proofs: the width-2 value (`0x6e`) must no longer appear (it would be the evidence of a silent narrowing somewhere on the path), and the run must stay PC-lossless against the same `cpu_model` reference the width-2 build is verified against. Red counter-proof `MUTATE=1`: narrowing the composer's context cast back to `[1:0]` — measured `0x1fffee` 0×, `0x6e` 1×, gate red.
+| `instruction/34_etrace_resync_ir` | `cli_etrace_test.sh resyncir` | E-Trace mid-stream resynchronization × implicit return (P10 soak family S-1/S-2): a periodic sync anchoring on a predicted RETURN retire must stay folded; discontinuity-target reports whose address is also linearly reachable carry the `updiscon` flag; a fold arriving at the reported address ends the decoder walk. Braid of far-call/return and call-to-next-address/double-return shapes under a tight periodic window, IR off *and* on, both PC-lossless plus ≥3 mid-trace F3.0 anchors. Red counter-proof: on the pre-fix tree the OFF half already fails (`prefix mismatch, 332/336`).
+
+| `instruction/37_sync_cadence` | `cli_synccadence_test.sh` | The periodic-sync cadence a product comes out of RESET with (P0-02). One scenario -- 100 010 retires, 15 % control-flow density, compact program image -- driven against a sink of FINITE bandwidth (one accepted ATB beat per 10 cycles = 40 MB/s; an always-ready sink cannot answer the question at all, because under it no cadence ever announces an overflow). The positive leg deliberately does NOT write `trTeControl.InstSyncMax`: it flies the reset value, and must produce ZERO `Error` messages (TCODE 8) and a strictly lossless NexRv decode (100 008 of 100 008 PCs), with the cadence read back off the WIRE from the config message (`VendorConfig P1[12]` bits [10:7]) and required to equal both the RDL declaration and the generated RTL reset -- a three-way agreement no source read could establish. The counter-proof varies exactly ONE factor: the same scenario with `+SYNCMAX=0` (the minimum period, 16 units) must still reproduce the stress case, measured 790 Error messages and 5 064 dropped eTIP events. The sink threshold is swept in the same run (lossless from `InstSyncMax` = 2 upwards), and the bandwidth curve behind the chosen reset value is reported against an unthrottled sink: 97 844 bytes at period 16, 41 072 at 1024, 40 060 with the cadence effectively off.
+| `instruction/36_block_tip` | `cli_blocktip_test.sh` | Block ingress (R1.3, `ct_pkg::CT_EN_BLOCK_TIP`): reporting several retired instructions in ONE tip beat does not change the reconstructed control flow, only its packaging. ONE scenario is written once and driven TWO ways inside the SAME block build -- one instruction per beat, and blocks of 1..4 instructions with every terminator kind (`OTHER` / taken / not-taken / call / return / indirect jump) plus a loop whose branch jumps back to the start of its own block. Both legs log a PER-INSTRUCTION oracle, so `expected.pcs` is a reference that never saw a block; both must decode to it EXACTLY (`decode_and_check --pc`, strict). The anti-vacuity witness is measured at `tip_if`, not in the bytes -- the halfword distance between two control-flow events does not depend on how the beats were cut, so byte-identical output is the claim and not a symptom; what has to hold is the same halfword total in strictly FEWER beats with at least one beat carrying more than one instruction (measured 76 halfwords in 14 vs 38 beats, largest beat 8 halfwords). Four red counter-proofs (`MUT=M1..M4`): the halfword derivation forced to the single-retirement branch, the control-flow source address forced to the block start, the ProgTraceSync anchor moved to the block's last instruction, and the anchoring block's carry-over reduced to its last instruction -- each fails the block leg while the serial leg stays green. Byte neutrality of the default build: `scripts/r13_off_neutrality.sh` (31 of 31 reference artefacts identical); resource cost: `scripts/r13_ooc_cost.sh`.
+|===
+
+*Honesty note (2026-08-07):* the 2026-07 E-Trace verification ("mid-trace
+periodic resync solved", directed leg `23_etrace_resync`) was too broad a
+claim: none of its legs crossed a resync with the implicit-return stack,
+with an ambiguous (linearly reachable) target report, or with an overflow
+anchor landing on a branch. The P10 seed-driven soak found all three as
+**pre-existing** defects of the E-Trace back end (the campaign only widened
+the stimulus surface); they are fixed with the `resyncir` gate above and
+the overflow-anchor deferral (`OvfPend`, `ct_L2_te_inst_gen.sv`). One class
+remains open by wire-format necessity (S-1c): with `irdepth` width 0, an
+implicit-return-folded loop crossing a positional binding point (trap/off
+flush, window or resync anchor) cannot express the visit count — measured
+6/33 red among IR-armed runs of a free-axis calibration (`efix_cal1`,
+seed 20260806). The implicit-return bit is therefore masked from the
+E-Trace soak draw until an `irdepth` field exists; every other compression bit is drawn.
+
+The compression features additionally carry **byte-identity legs**
+(`cli_{bp,ir,jtc,rh,rb}_test.sh`): feature OFF vs. ON against the same
+stimulus — OFF prefix must equal the reference, ON must decode to the
+same PC stream at a strictly smaller byte count (lossless fold). These
+legs pin the wire format: any by-product byte change in an unrelated fix
+turns them red.
+
+[#in-rtl-invariants]
+== Standing in-RTL invariants (SVA)
+
+The most expensive lessons of the hardware campaigns are encoded as
+concurrent assertions inside the RTL (simulation-only,
+`pragma translate_off`). They run in *every* simulation of every
+consumer, so a regression fires at the first sim instead of on a board:
+
+[cols="1,4", options="header"]
+|===
+| ID | Invariant
+
+| I1 | No ordinary CF eTIP while the resume gate holds (pause re-anchor pending) — only the sync-anchor beat releases.
+| I2 | No ordinary CF eTIP while instruction tracing is paused (aligned qualifier low).
+| I3 | The implicit-return stack is empty when the trace-off correlation is emitted.
+| I4 | A `next_iaddr` capture fires only when a CF event owes one (pairing conservation).
+| I5 | A gap re-anchor sync (TRACE_ENABLE / EXIT_*) on a call/return retire leaves the return stack untouched (side-effect-free anchors).
+| I6 | A correlation message implies cleared JTC mirror and predictor count.
+| I7 | A FIFO-overrun recovery sync carries `ICNT=0` (pure re-anchor).
+| I8 | `trTeControl.Empty` implies an empty ATB output queue (per backend tail).
+| I9 | In a beat carrying both, the Device ID slot precedes the config slot (on-wire order "Device ID → config → first synchronizing message", `CT_EN_DEVICE_ID` + `CT_EN_CONFIG_MSG`).
+| I10 | A watchpoint slot never coexists with a DAQ slot in one beat — the exclusion that lets `CT_EN_WATCHPOINT_MSG` share the DAQ slot instead of widening `ETIP_PAR_MSG` (`CT_EN_WATCHPOINT_MSG`).
+| I11 | No ordinary CF eTIP inside a CF-filter gap — between the region-exit correlation and the re-anchor the decoder has no position, so a plain control-flow message would be one it cannot place. Same contract as I1/I2, one level further in (`CT_EN_FILTER_SYNC`; vacuous while `trTeInstFilters` = 0, i.e. in every unfiltered run).
+| I12 | Every emitted instruction count fits the N-Trace I-CNT field — the `ICNT` of an ICNT-bearing message and the `RDATA` of a `ResourceFull` with `RCODE=0`, both against `MAX_NEXUS_ICNT` (8 bit, or 16 with `trTeInstFeatures.InstEnWideIcnt`). A *conformance* invariant, and the only kind of defect no other gate in this tree can see: the field is MSEO-variable-length, so an over-cap value costs one wire byte, decodes correctly and keeps every PC check and every byte-neutrality gate green while the stream has left the standard.
+|===
+
+NOTE: One contract of the composer is deliberately *not* a concurrent
+assertion: the eTIP slot bound (`msg_id_next \<= ETIP_PAR_MSG`, violation
+= silently dropped messages). `msg_id_next` is a variable of the
+composer's `always_comb`, so a concurrent property samples the preponed
+value — which has already fallen back — and reports a value that cannot
+violate the bound, one cycle late. It is therefore an *immediate*
+assertion at the allocation site (`a_p4_slot_bound`), and the measured
+demand is reported at end of sim ("eTIP max slots per beat"). Any new
+property in that block must stick to registered state or module inputs.
+Because xsim writes assertion failures into the per-leg log and the cli
+scripts silence the simulator, `scripts/cli_status_test.sh` scans those
+logs and fails the gate on any `Error:`/`Fatal:` line — an assertion
+nobody reads is not a gate.
+
+CAUTION: a bound check is only worth its name if its counter can
+*represent* a violation. `msg_id_next` used to be sized
+`$clog2(ETIP_PAR_MSG+2)` — three bits, i.e. 0…7, for a profile with nine
+simultaneously enabled allocation sites. A beat demanding eight slots
+would have wrapped the counter to 0 and passed `a_p4_slot_bound`
+unnoticed: the guard would have been exactly as silent as the defect it
+guards. The width now follows `ct_pkg::ETIP_SLOT_SITES` (the number of
+`msg_id_next = msg_id_next + 1` statements in the composer), and
+`formal/composer_slots/run.sh` counts the real sites in the source before
+every run, so a newly added arm fails the gate rather than the field.
+Generalised: a saturating or wrapping checker variable is a checker
+defect, not a rounding detail.
+
+NOTE: I10 is only worth its cost argument if a leg exists in which the
+design really raises DAQ slots — otherwise the implication holds
+vacuously. That leg is `wpdaq` in `tests/instruction/31_status_msgs`
+(two watchpoint messages and one Data Acquisition message in one run);
+removing the watchpoint exclusion from the composer's DAQ arm makes I10
+fire and lifts the reported slot watermark from 1 to 2.
+
+[#formal-gates]
+== Formal property gates (SymbiYosys)
+
+The three encoder defect classes of the 2026-08 board campaigns
+(trap anchor, resume-anchor race, flush clobber) shared one shape:
+local cycle collisions with a tiny state space — phase-dependent,
+found dynamically only by lucky draws, found formally in seconds.
+The emission core therefore carries formal property gates on the
+license-free open-source route (sv2v + Yosys/SymbiYosys, smtbmc):
+
+[cols="1,2,2", options="header"]
+|===
+| Target | Properties | Result
+
+| `ovf_injector` (both variants: parallel P=2 and `SEQ_INJECT` P=1)
+| P-INJ-1..4: element conservation (forwarded XOR counted-discarded),
+  episode debt (each marker exactly once before forwarding resumes),
+  `inject_done` contract, `inject_hold` semantics — proven as full
+  functional correspondence against an independent mirror model
+| *unbounded* (k-induction) + cover
+
+| `ct_L23_preproc_sync`
+| P-SYNC-1: no PERIODIC sync while a TRACE_ENABLE re-anchor is
+  outstanding (the class-9 resume-anchor race, fix `335393b6`);
+  P-SYNC-2: one-shot arming/drop semantics; P-SYNC-3: sync anchors only
+  on qualified retires; P-SYNC-4: the fix guard cannot starve the
+  periodic arm (gap bound 64 cycles); P-SYNC-5/6/7: the trace-output
+  quota (window bound, no lost request, no double request), closed
+  through the real CDC pairs; P-SYNC-8: completeness — every arming
+  condition the DUT states really sets its one-shot in the next cycle;
+  P-SYNC-9/10: the explicit request over the TE register — no lost
+  request (after a WRITE a message follows within a bounded number of
+  cycles; the trigger is the software event and only a MESSAGE stops
+  the clock) and no double request (every message consumes one launched
+  request). The loop is closed through the CSR shim's real pacing module
+  `ct_sync_req_pacer` and both real `strobe_cdc` instances, *at equal
+  clocks* (the single-clock assumption of this environment): what is
+  proven is the pacing protocol plus the toggle synchronizers, not the
+  behaviour of a toggle synchronizer between two independent clocks —
+  that remains a CDC-methodology argument. The rest of the CSR shim
+  (address decode, generated register block, the field's self-clear) is
+  covered by simulation, not here. P-SYNC-11: the explicit request and
+  the trace quota in ONE environment — on a beat where both stand at the
+  arm the message is the explicit request, and neither source starves
+  the other
+| P-SYNC-1..3 + P-SYNC-8 *unbounded*, P-SYNC-4/5b/6/7/9/10/11 bounded + cover
+
+| `ct_L2_msg_gen` (abstracted eTIP payload)
+| P-MSG-1: a consume beat never coincides with a flush-marker emission
+  (the class-8 flush clobber, fix `8f8e85aa`); P-MSG-2: backpressure
+  holds `TraceMsg` bit-stable; P-MSG-3: drain holds emit and never
+  consume; P-MSG-4: the latched flush debt is never lost and a free
+  emission slot pays it immediately; plus I6/I7 and the module's
+  internal drift-guard assertions
+| BMC depth 50 + cover
+
+| MDO/MSEO output stage (msg_buffer -> bit_slicer MDO=6 -> dual MSEO
+  controller -> ATB chunk packer, glued as in the formatter top)
+| P-MDO-1: the reserved dual-pin MSEO code is never emitted;
+  P-MDO-2: encoding table (EOM=11, end-of-variable-field=01, data=00,
+  IEEE-ISTO-5001-2012 Table 5-1); P-MDO-3: message conservation (every
+  accepted non-flush message yields exactly one end-of-message chunk);
+  P-MDO-4: the CDC seam never overruns; P-MDO-5: beat alignment (lanes
+  after an EOM lane are align pads — no message starts mid-beat);
+  P-MDO-6: stall stability; P-MDO-7: flush-marker isolation; plus a
+  bounded no-starvation guarantee (next EOM within 64 cycles under a
+  free-flowing sink). Red cross-checks by MUTATION (no historical
+  defect commit exists for this stage): wrong EOM code, missing
+  full-gate, suppressed EOM — each must turn its property red.
+| BMC depth 40 + cover + bounded liveness (depth 120)
+
+| `ct_L23_preproc_composer_etip` eTIP slot bound
+| P-SLOT-1: `msg_id_next \<= ETIP_PAR_MSG` at the allocation site — the
+  module's OWN immediate assertion `a_p4_slot_bound`, checked over the
+  real module with a completely free environment (every tip beat, every
+  sync verdict, every ACT-ST command, every CSR value), for both
+  `SPLIT_DATA_ACCESS` settings. An exceeded bound writes out of range,
+  which writes NOWHERE — messages would be lost silently and without a
+  wire-visible error, so this constant may not rest on an argument. Red
+  cross-checks in two directions: one slot below the formula value must
+  break the assertion (the bound is the minimum, not padding), and
+  removing the watchpoint exclusion from the DAQ arm must break it too
+  (the slot-sharing argument is alive).
+| *unbounded* (k-induction), both `SPLIT_DATA_ACCESS` settings
+|===
+
+NOTE: these targets are proved on the committed tree, i.e. at
+`ct_pkg::CT_XLEN` = 32, and the formal wrappers re-type the address ports
+by hand — so a 32-bit proof says nothing about a 64-bit net. One target,
+`nexus_formatter`, therefore also runs as `nexus_formatter_xlen64`
+against a source copy with the width flipped; the other targets have no
+width leg. This was an audit finding, not a plan: until 2026-08 every
+formal gate had only ever seen 32 bit.
+
+Every regression property carries a *two-sided red counter-proof*: the
+property-only build passes on the fixed RTL and fails on a git worktree
+of the pre-fix commit (class 9: red at BMC step 6 on `441eac4c`;
+class 8: red on `335393b6`) — the formal gate demonstrably catches the
+historical defect class. (The two fixes are consecutive commits, which is
+why class 8's pre-fix tree carries class 9's fix hash — both entries name
+the tree the property is run *against*, not the fix.) Every environment
+assumption is enumerated and
+justified in link:../formal/README.md[`formal/README.md`]; the same
+document records the tool workarounds (sv2v prefix strip, uwire, SVA
+re-statement) and the hardening finding F-1 (a saturation escape in
+`counter.sv` via the undriven `add` path, unreachable in the real
+netlist).
+
+[NOTE]
+====
+*What a one-directional property does and does not prove* (P7 audit
+condition A-2). The `A_*_impl` strengthenings and the `A_sync2_*`
+obligations of `preproc_sync` carry the wrapper model on their
+*conclusion* side (`DUT one-shot -> model armed`). Such a property gets
+*weaker*, never stronger, when the model arms in more states, and a DUT
+that stops arming altogether satisfies it vacuously: it catches a
+*spurious* event, never a *missing* one. Measured, not argued — with the
+TCI trigger action removed from the RTL
+(`cs_tip.trTeTrigExtInAction0 -> 4'd0`, i.e. the whole action-4 path
+dead) the suite still reported `successful proof by k-induction`.
+
+`P-SYNC-8` supplies the other direction as a bounded next-cycle
+obligation, and the same mutation is red on `A_trig_complete`. When a
+new event source is added to this module, both directions have to be
+extended — the arming term in the model AND the arming condition in the
+completeness block. Adding only the first one looks like a
+strengthening and is the opposite.
+====
+
+== Hardware-in-the-loop and SoC integration
+
+Everything above runs against a scripted `cpu_model`: a stimulus that
+does exactly what the test asked for. Three things that model cannot
+produce are a real hart's retirement timing, a real memory system's
+backpressure, and a real operating system's behaviour — so the encoder
+is additionally driven from real cores, in simulation and on a board.
+A worked example lives in this repository under `examples/` (the TGC5B
+example SoC with its simulation and KV260 board flows); the full
+multi-core campaign artefacts and the per-core characterization tables
+stay in the Accemic-internal integration project, not here.
+
+Three ingress adapters exist today, all outside the encoder core: the AMD
+MicroBlaze V `TRACE` bus, the CVA6/cv64a6 instruction-trace interface fed
+from its RVFI probes, and the Rocket `TraceCoreInterface`. Each was
+**characterized before it was trusted**:
+a truth table per event class, measured against the core's own retire
+stream, is the entry gate for a new adapter — an unverified assumption
+about a core's trace signals is a blocker, not a design decision.
+
+=== Robustness campaign (MicroBlaze V, KV260)
+
+The campaign drives the encoder on a Kria KV260
+(MicroBlaze V + adapter + `ct_encoder`, URAM ring sink) through a
+directed 95-run matrix: overflow regimes R0–R5 (incl. ATB backpressure
+profiles), feature sets, workload mixes (calls/loads/traps/random), sync
+modes, trace-window and stop/flush edges, IRQ, BTM, one-factor bisection
+legs and a determinism pair. Verdicts V1–V8 are machine-judged against an
+RV32 reference model (decode integrity, loss accounting, post-recovery
+losslessness, counter consistency, liveness, determinism, window
+semantics, flush completeness). Deploys are hash-verified at the target
+(a silent deploy failure once invalidated a whole campaign's
+attribution).
+
+Result as of 2026-08-01 (campaign `rob_allgreen`, bitstream WNS +2.679 ns
+— that slack belongs to the 2026-08-01 bitstream and its tool version,
+not to today's encoder; corrected 2026-08-14 from a previously quoted
++2.186 ns, which was Vivado's router estimate rather than the routed
+timing summary; the current per-profile figures are below):
+**95 PASS / 0 FAIL / 0 invalid**. A full-SoC XSIM twin of the campaign
+workload (real MicroBlaze V + adapter at the board's 1:1 clock profile,
+343 629 retires, 24 natural overflow recoveries) decodes
+transitions-exact as the simulation-side positive control.
+
+A seed-driven soak campaign on top of the directed matrix is what found
+the three 2026-08 encoder defect classes that the formal gates now hold
+(trap anchor, resume-anchor race, flush clobber) and the four
+pre-existing E-Trace classes named in the honesty note above. The
+directed matrix is the regression floor; the soak is what widens the
+stimulus surface far enough to hit phase-dependent collisions.
+
+[#rv64-cores]
+=== 64-bit harts: cv64a6 and Rocket (2026-08-08)
+
+`ct_pkg::CT_XLEN` = 64 is not established by a testbench alone. Two
+open-source RV64 harts were brought up in the KV260 PL with the encoder
+beside them, each through its own adapter, and both boot Linux
+(Buildroot + OpenSBI) to a login prompt: **cv64a6** (CVA6, RV64IMAC,
+Sv39, no FPU) and **Rocket** (`Rocket64t1`, RV64IMAC, no FPU). A booting
+kernel is a stimulus nobody has to write: virtual Sv39 addresses above
+2^32, traps into M-mode at physical addresses, and a preemptive
+scheduler, all in one stream.
+
+*Simulation leg (cv64a6).* The full chain core → RVFI → ITI → shim →
+`ct_encoder` (`CT_XLEN` = 64) → ATB → CTTD → scoreboard reconstructs
+**10 167 of 10 167 instructions, delta 0**, in the low address window and
+again with Sv39 kernel addresses.
+
+*Board leg (cv64a6).* With a bitstream carrying the 64-bit encoder, a
+recorded window of the running kernel decodes to **34 453 instructions,
+of which 32 413 have addresses ≥ 2^32**, with **zero error messages**.
+The verdict does not rest on the decoder: an independent flow check
+walks the decoded PC sequence against the disassembly and requires every
+PC to sit on an instruction boundary and every direct edge to follow the
+listing. It reports PASS, with five deviations — all five to the same
+address, OpenSBI's M-mode trap vector, i.e. the physical trap target of
+a virtually-addressed kernel. That check is itself counter-proved:
+shifting one instruction by two bytes in the listing turns it red.
+
+With the current decoder pin (<<decoder-pin>>) the same recorded stream
+decodes **818 663 instructions** uncompressed and **883 577** with the
+compression suite armed, both with zero error messages and both PASS on
+the independent flow check; the first 34 537 PCs are byte-identical to
+the earlier run, so the longer decode extends the old result rather than
+replacing it.
+
+*What bounds these numbers is not the encoder,* and the distinction is
+worth keeping: the 1 MiB URAM ring is full, and for the larger DDR window
+the *listing* runs out — Linux patches its own text at boot and later
+overwrites `.init` with poison, so no single static disassembly can
+describe the whole boot. Both limits are properties of the target and
+the reference, not of the trace.
+
+Two honest gaps at the time of writing. **Parallel retirement is not
+exercised**: both harts run with a single commit port (Rocket cannot do
+more; the cv64a6 build was configured that way), so the multi-retire
+path remains a simulation argument. And an E-Trace instance with
+`CT_XLEN` = 64 is **rejected at elaboration** rather than truncating
+silently — 64-bit E-Trace is not implemented.
+
+[#process-filter]
+=== Tracing one process, end to end
+
+The per-process filter (`trTeComp[].PInput` = 1 on the context bus, see
+link:enhanced-features.adoc#filter-anchoring[Enhanced features]) is
+verified as a chain, not as a register: two programs with different ASID
+values run on the cv64a6 model, and the decoded PC stream is checked
+against *both* programs' address ranges.
+
+* unfiltered: both processes appear (204 and 168 instructions in their
+  respective ranges), and the Ownership messages carry both ASIDs;
+* filtered to process A: **204 of 204** for A, **0 of 168** for B, and
+  only A's ASID on the wire;
+* filtered to process B: exactly the mirror image.
+
+The second bullet is the substance of the feature — the filter
+**suppresses at the source** instead of marking: a filtered-out
+instruction contributes nothing, not even to the instruction count. Two
+red counter-proofs keep the statement from being vacuous: making the
+filter ineffective returns the full 437-PC stream (so the gate can tell
+the two apart), and compiling out the filter anchoring produces a stream
+with no `ProgTraceSync` at all, from which the decoder recovers zero
+instructions — which is exactly the pre-fix behaviour the anchoring was
+added for.
+
+NOTE: this leg is simulation with real core RTL. Filtering *real Linux
+processes* on the board — where the ASID is written by the kernel rather
+than by the test — is a follow-on package and is not claimed here.
+
+[#ooc-timing]
+== Timing and resources (out-of-context synthesis)
+
+The acceptance line is "no timing violation in the target
+configuration", so the gate needs a *budget* — a slack figure without
+one says nothing. It is run per build profile, at two budgets:
+
+* **13.333 ns (75 MHz)** — the clock the KV260 reference design is
+  *constrained* to. This is the pass criterion: every profile must meet
+  it, with Vivado's own "All user specified timing constraints are met"
+  and zero failing endpoints in the report.
+* **5.0 ns (200 MHz)** — headroom, reported but not required.
+
+[CAUTION]
+====
+*The constrained clock is not automatically the clock the board
+delivers.* Measured on 2026-08-08 on the RV64 board designs: loading an
+application overlay that names only a firmware file leaves the PS clock
+register `PL0_REF_CTRL` at its boot default — IOPLL 1500 MHz / 15 =
+**100 MHz** — so the PL ran a third above the frequency every design in
+this project is constrained for. Two independent readings agree (the
+register value, and a guest-versus-host wall-clock ratio of 1.333 on the
+booting kernel), and re-running with the clock explicitly set to 75 MHz
+brings that ratio to 1.000 while the recorded trace stays byte-identical.
+
+Three consequences, stated plainly rather than smoothed over: the 75 MHz
+column below is a **constraint met in synthesis**, not a measurement of
+what silicon saw; the earlier board campaigns were loaded the same way
+and have **not** been re-measured, so they may have been running above
+budget (which would make their green verdicts a stronger empirical
+result, but not a verified-configuration one); and an integration that
+needs the constrained clock has to *set* it when loading the design. This
+is a property of the loading mechanism, not of the encoder.
+====
+
+  bash scripts/p10_timing_matrix.sh          # all five profiles
+
+drives `scripts/synth_encoder_ooc_timing.tcl` (the timing variant of the
+OOC script: one clock per clock port at the budget,
+`set_clock_groups -asynchronous` between them, `report_timing_summary`)
+over `voll_gold`, `featparity_gold`, `slimfull_gold` and the two
+single-protocol builds, and files every report under
+`verification/evidence/P10/<profile>/` with the verdict in
+`verification/evidence/P10/timing.log`. The numbers, and the caveats that belong
+to an out-of-context figure, are in
+link:integration.adoc#profile-timing[integration, *Timing per profile*].
+
+Status 2026-08-06 (commit `7a0b7b2`, Vivado 2022.1.2): **all five
+profiles meet the board budget**, smallest margin +1.753 ns; the two
+slim profiles also meet 200 MHz, the three full-profile builds do not.
+Before this run the project had *no* timing artefact at all — every
+package's OOC synthesis used the variant of the script that constrains
+no clock and reports no timing, and the timing variant had been unable
+to run since an SPDX header entered the file list it reads.
+
+[#ref-families]
+== Reference-stream families and supersession
+
+The byte-identity gates compare emitted streams against a *pinned
+family* of reference md5s (the `REF_FINAL` family: the
+`implicit_return_tb` off/on/nots anchors plus the full-suite manifest),
+minted by `scripts/r2_final_mint.sh` into `bld/r2_final_manifest.txt`
+with a run log in `bld/r2_final_mint.log`.
+
+Supersession policy — a family is re-minted **only** when the byte
+delta against the previous family is *provably explained*, and the
+proof is recorded with the new hashes:
+
+* the delta must be localized (message dump / decode comparison, not
+  just a differing md5),
+* a build with the causing feature compiled **out** must reproduce the
+  previous family md5-exactly (byte-neutrality cross-check),
+* the superseded hashes stay recorded in the mint log — they are
+  documentation, not garbage.
+
+Anything short of that full explanation is a FAIL to investigate, not a
+re-mint. Wire-neutral RTL work therefore never touches the family;
+deliberate wire evolutions (e.g. a CAPS extension of the
+self-describing config message) produce exactly one documented
+supersession.
+
+Example (2026-08-03/04): the trace-quota feature widened the TCODE-58
+CAPS/ENAB map append-only from 18 to 19 bits (new CAPS bit 18). The
+full-build delta against the previous family was *exclusively* the
+config-message bit — byte count identical, PC decode identical — and
+the `CT_EN_QUOTA_SYNC = 0` build reproduced the previous family
+md5-exactly. On that proof the family was re-minted; the superseded
+hashes remain in the mint log.
+
+Second example (2026-08-04): DF address compression widened the same
+map from 19 to 22 bits (CAPS bit 21 plus two reserved placeholders).
+Same proof shape — the `CT_EN_DF_ADDR_COMPRESS = 0` build reproduced
+the DF reference streams md5-exactly and the full-build delta was the
+CAPS field alone (`0x7ffbf` → `0x27ffbf`) — so the family moved once
+more. `scripts/r2_final_mint.sh` now records the supersession itself:
+it preserves the previous run as `bld/r2_final_mint.prev.log` /
+`bld/r2_final_manifest.prev.txt`, carries the previous
+`REF_FINAL_06` line into the new log and manifest header, and takes the
+justification from `SUPERSEDE_REASON`. A re-mint without that variable
+is recorded as `<none given>` — visible, not silent.
+
+Third example (2026-08-08), and the one that shows the rule has a
+*negative* branch too: the 64-bit address knob (`ct_pkg::CT_XLEN`) added
+CAPS bit 23 (`ADDR64`) and widened the map from 23 to 24 bits — and the
+family did **not** move. The CAPS *word* is what selects a family, and
+in a 32-bit build bit 23 is 0, so the word stays `0x7fffbf`; the field
+is variable-length with leading zeros stripped, so its byte encoding is
+unchanged as well. A wider map is therefore not automatically a new
+family: only a different *value* is. `scripts/ref_family.py select`
+prints both (`FAMILY_WIDTH` 23 vs `BUILD_CAPS_WIDTH` 24) so the
+difference is visible rather than assumed. A build with `CT_XLEN` = 64
+does carry the bit and will need its own family when it is first minted.
+
+Fourth example (2026-08-13), the converse of the third: the AXIS-WP
+merge (C0b, merge `22ee86a3`) moved *bytes* without moving the CAPS
+word. Deepening the ACT alignment pipes (`PREPROC_DELAY_MAX` 20 → 44)
+shifted message positions, and the P0-02 sync-cadence reset
+(`InstSyncMax` 0 → 6) rode along — six artefacts of the previous family
+drifted, each drift proven benign before the re-mint (tail truncation
+under the no-op `wait_cycles` drain; one composition-time `ENAB`
+sample). The re-minted family carries the *same* word `0x7fffbf` as its
+predecessor, so the archive now legitimately holds two families per
+word. `select` resolves that deterministically: among same-word
+families the one with the **newest mint stamp** wins, the passed-over
+siblings are printed as `FAMILY_SUPERSEDES` in the gate log, and
+reproducing an older comparison stays possible through the gates'
+`REF=<path>` override. Only a word *mismatch* (P7 A-1) — or two
+same-word mints with an identical stamp — remains a hard error.
+
+[IMPORTANT]
+====
+*A family is selected, not inherited* (P7 audit condition A-1). `bld/`
+is gitignored and a mint keeps exactly one generation of history, so two
+mints in a row destroyed the older family — including the family an
+already-closed package had been measured against. That happened on
+2026-08-05, two minutes apart: a gate that pinned
+`bld/r2_final_manifest.txt` reported `BYTE NEUTRALITY: DRIFT` from then
+on for a build that had not drifted at all, because the new family
+carried the very CAPS bit that build compiles out.
+
+Two rules follow, both mechanical:
+
+. Every minted family is archived append-only in
+  link:../verification/ref_final/README.md[`verification/ref_final/`], before the next mint
+  overwrites it and again right after minting.
+. A gate picks the family whose *CAPS word* equals the word its own
+  build emits. The word is a pure function of the `CT_EN_*` switches
+  (`ct_pkg::ct_cfgmsg_caps`), so `scripts/ref_family.py select` computes
+  it rather than guessing, and the gate log names the chosen file, its
+  CAPS and its mint HEAD. A build whose CAPS word matches no archived
+  family is a hard error — comparing against a foreign CAPS set can
+  only fail, and it fails for the wrong reason. If several archived
+  families carry the *same* word (a re-mint whose byte delta was proven
+  without a CAPS change, fourth example above), the newest mint stamp
+  wins and the log records the passed-over files
+  (`FAMILY_SUPERSEDES`); `REF=<path>` pins an older one deliberately.
+====
+
+[#ci-stages]
+== CI stages
+
+The suite maps onto four tiers, ordered by tooling cost: host-only
+checks (`make lint`, `make check-publication`, the decoder corpus — no
+EDA tools), the Verilator subset `make sim`, the XSIM gate battery
+(`scripts/run_gates.sh`, list in `scripts/gates.list`) incl. byte-identity
+legs and optional coverage, and the hardware-in-the-loop campaign on a
+lab machine. `scripts/run_formal.sh` runs the formal property gates on the
+OSS toolchain (no EDA license; `RED=1` additionally runs the red
+counter-proofs against the pre-fix worktrees). One of its targets,
+`nexus_formatter_xlen64`, is the same BMC in a 64-bit address net: the
+script copies the RTL into `bld/`, sets `ct_pkg::CT_XLEN` to 64 there and
+proves against that copy, because the formal wrappers re-type address
+ports by hand and had only ever been exercised at 32 bit
+(link:../formal/README.md[`formal/README.md`], *Width leg*). The runners
+are plain `bash` and runner-agnostic; the GitHub Actions workflows that
+drive the license-free tiers are described in
+link:../CONTRIBUTING.md[`CONTRIBUTING.md`], *Continuous integration*.
+The hardware tier is not carried by this repository: it needs a KV260
+board, and its verdicts are quoted into `verification/evidence/`.
+
+The host tier also builds the reference decoder from source when one is
+available and then runs **the decoder's own five regression runners**
+(`run_etrace_ctxp`, `run_callstack`, `run_ctxswitch`,
+`run_reserved_tcode`, `run_addr64`, collected behind the fork's
+`tests/run_all.sh`). They were reachable from nowhere before 2026-08:
+a decoder change could land with every one of its own tests green and
+nothing in this pipeline would have noticed — the same failure mode as a
+checker that cannot represent a violation, one level up. The step is a
+`SKIP`, not a pass, when `NEXRV_SRC` names no source tree; the decoder
+source is Accemic-internal and a plain clone of this repository will see
+the `SKIP`.
+
+The host tier carries eight guards. Six are drift guards over the register
+map, the profiles and the harness (feature flags, protocol discovery,
+profile dependencies, the `xsim` launch check, compiled-out negative legs,
+the micro-CSR twin). The other two guard the *evidence itself*, because
+the same two findings came back in every package audit of this campaign:
+
+* `scripts/check_doc_evidence.py` — a doc section quoting CLB LUTs or
+  flip-flops must name a `.rpt` under `verification/evidence/**`, that file must
+  exist, and the numbers in the table cells must be the ones in the
+  report. Twice, one commit apart, a cost table pointed into gitignored
+  `bld/`, which the next run of the same script overwrote with a
+  different configuration. A table that also carries a block-RAM column
+  has its `Block RAM Tile` figure checked the same way — that row was
+  read by nobody until the R1.1 closing audit showed it: changing the
+  LUT figure of
+  link:integration.adoc#xlen-cost[integration, *Address width*] by one
+  turned the guard red, changing the BRAM figure from 11 to 42 did not
+  (finding C-1).
+* `scripts/check_evidence_stamp.py` — every verdict under
+  `verification/evidence/**` must carry a `# HEAD` stamp naming a commit that is in
+  this branch's history, or an explicit `# superseded-by` pointing at a
+  run that is. Five logs of one fix round were stamped with a
+  rebased-away commit and nothing showed it. The guard also prints the
+  inventory (age in commits, which areas moved since) for every verdict,
+  on every run — taking that inventory by hand is how the defect was
+  found.
+
+The header contract both rest on is in
+link:../verification/evidence/README.md[`verification/evidence/README.md`].
+
+A third rule, not mechanised: a gate reports `SKIP` (77) when an input it
+needs is not in this repository, and `TOOL` (78) when the toolchain or the
+build tree could not be established. Neither reads as a property failure.
+See link:development.adoc#fresh-tree[Development — starting from a fresh
+clone or worktree].

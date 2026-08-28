@@ -1,0 +1,1055 @@
+addr,site_id,src,kind,kind_idx,object,rw,lock,marker,func,note
+000002F4,0,actst,marker,0,,,,enter,rv_t000,transaction entry
+00000300,1,actst,data,0,ring_head,r,,,rv_t000,producer head / consumer view
+00000308,2,actst,data,1,ring_tail,r,,,rv_t000,consumer tail / producer view
+0000033C,3,actst,data,2,ring_slot,w,,,rv_t000,slot payload
+00000340,4,actst,data,3,ring_head,w,,,rv_t000,own index advance
+0000034C,5,actst,data,4,private,r,,,rv_t000,core-local scratch
+00000354,6,actst,data,5,private,w,,,rv_t000,core-local scratch
+0000030C,7,actst,marker,1,,,,phase,rv_t000,ring phase marker
+00000360,8,actst,data,6,seq,w,,,rv_t000,sequence stamp
+00000364,9,actst,marker,2,,,,leave,rv_t000,transaction exit
+000003C0,10,actcap,value,0,,,,,rv_t000,ring index at run time
+000003EC,11,actcap,value,1,,,,,rv_t000,account value at run time
+0000043C,12,actst,marker,3,,,,enter,rv_t001,transaction entry
+00000448,13,actst,data,7,ring_head,r,,,rv_t001,producer head / consumer view
+00000450,14,actst,data,8,ring_tail,r,,,rv_t001,consumer tail / producer view
+00000488,15,actst,data,9,ring_slot,w,,,rv_t001,slot payload
+0000048C,16,actst,data,10,ring_head,w,,,rv_t001,own index advance
+00000498,17,actst,data,11,private,r,,,rv_t001,core-local scratch
+000004A0,18,actst,data,12,private,w,,,rv_t001,core-local scratch
+00000454,19,actst,marker,4,,,,phase,rv_t001,ring phase marker
+000004AC,20,actst,data,13,seq,w,,,rv_t001,sequence stamp
+000004B0,21,actst,marker,5,,,,leave,rv_t001,transaction exit
+00000504,22,actst,marker,6,,,,enter,rv_t002,transaction entry
+00000510,23,actst,data,14,ring_head,r,,,rv_t002,producer head / consumer view
+00000518,24,actst,data,15,ring_tail,r,,,rv_t002,consumer tail / producer view
+00000550,25,actst,data,16,ring_slot,w,,,rv_t002,slot payload
+00000554,26,actst,data,17,ring_head,w,,,rv_t002,own index advance
+00000560,27,actst,data,18,private,r,,,rv_t002,core-local scratch
+00000568,28,actst,data,19,private,w,,,rv_t002,core-local scratch
+0000051C,29,actst,marker,7,,,,phase,rv_t002,ring phase marker
+00000574,30,actst,data,20,seq,w,,,rv_t002,sequence stamp
+00000578,31,actst,marker,8,,,,leave,rv_t002,transaction exit
+000005B8,32,actst,marker,9,,,,enter,rv_t003,transaction entry
+000005C8,33,actst,sync,0,,,0,,rv_t003,Peterson: announce intent
+000005E8,34,actst,sync,1,,,0,,rv_t003,Peterson: critical section entered
+0000061C,35,actst,data,21,balance,r,,,rv_t003,read-modify-write; read half
+00000624,36,actst,data,22,balance,w,,,rv_t003,read-modify-write; write half
+0000062C,37,actst,data,23,count,r,,,rv_t003,transaction counter; read
+00000634,38,actst,data,24,count,w,,,rv_t003,transaction counter; write
+00000644,39,actst,data,25,checksum,w,,,rv_t003,checksum update
+00000658,40,actst,sync,2,,,0,,rv_t003,Peterson: leave critical section
+00000684,41,actst,marker,10,,,,leave,rv_t003,transaction exit
+000006A8,42,actst,marker,11,,,,enter,rv_t004,transaction entry
+000006B8,43,actst,sync,3,,,0,,rv_t004,Peterson: announce intent
+000006D8,44,actst,sync,4,,,0,,rv_t004,Peterson: critical section entered
+0000070C,45,actst,data,26,balance,r,,,rv_t004,read-modify-write; read half
+00000714,46,actst,data,27,balance,w,,,rv_t004,read-modify-write; write half
+0000071C,47,actst,data,28,count,r,,,rv_t004,transaction counter; read
+00000724,48,actst,data,29,count,w,,,rv_t004,transaction counter; write
+00000734,49,actst,data,30,checksum,w,,,rv_t004,checksum update
+00000748,50,actst,sync,5,,,0,,rv_t004,Peterson: leave critical section
+00000774,51,actst,marker,12,,,,leave,rv_t004,transaction exit
+000007B4,52,actcap,value,2,,,,,rv_t004,ring index at run time
+000007E0,53,actcap,value,3,,,,,rv_t004,account value at run time
+0000081C,54,actst,marker,13,,,,enter,rv_t005,transaction entry
+0000082C,55,actst,sync,6,,,0,,rv_t005,Peterson: announce intent
+0000084C,56,actst,sync,7,,,0,,rv_t005,Peterson: critical section entered
+00000880,57,actst,data,31,balance,r,,,rv_t005,read-modify-write; read half
+00000888,58,actst,data,32,balance,w,,,rv_t005,read-modify-write; write half
+00000890,59,actst,data,33,count,r,,,rv_t005,transaction counter; read
+00000898,60,actst,data,34,count,w,,,rv_t005,transaction counter; write
+000008A8,61,actst,data,35,checksum,w,,,rv_t005,checksum update
+000008BC,62,actst,sync,8,,,0,,rv_t005,Peterson: leave critical section
+000008E8,63,actst,marker,14,,,,leave,rv_t005,transaction exit
+0000090C,64,actst,marker,15,,,,enter,rv_t006,transaction entry
+0000091C,65,actst,sync,9,,,0,,rv_t006,Peterson: announce intent
+0000093C,66,actst,sync,10,,,0,,rv_t006,Peterson: critical section entered
+00000970,67,actst,data,36,balance,r,,,rv_t006,read-modify-write; read half
+00000978,68,actst,data,37,balance,w,,,rv_t006,read-modify-write; write half
+00000980,69,actst,data,38,count,r,,,rv_t006,transaction counter; read
+00000988,70,actst,data,39,count,w,,,rv_t006,transaction counter; write
+00000998,71,actst,data,40,checksum,w,,,rv_t006,checksum update
+000009AC,72,actst,sync,11,,,0,,rv_t006,Peterson: leave critical section
+000009D8,73,actst,marker,16,,,,leave,rv_t006,transaction exit
+000009FC,74,actst,marker,17,,,,enter,rv_t007,transaction entry
+00000A0C,75,actst,sync,12,,,0,,rv_t007,Peterson: announce intent
+00000A2C,76,actst,sync,13,,,0,,rv_t007,Peterson: critical section entered
+00000A60,77,actst,data,41,balance,r,,,rv_t007,read-modify-write; read half
+00000A68,78,actst,data,42,balance,w,,,rv_t007,read-modify-write; write half
+00000A70,79,actst,data,43,count,r,,,rv_t007,transaction counter; read
+00000A78,80,actst,data,44,count,w,,,rv_t007,transaction counter; write
+00000A88,81,actst,data,45,checksum,w,,,rv_t007,checksum update
+00000A9C,82,actst,sync,14,,,0,,rv_t007,Peterson: leave critical section
+00000AC8,83,actst,marker,18,,,,leave,rv_t007,transaction exit
+00000AEC,84,actst,marker,19,,,,enter,rv_t008,transaction entry
+00000AFC,85,actst,sync,15,,,0,,rv_t008,Peterson: announce intent
+00000B1C,86,actst,sync,16,,,0,,rv_t008,Peterson: critical section entered
+00000B50,87,actst,data,46,balance,r,,,rv_t008,read-modify-write; read half
+00000B58,88,actst,data,47,balance,w,,,rv_t008,read-modify-write; write half
+00000B60,89,actst,data,48,count,r,,,rv_t008,transaction counter; read
+00000B68,90,actst,data,49,count,w,,,rv_t008,transaction counter; write
+00000B78,91,actst,data,50,checksum,w,,,rv_t008,checksum update
+00000B8C,92,actst,sync,17,,,0,,rv_t008,Peterson: leave critical section
+00000BB8,93,actst,marker,20,,,,leave,rv_t008,transaction exit
+00000BF8,94,actcap,value,4,,,,,rv_t008,ring index at run time
+00000C24,95,actcap,value,5,,,,,rv_t008,account value at run time
+00000C60,96,actst,marker,21,,,,enter,rv_t009,transaction entry
+00000C70,97,actst,sync,18,,,0,,rv_t009,Peterson: announce intent
+00000C90,98,actst,sync,19,,,0,,rv_t009,Peterson: critical section entered
+00000CC4,99,actst,data,51,balance,r,,,rv_t009,read-modify-write; read half
+00000CCC,100,actst,data,52,balance,w,,,rv_t009,read-modify-write; write half
+00000CD4,101,actst,data,53,count,r,,,rv_t009,transaction counter; read
+00000CDC,102,actst,data,54,count,w,,,rv_t009,transaction counter; write
+00000CEC,103,actst,data,55,checksum,w,,,rv_t009,checksum update
+00000D00,104,actst,sync,20,,,0,,rv_t009,Peterson: leave critical section
+00000D2C,105,actst,marker,22,,,,leave,rv_t009,transaction exit
+00000D60,106,actst,marker,23,,,,enter,rv_t010,transaction entry
+00000D6C,107,actst,data,56,ring_head,r,,,rv_t010,producer head / consumer view
+00000D74,108,actst,data,57,ring_tail,r,,,rv_t010,consumer tail / producer view
+00000DAC,109,actst,data,58,ring_slot,w,,,rv_t010,slot payload
+00000DB0,110,actst,data,59,ring_head,w,,,rv_t010,own index advance
+00000DBC,111,actst,data,60,private,r,,,rv_t010,core-local scratch
+00000DC4,112,actst,data,61,private,w,,,rv_t010,core-local scratch
+00000D78,113,actst,marker,24,,,,phase,rv_t010,ring phase marker
+00000DD0,114,actst,data,62,seq,w,,,rv_t010,sequence stamp
+00000DD4,115,actst,marker,25,,,,leave,rv_t010,transaction exit
+00000E24,116,actst,marker,26,,,,enter,rv_t011,transaction entry
+00000E30,117,actst,data,63,ring_head,r,,,rv_t011,producer head / consumer view
+00000E38,118,actst,data,64,ring_tail,r,,,rv_t011,consumer tail / producer view
+00000E70,119,actst,data,65,ring_slot,w,,,rv_t011,slot payload
+00000E74,120,actst,data,66,ring_head,w,,,rv_t011,own index advance
+00000E80,121,actst,data,67,private,r,,,rv_t011,core-local scratch
+00000E88,122,actst,data,68,private,w,,,rv_t011,core-local scratch
+00000E3C,123,actst,marker,27,,,,phase,rv_t011,ring phase marker
+00000E94,124,actst,data,69,seq,w,,,rv_t011,sequence stamp
+00000E98,125,actst,marker,28,,,,leave,rv_t011,transaction exit
+00000EE8,126,actst,marker,29,,,,enter,rv_t012,transaction entry
+00000EF4,127,actst,data,70,ring_head,r,,,rv_t012,producer head / consumer view
+00000EFC,128,actst,data,71,ring_tail,r,,,rv_t012,consumer tail / producer view
+00000F34,129,actst,data,72,ring_slot,w,,,rv_t012,slot payload
+00000F38,130,actst,data,73,ring_head,w,,,rv_t012,own index advance
+00000F44,131,actst,data,74,private,r,,,rv_t012,core-local scratch
+00000F4C,132,actst,data,75,private,w,,,rv_t012,core-local scratch
+00000F00,133,actst,marker,30,,,,phase,rv_t012,ring phase marker
+00000F58,134,actst,data,76,seq,w,,,rv_t012,sequence stamp
+00000F5C,135,actst,marker,31,,,,leave,rv_t012,transaction exit
+00000FB8,136,actcap,value,6,,,,,rv_t012,ring index at run time
+00000FE4,137,actcap,value,7,,,,,rv_t012,account value at run time
+00001020,138,actst,marker,32,,,,enter,rv_t013,transaction entry
+00001030,139,actst,sync,21,,,0,,rv_t013,Peterson: announce intent
+00001050,140,actst,sync,22,,,0,,rv_t013,Peterson: critical section entered
+00001084,141,actst,data,77,balance,r,,,rv_t013,read-modify-write; read half
+0000108C,142,actst,data,78,balance,w,,,rv_t013,read-modify-write; write half
+00001094,143,actst,data,79,count,r,,,rv_t013,transaction counter; read
+0000109C,144,actst,data,80,count,w,,,rv_t013,transaction counter; write
+000010AC,145,actst,data,81,checksum,w,,,rv_t013,checksum update
+000010C0,146,actst,sync,23,,,0,,rv_t013,Peterson: leave critical section
+000010EC,147,actst,marker,33,,,,leave,rv_t013,transaction exit
+00001110,148,actst,marker,34,,,,enter,rv_t014,transaction entry
+00001120,149,actst,sync,24,,,0,,rv_t014,Peterson: announce intent
+00001140,150,actst,sync,25,,,0,,rv_t014,Peterson: critical section entered
+00001174,151,actst,data,82,balance,r,,,rv_t014,read-modify-write; read half
+0000117C,152,actst,data,83,balance,w,,,rv_t014,read-modify-write; write half
+00001184,153,actst,data,84,count,r,,,rv_t014,transaction counter; read
+0000118C,154,actst,data,85,count,w,,,rv_t014,transaction counter; write
+0000119C,155,actst,data,86,checksum,w,,,rv_t014,checksum update
+000011B0,156,actst,sync,26,,,0,,rv_t014,Peterson: leave critical section
+000011DC,157,actst,marker,35,,,,leave,rv_t014,transaction exit
+00001200,158,actst,marker,36,,,,enter,rv_t015,transaction entry
+00001210,159,actst,sync,27,,,0,,rv_t015,Peterson: announce intent
+00001230,160,actst,sync,28,,,0,,rv_t015,Peterson: critical section entered
+00001264,161,actst,data,87,balance,r,,,rv_t015,read-modify-write; read half
+0000126C,162,actst,data,88,balance,w,,,rv_t015,read-modify-write; write half
+00001274,163,actst,data,89,count,r,,,rv_t015,transaction counter; read
+0000127C,164,actst,data,90,count,w,,,rv_t015,transaction counter; write
+0000128C,165,actst,data,91,checksum,w,,,rv_t015,checksum update
+000012A0,166,actst,sync,29,,,0,,rv_t015,Peterson: leave critical section
+000012CC,167,actst,marker,37,,,,leave,rv_t015,transaction exit
+000012F0,168,actst,marker,38,,,,enter,rv_t016,transaction entry
+00001300,169,actst,sync,30,,,0,,rv_t016,Peterson: announce intent
+00001320,170,actst,sync,31,,,0,,rv_t016,Peterson: critical section entered
+00001354,171,actst,data,92,balance,r,,,rv_t016,read-modify-write; read half
+0000135C,172,actst,data,93,balance,w,,,rv_t016,read-modify-write; write half
+00001364,173,actst,data,94,count,r,,,rv_t016,transaction counter; read
+0000136C,174,actst,data,95,count,w,,,rv_t016,transaction counter; write
+0000137C,175,actst,data,96,checksum,w,,,rv_t016,checksum update
+00001390,176,actst,sync,32,,,0,,rv_t016,Peterson: leave critical section
+000013BC,177,actst,marker,39,,,,leave,rv_t016,transaction exit
+000013FC,178,actcap,value,8,,,,,rv_t016,ring index at run time
+00001428,179,actcap,value,9,,,,,rv_t016,account value at run time
+00001464,180,actst,marker,40,,,,enter,rv_t017,transaction entry
+00001474,181,actst,sync,33,,,0,,rv_t017,Peterson: announce intent
+00001494,182,actst,sync,34,,,0,,rv_t017,Peterson: critical section entered
+000014C8,183,actst,data,97,balance,r,,,rv_t017,read-modify-write; read half
+000014D0,184,actst,data,98,balance,w,,,rv_t017,read-modify-write; write half
+000014D8,185,actst,data,99,count,r,,,rv_t017,transaction counter; read
+000014E0,186,actst,data,100,count,w,,,rv_t017,transaction counter; write
+000014F0,187,actst,data,101,checksum,w,,,rv_t017,checksum update
+00001504,188,actst,sync,35,,,0,,rv_t017,Peterson: leave critical section
+00001530,189,actst,marker,41,,,,leave,rv_t017,transaction exit
+00001554,190,actst,marker,42,,,,enter,rv_t018,transaction entry
+00001564,191,actst,sync,36,,,0,,rv_t018,Peterson: announce intent
+00001584,192,actst,sync,37,,,0,,rv_t018,Peterson: critical section entered
+000015B8,193,actst,data,102,balance,r,,,rv_t018,read-modify-write; read half
+000015C0,194,actst,data,103,balance,w,,,rv_t018,read-modify-write; write half
+000015C8,195,actst,data,104,count,r,,,rv_t018,transaction counter; read
+000015D0,196,actst,data,105,count,w,,,rv_t018,transaction counter; write
+000015E0,197,actst,data,106,checksum,w,,,rv_t018,checksum update
+000015F4,198,actst,sync,38,,,0,,rv_t018,Peterson: leave critical section
+00001620,199,actst,marker,43,,,,leave,rv_t018,transaction exit
+00001644,200,actst,marker,44,,,,enter,rv_t019,transaction entry
+00001654,201,actst,sync,39,,,0,,rv_t019,Peterson: announce intent
+00001674,202,actst,sync,40,,,0,,rv_t019,Peterson: critical section entered
+000016A8,203,actst,data,107,balance,r,,,rv_t019,read-modify-write; read half
+000016B0,204,actst,data,108,balance,w,,,rv_t019,read-modify-write; write half
+000016B8,205,actst,data,109,count,r,,,rv_t019,transaction counter; read
+000016C0,206,actst,data,110,count,w,,,rv_t019,transaction counter; write
+000016D0,207,actst,data,111,checksum,w,,,rv_t019,checksum update
+000016E4,208,actst,sync,41,,,0,,rv_t019,Peterson: leave critical section
+00001710,209,actst,marker,45,,,,leave,rv_t019,transaction exit
+00001744,210,actst,marker,46,,,,enter,rv_t020,transaction entry
+00001750,211,actst,data,112,ring_head,r,,,rv_t020,producer head / consumer view
+00001758,212,actst,data,113,ring_tail,r,,,rv_t020,consumer tail / producer view
+00001790,213,actst,data,114,ring_slot,w,,,rv_t020,slot payload
+00001794,214,actst,data,115,ring_head,w,,,rv_t020,own index advance
+000017A0,215,actst,data,116,private,r,,,rv_t020,core-local scratch
+000017A8,216,actst,data,117,private,w,,,rv_t020,core-local scratch
+0000175C,217,actst,marker,47,,,,phase,rv_t020,ring phase marker
+000017B4,218,actst,data,118,seq,w,,,rv_t020,sequence stamp
+000017B8,219,actst,marker,48,,,,leave,rv_t020,transaction exit
+00001814,220,actcap,value,10,,,,,rv_t020,ring index at run time
+00001840,221,actcap,value,11,,,,,rv_t020,account value at run time
+0000188C,222,actst,marker,49,,,,enter,rv_t021,transaction entry
+00001898,223,actst,data,119,ring_head,r,,,rv_t021,producer head / consumer view
+000018A0,224,actst,data,120,ring_tail,r,,,rv_t021,consumer tail / producer view
+000018D8,225,actst,data,121,ring_slot,w,,,rv_t021,slot payload
+000018DC,226,actst,data,122,ring_head,w,,,rv_t021,own index advance
+000018E8,227,actst,data,123,private,r,,,rv_t021,core-local scratch
+000018F0,228,actst,data,124,private,w,,,rv_t021,core-local scratch
+000018A4,229,actst,marker,50,,,,phase,rv_t021,ring phase marker
+000018FC,230,actst,data,125,seq,w,,,rv_t021,sequence stamp
+00001900,231,actst,marker,51,,,,leave,rv_t021,transaction exit
+00001950,232,actst,marker,52,,,,enter,rv_t022,transaction entry
+0000195C,233,actst,data,126,ring_head,r,,,rv_t022,producer head / consumer view
+00001964,234,actst,data,127,ring_tail,r,,,rv_t022,consumer tail / producer view
+0000199C,235,actst,data,128,ring_slot,w,,,rv_t022,slot payload
+000019A0,236,actst,data,129,ring_head,w,,,rv_t022,own index advance
+000019AC,237,actst,data,130,private,r,,,rv_t022,core-local scratch
+000019B4,238,actst,data,131,private,w,,,rv_t022,core-local scratch
+00001968,239,actst,marker,53,,,,phase,rv_t022,ring phase marker
+000019C0,240,actst,data,132,seq,w,,,rv_t022,sequence stamp
+000019C4,241,actst,marker,54,,,,leave,rv_t022,transaction exit
+00001A04,242,actst,marker,55,,,,enter,rv_t023,transaction entry
+00001A14,243,actst,sync,42,,,0,,rv_t023,Peterson: announce intent
+00001A34,244,actst,sync,43,,,0,,rv_t023,Peterson: critical section entered
+00001A68,245,actst,data,133,balance,r,,,rv_t023,read-modify-write; read half
+00001A70,246,actst,data,134,balance,w,,,rv_t023,read-modify-write; write half
+00001A78,247,actst,data,135,count,r,,,rv_t023,transaction counter; read
+00001A80,248,actst,data,136,count,w,,,rv_t023,transaction counter; write
+00001A90,249,actst,data,137,checksum,w,,,rv_t023,checksum update
+00001AA4,250,actst,sync,44,,,0,,rv_t023,Peterson: leave critical section
+00001AD0,251,actst,marker,56,,,,leave,rv_t023,transaction exit
+00001AF4,252,actst,marker,57,,,,enter,rv_t024,transaction entry
+00001B04,253,actst,sync,45,,,0,,rv_t024,Peterson: announce intent
+00001B24,254,actst,sync,46,,,0,,rv_t024,Peterson: critical section entered
+00001B58,255,actst,data,138,balance,r,,,rv_t024,read-modify-write; read half
+00001B60,256,actst,data,139,balance,w,,,rv_t024,read-modify-write; write half
+00001B68,257,actst,data,140,count,r,,,rv_t024,transaction counter; read
+00001B70,258,actst,data,141,count,w,,,rv_t024,transaction counter; write
+00001B80,259,actst,data,142,checksum,w,,,rv_t024,checksum update
+00001B94,260,actst,sync,47,,,0,,rv_t024,Peterson: leave critical section
+00001BC0,261,actst,marker,58,,,,leave,rv_t024,transaction exit
+00001C00,262,actcap,value,12,,,,,rv_t024,ring index at run time
+00001C2C,263,actcap,value,13,,,,,rv_t024,account value at run time
+00001C68,264,actst,marker,59,,,,enter,rv_t025,transaction entry
+00001C78,265,actst,sync,48,,,0,,rv_t025,Peterson: announce intent
+00001C98,266,actst,sync,49,,,0,,rv_t025,Peterson: critical section entered
+00001CCC,267,actst,data,143,balance,r,,,rv_t025,read-modify-write; read half
+00001CD4,268,actst,data,144,balance,w,,,rv_t025,read-modify-write; write half
+00001CDC,269,actst,data,145,count,r,,,rv_t025,transaction counter; read
+00001CE4,270,actst,data,146,count,w,,,rv_t025,transaction counter; write
+00001CF4,271,actst,data,147,checksum,w,,,rv_t025,checksum update
+00001D08,272,actst,sync,50,,,0,,rv_t025,Peterson: leave critical section
+00001D34,273,actst,marker,60,,,,leave,rv_t025,transaction exit
+00001D58,274,actst,marker,61,,,,enter,rv_t026,transaction entry
+00001D68,275,actst,sync,51,,,0,,rv_t026,Peterson: announce intent
+00001D88,276,actst,sync,52,,,0,,rv_t026,Peterson: critical section entered
+00001DBC,277,actst,data,148,balance,r,,,rv_t026,read-modify-write; read half
+00001DC4,278,actst,data,149,balance,w,,,rv_t026,read-modify-write; write half
+00001DCC,279,actst,data,150,count,r,,,rv_t026,transaction counter; read
+00001DD4,280,actst,data,151,count,w,,,rv_t026,transaction counter; write
+00001DE4,281,actst,data,152,checksum,w,,,rv_t026,checksum update
+00001DF8,282,actst,sync,53,,,0,,rv_t026,Peterson: leave critical section
+00001E24,283,actst,marker,62,,,,leave,rv_t026,transaction exit
+00001E48,284,actst,marker,63,,,,enter,rv_t027,transaction entry
+00001E58,285,actst,sync,54,,,0,,rv_t027,Peterson: announce intent
+00001E78,286,actst,sync,55,,,0,,rv_t027,Peterson: critical section entered
+00001EAC,287,actst,data,153,balance,r,,,rv_t027,read-modify-write; read half
+00001EB4,288,actst,data,154,balance,w,,,rv_t027,read-modify-write; write half
+00001EBC,289,actst,data,155,count,r,,,rv_t027,transaction counter; read
+00001EC4,290,actst,data,156,count,w,,,rv_t027,transaction counter; write
+00001ED4,291,actst,data,157,checksum,w,,,rv_t027,checksum update
+00001EE8,292,actst,sync,56,,,0,,rv_t027,Peterson: leave critical section
+00001F14,293,actst,marker,64,,,,leave,rv_t027,transaction exit
+00001F38,294,actst,marker,65,,,,enter,rv_t028,transaction entry
+00001F48,295,actst,sync,57,,,0,,rv_t028,Peterson: announce intent
+00001F68,296,actst,sync,58,,,0,,rv_t028,Peterson: critical section entered
+00001F9C,297,actst,data,158,balance,r,,,rv_t028,read-modify-write; read half
+00001FA4,298,actst,data,159,balance,w,,,rv_t028,read-modify-write; write half
+00001FAC,299,actst,data,160,count,r,,,rv_t028,transaction counter; read
+00001FB4,300,actst,data,161,count,w,,,rv_t028,transaction counter; write
+00001FC4,301,actst,data,162,checksum,w,,,rv_t028,checksum update
+00001FD8,302,actst,sync,59,,,0,,rv_t028,Peterson: leave critical section
+00002004,303,actst,marker,66,,,,leave,rv_t028,transaction exit
+00002044,304,actcap,value,14,,,,,rv_t028,ring index at run time
+00002070,305,actcap,value,15,,,,,rv_t028,account value at run time
+000020AC,306,actst,marker,67,,,,enter,rv_t029,transaction entry
+000020BC,307,actst,sync,60,,,0,,rv_t029,Peterson: announce intent
+000020DC,308,actst,sync,61,,,0,,rv_t029,Peterson: critical section entered
+00002110,309,actst,data,163,balance,r,,,rv_t029,read-modify-write; read half
+00002118,310,actst,data,164,balance,w,,,rv_t029,read-modify-write; write half
+00002120,311,actst,data,165,count,r,,,rv_t029,transaction counter; read
+00002128,312,actst,data,166,count,w,,,rv_t029,transaction counter; write
+00002138,313,actst,data,167,checksum,w,,,rv_t029,checksum update
+0000214C,314,actst,sync,62,,,0,,rv_t029,Peterson: leave critical section
+00002178,315,actst,marker,68,,,,leave,rv_t029,transaction exit
+000021AC,316,actst,marker,69,,,,enter,rv_t030,transaction entry
+000021B8,317,actst,data,168,ring_head,r,,,rv_t030,producer head / consumer view
+000021C0,318,actst,data,169,ring_tail,r,,,rv_t030,consumer tail / producer view
+000021F8,319,actst,data,170,ring_slot,w,,,rv_t030,slot payload
+000021FC,320,actst,data,171,ring_head,w,,,rv_t030,own index advance
+00002208,321,actst,data,172,private,r,,,rv_t030,core-local scratch
+00002210,322,actst,data,173,private,w,,,rv_t030,core-local scratch
+000021C4,323,actst,marker,70,,,,phase,rv_t030,ring phase marker
+0000221C,324,actst,data,174,seq,w,,,rv_t030,sequence stamp
+00002220,325,actst,marker,71,,,,leave,rv_t030,transaction exit
+00002270,326,actst,marker,72,,,,enter,rv_t031,transaction entry
+0000227C,327,actst,data,175,ring_head,r,,,rv_t031,producer head / consumer view
+00002284,328,actst,data,176,ring_tail,r,,,rv_t031,consumer tail / producer view
+000022BC,329,actst,data,177,ring_slot,w,,,rv_t031,slot payload
+000022C0,330,actst,data,178,ring_head,w,,,rv_t031,own index advance
+000022CC,331,actst,data,179,private,r,,,rv_t031,core-local scratch
+000022D4,332,actst,data,180,private,w,,,rv_t031,core-local scratch
+00002288,333,actst,marker,73,,,,phase,rv_t031,ring phase marker
+000022E0,334,actst,data,181,seq,w,,,rv_t031,sequence stamp
+000022E4,335,actst,marker,74,,,,leave,rv_t031,transaction exit
+00002334,336,actst,marker,75,,,,enter,rv_t032,transaction entry
+00002340,337,actst,data,182,ring_head,r,,,rv_t032,producer head / consumer view
+00002348,338,actst,data,183,ring_tail,r,,,rv_t032,consumer tail / producer view
+00002380,339,actst,data,184,ring_slot,w,,,rv_t032,slot payload
+00002384,340,actst,data,185,ring_head,w,,,rv_t032,own index advance
+00002390,341,actst,data,186,private,r,,,rv_t032,core-local scratch
+00002398,342,actst,data,187,private,w,,,rv_t032,core-local scratch
+0000234C,343,actst,marker,76,,,,phase,rv_t032,ring phase marker
+000023A4,344,actst,data,188,seq,w,,,rv_t032,sequence stamp
+000023A8,345,actst,marker,77,,,,leave,rv_t032,transaction exit
+00002404,346,actcap,value,16,,,,,rv_t032,ring index at run time
+00002430,347,actcap,value,17,,,,,rv_t032,account value at run time
+0000246C,348,actst,marker,78,,,,enter,rv_t033,transaction entry
+0000247C,349,actst,sync,63,,,0,,rv_t033,Peterson: announce intent
+0000249C,350,actst,sync,64,,,0,,rv_t033,Peterson: critical section entered
+000024D0,351,actst,data,189,balance,r,,,rv_t033,read-modify-write; read half
+000024D8,352,actst,data,190,balance,w,,,rv_t033,read-modify-write; write half
+000024E0,353,actst,data,191,count,r,,,rv_t033,transaction counter; read
+000024E8,354,actst,data,192,count,w,,,rv_t033,transaction counter; write
+000024F8,355,actst,data,193,checksum,w,,,rv_t033,checksum update
+0000250C,356,actst,sync,65,,,0,,rv_t033,Peterson: leave critical section
+00002538,357,actst,marker,79,,,,leave,rv_t033,transaction exit
+0000255C,358,actst,marker,80,,,,enter,rv_t034,transaction entry
+0000256C,359,actst,sync,66,,,0,,rv_t034,Peterson: announce intent
+0000258C,360,actst,sync,67,,,0,,rv_t034,Peterson: critical section entered
+000025C0,361,actst,data,194,balance,r,,,rv_t034,read-modify-write; read half
+000025C8,362,actst,data,195,balance,w,,,rv_t034,read-modify-write; write half
+000025D0,363,actst,data,196,count,r,,,rv_t034,transaction counter; read
+000025D8,364,actst,data,197,count,w,,,rv_t034,transaction counter; write
+000025E8,365,actst,data,198,checksum,w,,,rv_t034,checksum update
+000025FC,366,actst,sync,68,,,0,,rv_t034,Peterson: leave critical section
+00002628,367,actst,marker,81,,,,leave,rv_t034,transaction exit
+0000264C,368,actst,marker,82,,,,enter,rv_t035,transaction entry
+0000265C,369,actst,sync,69,,,0,,rv_t035,Peterson: announce intent
+0000267C,370,actst,sync,70,,,0,,rv_t035,Peterson: critical section entered
+000026B0,371,actst,data,199,balance,r,,,rv_t035,read-modify-write; read half
+000026B8,372,actst,data,200,balance,w,,,rv_t035,read-modify-write; write half
+000026C0,373,actst,data,201,count,r,,,rv_t035,transaction counter; read
+000026C8,374,actst,data,202,count,w,,,rv_t035,transaction counter; write
+000026D8,375,actst,data,203,checksum,w,,,rv_t035,checksum update
+000026EC,376,actst,sync,71,,,0,,rv_t035,Peterson: leave critical section
+00002718,377,actst,marker,83,,,,leave,rv_t035,transaction exit
+0000273C,378,actst,marker,84,,,,enter,rv_t036,transaction entry
+0000274C,379,actst,sync,72,,,0,,rv_t036,Peterson: announce intent
+0000276C,380,actst,sync,73,,,0,,rv_t036,Peterson: critical section entered
+000027A0,381,actst,data,204,balance,r,,,rv_t036,read-modify-write; read half
+000027A8,382,actst,data,205,balance,w,,,rv_t036,read-modify-write; write half
+000027B0,383,actst,data,206,count,r,,,rv_t036,transaction counter; read
+000027B8,384,actst,data,207,count,w,,,rv_t036,transaction counter; write
+000027C8,385,actst,data,208,checksum,w,,,rv_t036,checksum update
+000027DC,386,actst,sync,74,,,0,,rv_t036,Peterson: leave critical section
+00002808,387,actst,marker,85,,,,leave,rv_t036,transaction exit
+00002848,388,actcap,value,18,,,,,rv_t036,ring index at run time
+00002874,389,actcap,value,19,,,,,rv_t036,account value at run time
+000028B0,390,actst,marker,86,,,,enter,rv_t037,transaction entry
+000028C0,391,actst,sync,75,,,0,,rv_t037,Peterson: announce intent
+000028E0,392,actst,sync,76,,,0,,rv_t037,Peterson: critical section entered
+00002914,393,actst,data,209,balance,r,,,rv_t037,read-modify-write; read half
+0000291C,394,actst,data,210,balance,w,,,rv_t037,read-modify-write; write half
+00002924,395,actst,data,211,count,r,,,rv_t037,transaction counter; read
+0000292C,396,actst,data,212,count,w,,,rv_t037,transaction counter; write
+0000293C,397,actst,data,213,checksum,w,,,rv_t037,checksum update
+00002950,398,actst,sync,77,,,0,,rv_t037,Peterson: leave critical section
+0000297C,399,actst,marker,87,,,,leave,rv_t037,transaction exit
+000029A0,400,actst,marker,88,,,,enter,rv_t038,transaction entry
+000029B0,401,actst,sync,78,,,0,,rv_t038,Peterson: announce intent
+000029D0,402,actst,sync,79,,,0,,rv_t038,Peterson: critical section entered
+00002A04,403,actst,data,214,balance,r,,,rv_t038,read-modify-write; read half
+00002A0C,404,actst,data,215,balance,w,,,rv_t038,read-modify-write; write half
+00002A14,405,actst,data,216,count,r,,,rv_t038,transaction counter; read
+00002A1C,406,actst,data,217,count,w,,,rv_t038,transaction counter; write
+00002A2C,407,actst,data,218,checksum,w,,,rv_t038,checksum update
+00002A40,408,actst,sync,80,,,0,,rv_t038,Peterson: leave critical section
+00002A6C,409,actst,marker,89,,,,leave,rv_t038,transaction exit
+00002A90,410,actst,marker,90,,,,enter,rv_t039,transaction entry
+00002AA0,411,actst,sync,81,,,0,,rv_t039,Peterson: announce intent
+00002AC0,412,actst,sync,82,,,0,,rv_t039,Peterson: critical section entered
+00002AF4,413,actst,data,219,balance,r,,,rv_t039,read-modify-write; read half
+00002AFC,414,actst,data,220,balance,w,,,rv_t039,read-modify-write; write half
+00002B04,415,actst,data,221,count,r,,,rv_t039,transaction counter; read
+00002B0C,416,actst,data,222,count,w,,,rv_t039,transaction counter; write
+00002B1C,417,actst,data,223,checksum,w,,,rv_t039,checksum update
+00002B30,418,actst,sync,83,,,0,,rv_t039,Peterson: leave critical section
+00002B5C,419,actst,marker,91,,,,leave,rv_t039,transaction exit
+00002B90,420,actst,marker,92,,,,enter,rv_t040,transaction entry
+00002B9C,421,actst,data,224,ring_head,r,,,rv_t040,producer head / consumer view
+00002BA4,422,actst,data,225,ring_tail,r,,,rv_t040,consumer tail / producer view
+00002BDC,423,actst,data,226,ring_slot,w,,,rv_t040,slot payload
+00002BE0,424,actst,data,227,ring_head,w,,,rv_t040,own index advance
+00002BEC,425,actst,data,228,private,r,,,rv_t040,core-local scratch
+00002BF4,426,actst,data,229,private,w,,,rv_t040,core-local scratch
+00002BA8,427,actst,marker,93,,,,phase,rv_t040,ring phase marker
+00002C00,428,actst,data,230,seq,w,,,rv_t040,sequence stamp
+00002C04,429,actst,marker,94,,,,leave,rv_t040,transaction exit
+00002C60,430,actcap,value,20,,,,,rv_t040,ring index at run time
+00002C8C,431,actcap,value,21,,,,,rv_t040,account value at run time
+00002CD8,432,actst,marker,95,,,,enter,rv_t041,transaction entry
+00002CE4,433,actst,data,231,ring_head,r,,,rv_t041,producer head / consumer view
+00002CEC,434,actst,data,232,ring_tail,r,,,rv_t041,consumer tail / producer view
+00002D24,435,actst,data,233,ring_slot,w,,,rv_t041,slot payload
+00002D28,436,actst,data,234,ring_head,w,,,rv_t041,own index advance
+00002D34,437,actst,data,235,private,r,,,rv_t041,core-local scratch
+00002D3C,438,actst,data,236,private,w,,,rv_t041,core-local scratch
+00002CF0,439,actst,marker,96,,,,phase,rv_t041,ring phase marker
+00002D48,440,actst,data,237,seq,w,,,rv_t041,sequence stamp
+00002D4C,441,actst,marker,97,,,,leave,rv_t041,transaction exit
+00002D9C,442,actst,marker,98,,,,enter,rv_t042,transaction entry
+00002DA8,443,actst,data,238,ring_head,r,,,rv_t042,producer head / consumer view
+00002DB0,444,actst,data,239,ring_tail,r,,,rv_t042,consumer tail / producer view
+00002DE8,445,actst,data,240,ring_slot,w,,,rv_t042,slot payload
+00002DEC,446,actst,data,241,ring_head,w,,,rv_t042,own index advance
+00002DF8,447,actst,data,242,private,r,,,rv_t042,core-local scratch
+00002E00,448,actst,data,243,private,w,,,rv_t042,core-local scratch
+00002DB4,449,actst,marker,99,,,,phase,rv_t042,ring phase marker
+00002E0C,450,actst,data,244,seq,w,,,rv_t042,sequence stamp
+00002E10,451,actst,marker,100,,,,leave,rv_t042,transaction exit
+00002E50,452,actst,marker,101,,,,enter,rv_t043,transaction entry
+00002E60,453,actst,sync,84,,,0,,rv_t043,Peterson: announce intent
+00002E80,454,actst,sync,85,,,0,,rv_t043,Peterson: critical section entered
+00002EB4,455,actst,data,245,balance,r,,,rv_t043,read-modify-write; read half
+00002EBC,456,actst,data,246,balance,w,,,rv_t043,read-modify-write; write half
+00002EC4,457,actst,data,247,count,r,,,rv_t043,transaction counter; read
+00002ECC,458,actst,data,248,count,w,,,rv_t043,transaction counter; write
+00002EDC,459,actst,data,249,checksum,w,,,rv_t043,checksum update
+00002EF0,460,actst,sync,86,,,0,,rv_t043,Peterson: leave critical section
+00002F1C,461,actst,marker,102,,,,leave,rv_t043,transaction exit
+00002F40,462,actst,marker,103,,,,enter,rv_t044,transaction entry
+00002F50,463,actst,sync,87,,,0,,rv_t044,Peterson: announce intent
+00002F70,464,actst,sync,88,,,0,,rv_t044,Peterson: critical section entered
+00002FA4,465,actst,data,250,balance,r,,,rv_t044,read-modify-write; read half
+00002FAC,466,actst,data,251,balance,w,,,rv_t044,read-modify-write; write half
+00002FB4,467,actst,data,252,count,r,,,rv_t044,transaction counter; read
+00002FBC,468,actst,data,253,count,w,,,rv_t044,transaction counter; write
+00002FCC,469,actst,data,254,checksum,w,,,rv_t044,checksum update
+00002FE0,470,actst,sync,89,,,0,,rv_t044,Peterson: leave critical section
+0000300C,471,actst,marker,104,,,,leave,rv_t044,transaction exit
+0000304C,472,actcap,value,22,,,,,rv_t044,ring index at run time
+00003078,473,actcap,value,23,,,,,rv_t044,account value at run time
+000030B4,474,actst,marker,105,,,,enter,rv_t045,transaction entry
+000030C4,475,actst,sync,90,,,0,,rv_t045,Peterson: announce intent
+000030E4,476,actst,sync,91,,,0,,rv_t045,Peterson: critical section entered
+00003118,477,actst,data,255,balance,r,,,rv_t045,read-modify-write; read half
+00003120,478,actst,data,256,balance,w,,,rv_t045,read-modify-write; write half
+00003128,479,actst,data,257,count,r,,,rv_t045,transaction counter; read
+00003130,480,actst,data,258,count,w,,,rv_t045,transaction counter; write
+00003140,481,actst,data,259,checksum,w,,,rv_t045,checksum update
+00003154,482,actst,sync,92,,,0,,rv_t045,Peterson: leave critical section
+00003180,483,actst,marker,106,,,,leave,rv_t045,transaction exit
+000031A4,484,actst,marker,107,,,,enter,rv_t046,transaction entry
+000031B4,485,actst,sync,93,,,0,,rv_t046,Peterson: announce intent
+000031D4,486,actst,sync,94,,,0,,rv_t046,Peterson: critical section entered
+00003208,487,actst,data,260,balance,r,,,rv_t046,read-modify-write; read half
+00003210,488,actst,data,261,balance,w,,,rv_t046,read-modify-write; write half
+00003218,489,actst,data,262,count,r,,,rv_t046,transaction counter; read
+00003220,490,actst,data,263,count,w,,,rv_t046,transaction counter; write
+00003230,491,actst,data,264,checksum,w,,,rv_t046,checksum update
+00003244,492,actst,sync,95,,,0,,rv_t046,Peterson: leave critical section
+00003270,493,actst,marker,108,,,,leave,rv_t046,transaction exit
+00003294,494,actst,marker,109,,,,enter,rv_t047,transaction entry
+000032A4,495,actst,sync,96,,,0,,rv_t047,Peterson: announce intent
+000032C4,496,actst,sync,97,,,0,,rv_t047,Peterson: critical section entered
+000032F8,497,actst,data,265,balance,r,,,rv_t047,read-modify-write; read half
+00003300,498,actst,data,266,balance,w,,,rv_t047,read-modify-write; write half
+00003308,499,actst,data,267,count,r,,,rv_t047,transaction counter; read
+00003310,500,actst,data,268,count,w,,,rv_t047,transaction counter; write
+00003320,501,actst,data,269,checksum,w,,,rv_t047,checksum update
+00003334,502,actst,sync,98,,,0,,rv_t047,Peterson: leave critical section
+00003360,503,actst,marker,110,,,,leave,rv_t047,transaction exit
+00003384,504,actst,marker,111,,,,enter,rv_t048,transaction entry
+00003394,505,actst,sync,99,,,0,,rv_t048,Peterson: announce intent
+000033B4,506,actst,sync,100,,,0,,rv_t048,Peterson: critical section entered
+000033E8,507,actst,data,270,balance,r,,,rv_t048,read-modify-write; read half
+000033F0,508,actst,data,271,balance,w,,,rv_t048,read-modify-write; write half
+000033F8,509,actst,data,272,count,r,,,rv_t048,transaction counter; read
+00003400,510,actst,data,273,count,w,,,rv_t048,transaction counter; write
+00003410,511,actst,data,274,checksum,w,,,rv_t048,checksum update
+00003424,512,actst,sync,101,,,0,,rv_t048,Peterson: leave critical section
+00003450,513,actst,marker,112,,,,leave,rv_t048,transaction exit
+00003490,514,actcap,value,24,,,,,rv_t048,ring index at run time
+000034BC,515,actcap,value,25,,,,,rv_t048,account value at run time
+000034F8,516,actst,marker,113,,,,enter,rv_t049,transaction entry
+00003508,517,actst,sync,102,,,0,,rv_t049,Peterson: announce intent
+00003528,518,actst,sync,103,,,0,,rv_t049,Peterson: critical section entered
+0000355C,519,actst,data,275,balance,r,,,rv_t049,read-modify-write; read half
+00003564,520,actst,data,276,balance,w,,,rv_t049,read-modify-write; write half
+0000356C,521,actst,data,277,count,r,,,rv_t049,transaction counter; read
+00003574,522,actst,data,278,count,w,,,rv_t049,transaction counter; write
+00003584,523,actst,data,279,checksum,w,,,rv_t049,checksum update
+00003598,524,actst,sync,104,,,0,,rv_t049,Peterson: leave critical section
+000035C4,525,actst,marker,114,,,,leave,rv_t049,transaction exit
+000035F8,526,actst,marker,115,,,,enter,rv_t050,transaction entry
+00003604,527,actst,data,280,ring_head,r,,,rv_t050,producer head / consumer view
+0000360C,528,actst,data,281,ring_tail,r,,,rv_t050,consumer tail / producer view
+00003644,529,actst,data,282,ring_slot,w,,,rv_t050,slot payload
+00003648,530,actst,data,283,ring_head,w,,,rv_t050,own index advance
+00003654,531,actst,data,284,private,r,,,rv_t050,core-local scratch
+0000365C,532,actst,data,285,private,w,,,rv_t050,core-local scratch
+00003610,533,actst,marker,116,,,,phase,rv_t050,ring phase marker
+00003668,534,actst,data,286,seq,w,,,rv_t050,sequence stamp
+0000366C,535,actst,marker,117,,,,leave,rv_t050,transaction exit
+000036BC,536,actst,marker,118,,,,enter,rv_t051,transaction entry
+000036C8,537,actst,data,287,ring_head,r,,,rv_t051,producer head / consumer view
+000036D0,538,actst,data,288,ring_tail,r,,,rv_t051,consumer tail / producer view
+00003708,539,actst,data,289,ring_slot,w,,,rv_t051,slot payload
+0000370C,540,actst,data,290,ring_head,w,,,rv_t051,own index advance
+00003718,541,actst,data,291,private,r,,,rv_t051,core-local scratch
+00003720,542,actst,data,292,private,w,,,rv_t051,core-local scratch
+000036D4,543,actst,marker,119,,,,phase,rv_t051,ring phase marker
+0000372C,544,actst,data,293,seq,w,,,rv_t051,sequence stamp
+00003730,545,actst,marker,120,,,,leave,rv_t051,transaction exit
+00003780,546,actst,marker,121,,,,enter,rv_t052,transaction entry
+0000378C,547,actst,data,294,ring_head,r,,,rv_t052,producer head / consumer view
+00003794,548,actst,data,295,ring_tail,r,,,rv_t052,consumer tail / producer view
+000037CC,549,actst,data,296,ring_slot,w,,,rv_t052,slot payload
+000037D0,550,actst,data,297,ring_head,w,,,rv_t052,own index advance
+000037DC,551,actst,data,298,private,r,,,rv_t052,core-local scratch
+000037E4,552,actst,data,299,private,w,,,rv_t052,core-local scratch
+00003798,553,actst,marker,122,,,,phase,rv_t052,ring phase marker
+000037F0,554,actst,data,300,seq,w,,,rv_t052,sequence stamp
+000037F4,555,actst,marker,123,,,,leave,rv_t052,transaction exit
+00003850,556,actcap,value,26,,,,,rv_t052,ring index at run time
+0000387C,557,actcap,value,27,,,,,rv_t052,account value at run time
+000038B8,558,actst,marker,124,,,,enter,rv_t053,transaction entry
+000038C8,559,actst,sync,105,,,0,,rv_t053,Peterson: announce intent
+000038E8,560,actst,sync,106,,,0,,rv_t053,Peterson: critical section entered
+0000391C,561,actst,data,301,balance,r,,,rv_t053,read-modify-write; read half
+00003924,562,actst,data,302,balance,w,,,rv_t053,read-modify-write; write half
+0000392C,563,actst,data,303,count,r,,,rv_t053,transaction counter; read
+00003934,564,actst,data,304,count,w,,,rv_t053,transaction counter; write
+00003944,565,actst,data,305,checksum,w,,,rv_t053,checksum update
+00003958,566,actst,sync,107,,,0,,rv_t053,Peterson: leave critical section
+00003984,567,actst,marker,125,,,,leave,rv_t053,transaction exit
+000039A8,568,actst,marker,126,,,,enter,rv_t054,transaction entry
+000039B8,569,actst,sync,108,,,0,,rv_t054,Peterson: announce intent
+000039D8,570,actst,sync,109,,,0,,rv_t054,Peterson: critical section entered
+00003A0C,571,actst,data,306,balance,r,,,rv_t054,read-modify-write; read half
+00003A14,572,actst,data,307,balance,w,,,rv_t054,read-modify-write; write half
+00003A1C,573,actst,data,308,count,r,,,rv_t054,transaction counter; read
+00003A24,574,actst,data,309,count,w,,,rv_t054,transaction counter; write
+00003A34,575,actst,data,310,checksum,w,,,rv_t054,checksum update
+00003A48,576,actst,sync,110,,,0,,rv_t054,Peterson: leave critical section
+00003A74,577,actst,marker,127,,,,leave,rv_t054,transaction exit
+00003A98,578,actst,marker,128,,,,enter,rv_t055,transaction entry
+00003AA8,579,actst,sync,111,,,0,,rv_t055,Peterson: announce intent
+00003AC8,580,actst,sync,112,,,0,,rv_t055,Peterson: critical section entered
+00003AFC,581,actst,data,311,balance,r,,,rv_t055,read-modify-write; read half
+00003B04,582,actst,data,312,balance,w,,,rv_t055,read-modify-write; write half
+00003B0C,583,actst,data,313,count,r,,,rv_t055,transaction counter; read
+00003B14,584,actst,data,314,count,w,,,rv_t055,transaction counter; write
+00003B24,585,actst,data,315,checksum,w,,,rv_t055,checksum update
+00003B38,586,actst,sync,113,,,0,,rv_t055,Peterson: leave critical section
+00003B64,587,actst,marker,129,,,,leave,rv_t055,transaction exit
+00003B88,588,actst,marker,130,,,,enter,rv_t056,transaction entry
+00003B98,589,actst,sync,114,,,0,,rv_t056,Peterson: announce intent
+00003BB8,590,actst,sync,115,,,0,,rv_t056,Peterson: critical section entered
+00003BEC,591,actst,data,316,balance,r,,,rv_t056,read-modify-write; read half
+00003BF4,592,actst,data,317,balance,w,,,rv_t056,read-modify-write; write half
+00003BFC,593,actst,data,318,count,r,,,rv_t056,transaction counter; read
+00003C04,594,actst,data,319,count,w,,,rv_t056,transaction counter; write
+00003C14,595,actst,data,320,checksum,w,,,rv_t056,checksum update
+00003C28,596,actst,sync,116,,,0,,rv_t056,Peterson: leave critical section
+00003C54,597,actst,marker,131,,,,leave,rv_t056,transaction exit
+00003C94,598,actcap,value,28,,,,,rv_t056,ring index at run time
+00003CC0,599,actcap,value,29,,,,,rv_t056,account value at run time
+00003CFC,600,actst,marker,132,,,,enter,rv_t057,transaction entry
+00003D0C,601,actst,sync,117,,,0,,rv_t057,Peterson: announce intent
+00003D2C,602,actst,sync,118,,,0,,rv_t057,Peterson: critical section entered
+00003D60,603,actst,data,321,balance,r,,,rv_t057,read-modify-write; read half
+00003D68,604,actst,data,322,balance,w,,,rv_t057,read-modify-write; write half
+00003D70,605,actst,data,323,count,r,,,rv_t057,transaction counter; read
+00003D78,606,actst,data,324,count,w,,,rv_t057,transaction counter; write
+00003D88,607,actst,data,325,checksum,w,,,rv_t057,checksum update
+00003D9C,608,actst,sync,119,,,0,,rv_t057,Peterson: leave critical section
+00003DC8,609,actst,marker,133,,,,leave,rv_t057,transaction exit
+00003DEC,610,actst,marker,134,,,,enter,rv_t058,transaction entry
+00003DFC,611,actst,sync,120,,,0,,rv_t058,Peterson: announce intent
+00003E1C,612,actst,sync,121,,,0,,rv_t058,Peterson: critical section entered
+00003E50,613,actst,data,326,balance,r,,,rv_t058,read-modify-write; read half
+00003E58,614,actst,data,327,balance,w,,,rv_t058,read-modify-write; write half
+00003E60,615,actst,data,328,count,r,,,rv_t058,transaction counter; read
+00003E68,616,actst,data,329,count,w,,,rv_t058,transaction counter; write
+00003E78,617,actst,data,330,checksum,w,,,rv_t058,checksum update
+00003E8C,618,actst,sync,122,,,0,,rv_t058,Peterson: leave critical section
+00003EB8,619,actst,marker,135,,,,leave,rv_t058,transaction exit
+00003EDC,620,actst,marker,136,,,,enter,rv_t059,transaction entry
+00003EEC,621,actst,sync,123,,,0,,rv_t059,Peterson: announce intent
+00003F0C,622,actst,sync,124,,,0,,rv_t059,Peterson: critical section entered
+00003F40,623,actst,data,331,balance,r,,,rv_t059,read-modify-write; read half
+00003F48,624,actst,data,332,balance,w,,,rv_t059,read-modify-write; write half
+00003F50,625,actst,data,333,count,r,,,rv_t059,transaction counter; read
+00003F58,626,actst,data,334,count,w,,,rv_t059,transaction counter; write
+00003F68,627,actst,data,335,checksum,w,,,rv_t059,checksum update
+00003F7C,628,actst,sync,125,,,0,,rv_t059,Peterson: leave critical section
+00003FA8,629,actst,marker,137,,,,leave,rv_t059,transaction exit
+00003FDC,630,actst,marker,138,,,,enter,rv_t060,transaction entry
+00003FE8,631,actst,data,336,ring_head,r,,,rv_t060,producer head / consumer view
+00003FF0,632,actst,data,337,ring_tail,r,,,rv_t060,consumer tail / producer view
+00004028,633,actst,data,338,ring_slot,w,,,rv_t060,slot payload
+0000402C,634,actst,data,339,ring_head,w,,,rv_t060,own index advance
+00004038,635,actst,data,340,private,r,,,rv_t060,core-local scratch
+00004040,636,actst,data,341,private,w,,,rv_t060,core-local scratch
+00003FF4,637,actst,marker,139,,,,phase,rv_t060,ring phase marker
+0000404C,638,actst,data,342,seq,w,,,rv_t060,sequence stamp
+00004050,639,actst,marker,140,,,,leave,rv_t060,transaction exit
+000040AC,640,actcap,value,30,,,,,rv_t060,ring index at run time
+000040D8,641,actcap,value,31,,,,,rv_t060,account value at run time
+00004124,642,actst,marker,141,,,,enter,rv_t061,transaction entry
+00004130,643,actst,data,343,ring_head,r,,,rv_t061,producer head / consumer view
+00004138,644,actst,data,344,ring_tail,r,,,rv_t061,consumer tail / producer view
+00004170,645,actst,data,345,ring_slot,w,,,rv_t061,slot payload
+00004174,646,actst,data,346,ring_head,w,,,rv_t061,own index advance
+00004180,647,actst,data,347,private,r,,,rv_t061,core-local scratch
+00004188,648,actst,data,348,private,w,,,rv_t061,core-local scratch
+0000413C,649,actst,marker,142,,,,phase,rv_t061,ring phase marker
+00004194,650,actst,data,349,seq,w,,,rv_t061,sequence stamp
+00004198,651,actst,marker,143,,,,leave,rv_t061,transaction exit
+000041E8,652,actst,marker,144,,,,enter,rv_t062,transaction entry
+000041F4,653,actst,data,350,ring_head,r,,,rv_t062,producer head / consumer view
+000041FC,654,actst,data,351,ring_tail,r,,,rv_t062,consumer tail / producer view
+00004234,655,actst,data,352,ring_slot,w,,,rv_t062,slot payload
+00004238,656,actst,data,353,ring_head,w,,,rv_t062,own index advance
+00004244,657,actst,data,354,private,r,,,rv_t062,core-local scratch
+0000424C,658,actst,data,355,private,w,,,rv_t062,core-local scratch
+00004200,659,actst,marker,145,,,,phase,rv_t062,ring phase marker
+00004258,660,actst,data,356,seq,w,,,rv_t062,sequence stamp
+0000425C,661,actst,marker,146,,,,leave,rv_t062,transaction exit
+0000429C,662,actst,marker,147,,,,enter,rv_t063,transaction entry
+000042AC,663,actst,sync,126,,,0,,rv_t063,Peterson: announce intent
+000042CC,664,actst,sync,127,,,0,,rv_t063,Peterson: critical section entered
+00004300,665,actst,data,357,balance,r,,,rv_t063,read-modify-write; read half
+00004308,666,actst,data,358,balance,w,,,rv_t063,read-modify-write; write half
+00004310,667,actst,data,359,count,r,,,rv_t063,transaction counter; read
+00004318,668,actst,data,360,count,w,,,rv_t063,transaction counter; write
+00004328,669,actst,data,361,checksum,w,,,rv_t063,checksum update
+0000433C,670,actst,sync,128,,,0,,rv_t063,Peterson: leave critical section
+00004368,671,actst,marker,148,,,,leave,rv_t063,transaction exit
+0000438C,672,actst,marker,149,,,,enter,rv_t064,transaction entry
+0000439C,673,actst,sync,129,,,0,,rv_t064,Peterson: announce intent
+000043BC,674,actst,sync,130,,,0,,rv_t064,Peterson: critical section entered
+000043F0,675,actst,data,362,balance,r,,,rv_t064,read-modify-write; read half
+000043F8,676,actst,data,363,balance,w,,,rv_t064,read-modify-write; write half
+00004400,677,actst,data,364,count,r,,,rv_t064,transaction counter; read
+00004408,678,actst,data,365,count,w,,,rv_t064,transaction counter; write
+00004418,679,actst,data,366,checksum,w,,,rv_t064,checksum update
+0000442C,680,actst,sync,131,,,0,,rv_t064,Peterson: leave critical section
+00004458,681,actst,marker,150,,,,leave,rv_t064,transaction exit
+00004498,682,actcap,value,32,,,,,rv_t064,ring index at run time
+000044C4,683,actcap,value,33,,,,,rv_t064,account value at run time
+00004500,684,actst,marker,151,,,,enter,rv_t065,transaction entry
+00004510,685,actst,sync,132,,,0,,rv_t065,Peterson: announce intent
+00004530,686,actst,sync,133,,,0,,rv_t065,Peterson: critical section entered
+00004564,687,actst,data,367,balance,r,,,rv_t065,read-modify-write; read half
+0000456C,688,actst,data,368,balance,w,,,rv_t065,read-modify-write; write half
+00004574,689,actst,data,369,count,r,,,rv_t065,transaction counter; read
+0000457C,690,actst,data,370,count,w,,,rv_t065,transaction counter; write
+0000458C,691,actst,data,371,checksum,w,,,rv_t065,checksum update
+000045A0,692,actst,sync,134,,,0,,rv_t065,Peterson: leave critical section
+000045CC,693,actst,marker,152,,,,leave,rv_t065,transaction exit
+000045F0,694,actst,marker,153,,,,enter,rv_t066,transaction entry
+00004600,695,actst,sync,135,,,0,,rv_t066,Peterson: announce intent
+00004620,696,actst,sync,136,,,0,,rv_t066,Peterson: critical section entered
+00004654,697,actst,data,372,balance,r,,,rv_t066,read-modify-write; read half
+0000465C,698,actst,data,373,balance,w,,,rv_t066,read-modify-write; write half
+00004664,699,actst,data,374,count,r,,,rv_t066,transaction counter; read
+0000466C,700,actst,data,375,count,w,,,rv_t066,transaction counter; write
+0000467C,701,actst,data,376,checksum,w,,,rv_t066,checksum update
+00004690,702,actst,sync,137,,,0,,rv_t066,Peterson: leave critical section
+000046BC,703,actst,marker,154,,,,leave,rv_t066,transaction exit
+000046E0,704,actst,marker,155,,,,enter,rv_t067,transaction entry
+000046F0,705,actst,sync,138,,,0,,rv_t067,Peterson: announce intent
+00004710,706,actst,sync,139,,,0,,rv_t067,Peterson: critical section entered
+00004744,707,actst,data,377,balance,r,,,rv_t067,read-modify-write; read half
+0000474C,708,actst,data,378,balance,w,,,rv_t067,read-modify-write; write half
+00004754,709,actst,data,379,count,r,,,rv_t067,transaction counter; read
+0000475C,710,actst,data,380,count,w,,,rv_t067,transaction counter; write
+0000476C,711,actst,data,381,checksum,w,,,rv_t067,checksum update
+00004780,712,actst,sync,140,,,0,,rv_t067,Peterson: leave critical section
+000047AC,713,actst,marker,156,,,,leave,rv_t067,transaction exit
+000047D0,714,actst,marker,157,,,,enter,rv_t068,transaction entry
+000047E0,715,actst,sync,141,,,0,,rv_t068,Peterson: announce intent
+00004800,716,actst,sync,142,,,0,,rv_t068,Peterson: critical section entered
+00004834,717,actst,data,382,balance,r,,,rv_t068,read-modify-write; read half
+0000483C,718,actst,data,383,balance,w,,,rv_t068,read-modify-write; write half
+00004844,719,actst,data,384,count,r,,,rv_t068,transaction counter; read
+0000484C,720,actst,data,385,count,w,,,rv_t068,transaction counter; write
+0000485C,721,actst,data,386,checksum,w,,,rv_t068,checksum update
+00004870,722,actst,sync,143,,,0,,rv_t068,Peterson: leave critical section
+0000489C,723,actst,marker,158,,,,leave,rv_t068,transaction exit
+000048DC,724,actcap,value,34,,,,,rv_t068,ring index at run time
+00004908,725,actcap,value,35,,,,,rv_t068,account value at run time
+00004944,726,actst,marker,159,,,,enter,rv_t069,transaction entry
+00004954,727,actst,sync,144,,,0,,rv_t069,Peterson: announce intent
+00004974,728,actst,sync,145,,,0,,rv_t069,Peterson: critical section entered
+000049A8,729,actst,data,387,balance,r,,,rv_t069,read-modify-write; read half
+000049B0,730,actst,data,388,balance,w,,,rv_t069,read-modify-write; write half
+000049B8,731,actst,data,389,count,r,,,rv_t069,transaction counter; read
+000049C0,732,actst,data,390,count,w,,,rv_t069,transaction counter; write
+000049D0,733,actst,data,391,checksum,w,,,rv_t069,checksum update
+000049E4,734,actst,sync,146,,,0,,rv_t069,Peterson: leave critical section
+00004A10,735,actst,marker,160,,,,leave,rv_t069,transaction exit
+00004A44,736,actst,marker,161,,,,enter,rv_t070,transaction entry
+00004A50,737,actst,data,392,ring_head,r,,,rv_t070,producer head / consumer view
+00004A58,738,actst,data,393,ring_tail,r,,,rv_t070,consumer tail / producer view
+00004A90,739,actst,data,394,ring_slot,w,,,rv_t070,slot payload
+00004A94,740,actst,data,395,ring_head,w,,,rv_t070,own index advance
+00004AA0,741,actst,data,396,private,r,,,rv_t070,core-local scratch
+00004AA8,742,actst,data,397,private,w,,,rv_t070,core-local scratch
+00004A5C,743,actst,marker,162,,,,phase,rv_t070,ring phase marker
+00004AB4,744,actst,data,398,seq,w,,,rv_t070,sequence stamp
+00004AB8,745,actst,marker,163,,,,leave,rv_t070,transaction exit
+00004B08,746,actst,marker,164,,,,enter,rv_t071,transaction entry
+00004B14,747,actst,data,399,ring_head,r,,,rv_t071,producer head / consumer view
+00004B1C,748,actst,data,400,ring_tail,r,,,rv_t071,consumer tail / producer view
+00004B54,749,actst,data,401,ring_slot,w,,,rv_t071,slot payload
+00004B58,750,actst,data,402,ring_head,w,,,rv_t071,own index advance
+00004B64,751,actst,data,403,private,r,,,rv_t071,core-local scratch
+00004B6C,752,actst,data,404,private,w,,,rv_t071,core-local scratch
+00004B20,753,actst,marker,165,,,,phase,rv_t071,ring phase marker
+00004B78,754,actst,data,405,seq,w,,,rv_t071,sequence stamp
+00004B7C,755,actst,marker,166,,,,leave,rv_t071,transaction exit
+00004BCC,756,actst,marker,167,,,,enter,rv_t072,transaction entry
+00004BD8,757,actst,data,406,ring_head,r,,,rv_t072,producer head / consumer view
+00004BE0,758,actst,data,407,ring_tail,r,,,rv_t072,consumer tail / producer view
+00004C18,759,actst,data,408,ring_slot,w,,,rv_t072,slot payload
+00004C1C,760,actst,data,409,ring_head,w,,,rv_t072,own index advance
+00004C28,761,actst,data,410,private,r,,,rv_t072,core-local scratch
+00004C30,762,actst,data,411,private,w,,,rv_t072,core-local scratch
+00004BE4,763,actst,marker,168,,,,phase,rv_t072,ring phase marker
+00004C3C,764,actst,data,412,seq,w,,,rv_t072,sequence stamp
+00004C40,765,actst,marker,169,,,,leave,rv_t072,transaction exit
+00004C9C,766,actcap,value,36,,,,,rv_t072,ring index at run time
+00004CC8,767,actcap,value,37,,,,,rv_t072,account value at run time
+00004D04,768,actst,marker,170,,,,enter,rv_t073,transaction entry
+00004D14,769,actst,sync,147,,,0,,rv_t073,Peterson: announce intent
+00004D34,770,actst,sync,148,,,0,,rv_t073,Peterson: critical section entered
+00004D68,771,actst,data,413,balance,r,,,rv_t073,read-modify-write; read half
+00004D70,772,actst,data,414,balance,w,,,rv_t073,read-modify-write; write half
+00004D78,773,actst,data,415,count,r,,,rv_t073,transaction counter; read
+00004D80,774,actst,data,416,count,w,,,rv_t073,transaction counter; write
+00004D90,775,actst,data,417,checksum,w,,,rv_t073,checksum update
+00004DA4,776,actst,sync,149,,,0,,rv_t073,Peterson: leave critical section
+00004DD0,777,actst,marker,171,,,,leave,rv_t073,transaction exit
+00004DF4,778,actst,marker,172,,,,enter,rv_t074,transaction entry
+00004E04,779,actst,sync,150,,,0,,rv_t074,Peterson: announce intent
+00004E24,780,actst,sync,151,,,0,,rv_t074,Peterson: critical section entered
+00004E58,781,actst,data,418,balance,r,,,rv_t074,read-modify-write; read half
+00004E60,782,actst,data,419,balance,w,,,rv_t074,read-modify-write; write half
+00004E68,783,actst,data,420,count,r,,,rv_t074,transaction counter; read
+00004E70,784,actst,data,421,count,w,,,rv_t074,transaction counter; write
+00004E80,785,actst,data,422,checksum,w,,,rv_t074,checksum update
+00004E94,786,actst,sync,152,,,0,,rv_t074,Peterson: leave critical section
+00004EC0,787,actst,marker,173,,,,leave,rv_t074,transaction exit
+00004EE4,788,actst,marker,174,,,,enter,rv_t075,transaction entry
+00004EF4,789,actst,sync,153,,,0,,rv_t075,Peterson: announce intent
+00004F14,790,actst,sync,154,,,0,,rv_t075,Peterson: critical section entered
+00004F48,791,actst,data,423,balance,r,,,rv_t075,read-modify-write; read half
+00004F50,792,actst,data,424,balance,w,,,rv_t075,read-modify-write; write half
+00004F58,793,actst,data,425,count,r,,,rv_t075,transaction counter; read
+00004F60,794,actst,data,426,count,w,,,rv_t075,transaction counter; write
+00004F70,795,actst,data,427,checksum,w,,,rv_t075,checksum update
+00004F84,796,actst,sync,155,,,0,,rv_t075,Peterson: leave critical section
+00004FB0,797,actst,marker,175,,,,leave,rv_t075,transaction exit
+00004FD4,798,actst,marker,176,,,,enter,rv_t076,transaction entry
+00004FE4,799,actst,sync,156,,,0,,rv_t076,Peterson: announce intent
+00005004,800,actst,sync,157,,,0,,rv_t076,Peterson: critical section entered
+00005038,801,actst,data,428,balance,r,,,rv_t076,read-modify-write; read half
+00005040,802,actst,data,429,balance,w,,,rv_t076,read-modify-write; write half
+00005048,803,actst,data,430,count,r,,,rv_t076,transaction counter; read
+00005050,804,actst,data,431,count,w,,,rv_t076,transaction counter; write
+00005060,805,actst,data,432,checksum,w,,,rv_t076,checksum update
+00005074,806,actst,sync,158,,,0,,rv_t076,Peterson: leave critical section
+000050A0,807,actst,marker,177,,,,leave,rv_t076,transaction exit
+000050E0,808,actcap,value,38,,,,,rv_t076,ring index at run time
+0000510C,809,actcap,value,39,,,,,rv_t076,account value at run time
+00005148,810,actst,marker,178,,,,enter,rv_t077,transaction entry
+00005158,811,actst,sync,159,,,0,,rv_t077,Peterson: announce intent
+00005178,812,actst,sync,160,,,0,,rv_t077,Peterson: critical section entered
+000051AC,813,actst,data,433,balance,r,,,rv_t077,read-modify-write; read half
+000051B4,814,actst,data,434,balance,w,,,rv_t077,read-modify-write; write half
+000051BC,815,actst,data,435,count,r,,,rv_t077,transaction counter; read
+000051C4,816,actst,data,436,count,w,,,rv_t077,transaction counter; write
+000051D4,817,actst,data,437,checksum,w,,,rv_t077,checksum update
+000051E8,818,actst,sync,161,,,0,,rv_t077,Peterson: leave critical section
+00005214,819,actst,marker,179,,,,leave,rv_t077,transaction exit
+00005238,820,actst,marker,180,,,,enter,rv_t078,transaction entry
+00005248,821,actst,sync,162,,,0,,rv_t078,Peterson: announce intent
+00005268,822,actst,sync,163,,,0,,rv_t078,Peterson: critical section entered
+0000529C,823,actst,data,438,balance,r,,,rv_t078,read-modify-write; read half
+000052A4,824,actst,data,439,balance,w,,,rv_t078,read-modify-write; write half
+000052AC,825,actst,data,440,count,r,,,rv_t078,transaction counter; read
+000052B4,826,actst,data,441,count,w,,,rv_t078,transaction counter; write
+000052C4,827,actst,data,442,checksum,w,,,rv_t078,checksum update
+000052D8,828,actst,sync,164,,,0,,rv_t078,Peterson: leave critical section
+00005304,829,actst,marker,181,,,,leave,rv_t078,transaction exit
+00005328,830,actst,marker,182,,,,enter,rv_t079,transaction entry
+00005338,831,actst,sync,165,,,0,,rv_t079,Peterson: announce intent
+00005358,832,actst,sync,166,,,0,,rv_t079,Peterson: critical section entered
+0000538C,833,actst,data,443,balance,r,,,rv_t079,read-modify-write; read half
+00005394,834,actst,data,444,balance,w,,,rv_t079,read-modify-write; write half
+0000539C,835,actst,data,445,count,r,,,rv_t079,transaction counter; read
+000053A4,836,actst,data,446,count,w,,,rv_t079,transaction counter; write
+000053B4,837,actst,data,447,checksum,w,,,rv_t079,checksum update
+000053C8,838,actst,sync,167,,,0,,rv_t079,Peterson: leave critical section
+000053F4,839,actst,marker,183,,,,leave,rv_t079,transaction exit
+00005428,840,actst,marker,184,,,,enter,rv_t080,transaction entry
+00005434,841,actst,data,448,ring_head,r,,,rv_t080,producer head / consumer view
+0000543C,842,actst,data,449,ring_tail,r,,,rv_t080,consumer tail / producer view
+00005474,843,actst,data,450,ring_slot,w,,,rv_t080,slot payload
+00005478,844,actst,data,451,ring_head,w,,,rv_t080,own index advance
+00005484,845,actst,data,452,private,r,,,rv_t080,core-local scratch
+0000548C,846,actst,data,453,private,w,,,rv_t080,core-local scratch
+00005440,847,actst,marker,185,,,,phase,rv_t080,ring phase marker
+00005498,848,actst,data,454,seq,w,,,rv_t080,sequence stamp
+0000549C,849,actst,marker,186,,,,leave,rv_t080,transaction exit
+000054F8,850,actcap,value,40,,,,,rv_t080,ring index at run time
+00005524,851,actcap,value,41,,,,,rv_t080,account value at run time
+00005570,852,actst,marker,187,,,,enter,rv_t081,transaction entry
+0000557C,853,actst,data,455,ring_head,r,,,rv_t081,producer head / consumer view
+00005584,854,actst,data,456,ring_tail,r,,,rv_t081,consumer tail / producer view
+000055BC,855,actst,data,457,ring_slot,w,,,rv_t081,slot payload
+000055C0,856,actst,data,458,ring_head,w,,,rv_t081,own index advance
+000055CC,857,actst,data,459,private,r,,,rv_t081,core-local scratch
+000055D4,858,actst,data,460,private,w,,,rv_t081,core-local scratch
+00005588,859,actst,marker,188,,,,phase,rv_t081,ring phase marker
+000055E0,860,actst,data,461,seq,w,,,rv_t081,sequence stamp
+000055E4,861,actst,marker,189,,,,leave,rv_t081,transaction exit
+00005634,862,actst,marker,190,,,,enter,rv_t082,transaction entry
+00005640,863,actst,data,462,ring_head,r,,,rv_t082,producer head / consumer view
+00005648,864,actst,data,463,ring_tail,r,,,rv_t082,consumer tail / producer view
+00005680,865,actst,data,464,ring_slot,w,,,rv_t082,slot payload
+00005684,866,actst,data,465,ring_head,w,,,rv_t082,own index advance
+00005690,867,actst,data,466,private,r,,,rv_t082,core-local scratch
+00005698,868,actst,data,467,private,w,,,rv_t082,core-local scratch
+0000564C,869,actst,marker,191,,,,phase,rv_t082,ring phase marker
+000056A4,870,actst,data,468,seq,w,,,rv_t082,sequence stamp
+000056A8,871,actst,marker,192,,,,leave,rv_t082,transaction exit
+000056E8,872,actst,marker,193,,,,enter,rv_t083,transaction entry
+000056F8,873,actst,sync,168,,,0,,rv_t083,Peterson: announce intent
+00005718,874,actst,sync,169,,,0,,rv_t083,Peterson: critical section entered
+0000574C,875,actst,data,469,balance,r,,,rv_t083,read-modify-write; read half
+00005754,876,actst,data,470,balance,w,,,rv_t083,read-modify-write; write half
+0000575C,877,actst,data,471,count,r,,,rv_t083,transaction counter; read
+00005764,878,actst,data,472,count,w,,,rv_t083,transaction counter; write
+00005774,879,actst,data,473,checksum,w,,,rv_t083,checksum update
+00005788,880,actst,sync,170,,,0,,rv_t083,Peterson: leave critical section
+000057B4,881,actst,marker,194,,,,leave,rv_t083,transaction exit
+000057D8,882,actst,marker,195,,,,enter,rv_t084,transaction entry
+000057E8,883,actst,sync,171,,,0,,rv_t084,Peterson: announce intent
+00005808,884,actst,sync,172,,,0,,rv_t084,Peterson: critical section entered
+0000583C,885,actst,data,474,balance,r,,,rv_t084,read-modify-write; read half
+00005844,886,actst,data,475,balance,w,,,rv_t084,read-modify-write; write half
+0000584C,887,actst,data,476,count,r,,,rv_t084,transaction counter; read
+00005854,888,actst,data,477,count,w,,,rv_t084,transaction counter; write
+00005864,889,actst,data,478,checksum,w,,,rv_t084,checksum update
+00005878,890,actst,sync,173,,,0,,rv_t084,Peterson: leave critical section
+000058A4,891,actst,marker,196,,,,leave,rv_t084,transaction exit
+000058E4,892,actcap,value,42,,,,,rv_t084,ring index at run time
+00005910,893,actcap,value,43,,,,,rv_t084,account value at run time
+0000594C,894,actst,marker,197,,,,enter,rv_t085,transaction entry
+0000595C,895,actst,sync,174,,,0,,rv_t085,Peterson: announce intent
+0000597C,896,actst,sync,175,,,0,,rv_t085,Peterson: critical section entered
+000059B0,897,actst,data,479,balance,r,,,rv_t085,read-modify-write; read half
+000059B8,898,actst,data,480,balance,w,,,rv_t085,read-modify-write; write half
+000059C0,899,actst,data,481,count,r,,,rv_t085,transaction counter; read
+000059C8,900,actst,data,482,count,w,,,rv_t085,transaction counter; write
+000059D8,901,actst,data,483,checksum,w,,,rv_t085,checksum update
+000059EC,902,actst,sync,176,,,0,,rv_t085,Peterson: leave critical section
+00005A18,903,actst,marker,198,,,,leave,rv_t085,transaction exit
+00005A3C,904,actst,marker,199,,,,enter,rv_t086,transaction entry
+00005A4C,905,actst,sync,177,,,0,,rv_t086,Peterson: announce intent
+00005A6C,906,actst,sync,178,,,0,,rv_t086,Peterson: critical section entered
+00005AA0,907,actst,data,484,balance,r,,,rv_t086,read-modify-write; read half
+00005AA8,908,actst,data,485,balance,w,,,rv_t086,read-modify-write; write half
+00005AB0,909,actst,data,486,count,r,,,rv_t086,transaction counter; read
+00005AB8,910,actst,data,487,count,w,,,rv_t086,transaction counter; write
+00005AC8,911,actst,data,488,checksum,w,,,rv_t086,checksum update
+00005ADC,912,actst,sync,179,,,0,,rv_t086,Peterson: leave critical section
+00005B08,913,actst,marker,200,,,,leave,rv_t086,transaction exit
+00005B2C,914,actst,marker,201,,,,enter,rv_t087,transaction entry
+00005B3C,915,actst,sync,180,,,0,,rv_t087,Peterson: announce intent
+00005B5C,916,actst,sync,181,,,0,,rv_t087,Peterson: critical section entered
+00005B90,917,actst,data,489,balance,r,,,rv_t087,read-modify-write; read half
+00005B98,918,actst,data,490,balance,w,,,rv_t087,read-modify-write; write half
+00005BA0,919,actst,data,491,count,r,,,rv_t087,transaction counter; read
+00005BA8,920,actst,data,492,count,w,,,rv_t087,transaction counter; write
+00005BB8,921,actst,data,493,checksum,w,,,rv_t087,checksum update
+00005BCC,922,actst,sync,182,,,0,,rv_t087,Peterson: leave critical section
+00005BF8,923,actst,marker,202,,,,leave,rv_t087,transaction exit
+00005C1C,924,actst,marker,203,,,,enter,rv_t088,transaction entry
+00005C2C,925,actst,sync,183,,,0,,rv_t088,Peterson: announce intent
+00005C4C,926,actst,sync,184,,,0,,rv_t088,Peterson: critical section entered
+00005C80,927,actst,data,494,balance,r,,,rv_t088,read-modify-write; read half
+00005C88,928,actst,data,495,balance,w,,,rv_t088,read-modify-write; write half
+00005C90,929,actst,data,496,count,r,,,rv_t088,transaction counter; read
+00005C98,930,actst,data,497,count,w,,,rv_t088,transaction counter; write
+00005CA8,931,actst,data,498,checksum,w,,,rv_t088,checksum update
+00005CBC,932,actst,sync,185,,,0,,rv_t088,Peterson: leave critical section
+00005CE8,933,actst,marker,204,,,,leave,rv_t088,transaction exit
+00005D28,934,actcap,value,44,,,,,rv_t088,ring index at run time
+00005D54,935,actcap,value,45,,,,,rv_t088,account value at run time
+00005D90,936,actst,marker,205,,,,enter,rv_t089,transaction entry
+00005DA0,937,actst,sync,186,,,0,,rv_t089,Peterson: announce intent
+00005DC0,938,actst,sync,187,,,0,,rv_t089,Peterson: critical section entered
+00005DF4,939,actst,data,499,balance,r,,,rv_t089,read-modify-write; read half
+00005DFC,940,actst,data,500,balance,w,,,rv_t089,read-modify-write; write half
+00005E04,941,actst,data,501,count,r,,,rv_t089,transaction counter; read
+00005E0C,942,actst,data,502,count,w,,,rv_t089,transaction counter; write
+00005E1C,943,actst,data,503,checksum,w,,,rv_t089,checksum update
+00005E30,944,actst,sync,188,,,0,,rv_t089,Peterson: leave critical section
+00005E5C,945,actst,marker,206,,,,leave,rv_t089,transaction exit
+00005E90,946,actst,marker,207,,,,enter,rv_t090,transaction entry
+00005E9C,947,actst,data,504,ring_head,r,,,rv_t090,producer head / consumer view
+00005EA4,948,actst,data,505,ring_tail,r,,,rv_t090,consumer tail / producer view
+00005EDC,949,actst,data,506,ring_slot,w,,,rv_t090,slot payload
+00005EE0,950,actst,data,507,ring_head,w,,,rv_t090,own index advance
+00005EEC,951,actst,data,508,private,r,,,rv_t090,core-local scratch
+00005EF4,952,actst,data,509,private,w,,,rv_t090,core-local scratch
+00005EA8,953,actst,marker,208,,,,phase,rv_t090,ring phase marker
+00005F00,954,actst,data,510,seq,w,,,rv_t090,sequence stamp
+00005F04,955,actst,marker,209,,,,leave,rv_t090,transaction exit
+00005F54,956,actst,marker,210,,,,enter,rv_t091,transaction entry
+00005F60,957,actst,data,511,ring_head,r,,,rv_t091,producer head / consumer view
+00005F68,958,actst,data,512,ring_tail,r,,,rv_t091,consumer tail / producer view
+00005FA0,959,actst,data,513,ring_slot,w,,,rv_t091,slot payload
+00005FA4,960,actst,data,514,ring_head,w,,,rv_t091,own index advance
+00005FB0,961,actst,data,515,private,r,,,rv_t091,core-local scratch
+00005FB8,962,actst,data,516,private,w,,,rv_t091,core-local scratch
+00005F6C,963,actst,marker,211,,,,phase,rv_t091,ring phase marker
+00005FC4,964,actst,data,517,seq,w,,,rv_t091,sequence stamp
+00005FC8,965,actst,marker,212,,,,leave,rv_t091,transaction exit
+00006018,966,actst,marker,213,,,,enter,rv_t092,transaction entry
+00006024,967,actst,data,518,ring_head,r,,,rv_t092,producer head / consumer view
+0000602C,968,actst,data,519,ring_tail,r,,,rv_t092,consumer tail / producer view
+00006064,969,actst,data,520,ring_slot,w,,,rv_t092,slot payload
+00006068,970,actst,data,521,ring_head,w,,,rv_t092,own index advance
+00006074,971,actst,data,522,private,r,,,rv_t092,core-local scratch
+0000607C,972,actst,data,523,private,w,,,rv_t092,core-local scratch
+00006030,973,actst,marker,214,,,,phase,rv_t092,ring phase marker
+00006088,974,actst,data,524,seq,w,,,rv_t092,sequence stamp
+0000608C,975,actst,marker,215,,,,leave,rv_t092,transaction exit
+000060E8,976,actcap,value,46,,,,,rv_t092,ring index at run time
+00006114,977,actcap,value,47,,,,,rv_t092,account value at run time
+00006150,978,actst,marker,216,,,,enter,rv_t093,transaction entry
+00006160,979,actst,sync,189,,,0,,rv_t093,Peterson: announce intent
+00006180,980,actst,sync,190,,,0,,rv_t093,Peterson: critical section entered
+000061B4,981,actst,data,525,balance,r,,,rv_t093,read-modify-write; read half
+000061BC,982,actst,data,526,balance,w,,,rv_t093,read-modify-write; write half
+000061C4,983,actst,data,527,count,r,,,rv_t093,transaction counter; read
+000061CC,984,actst,data,528,count,w,,,rv_t093,transaction counter; write
+000061DC,985,actst,data,529,checksum,w,,,rv_t093,checksum update
+000061F0,986,actst,sync,191,,,0,,rv_t093,Peterson: leave critical section
+0000621C,987,actst,marker,217,,,,leave,rv_t093,transaction exit
+00006240,988,actst,marker,218,,,,enter,rv_t094,transaction entry
+00006250,989,actst,sync,192,,,0,,rv_t094,Peterson: announce intent
+00006270,990,actst,sync,193,,,0,,rv_t094,Peterson: critical section entered
+000062A4,991,actst,data,530,balance,r,,,rv_t094,read-modify-write; read half
+000062AC,992,actst,data,531,balance,w,,,rv_t094,read-modify-write; write half
+000062B4,993,actst,data,532,count,r,,,rv_t094,transaction counter; read
+000062BC,994,actst,data,533,count,w,,,rv_t094,transaction counter; write
+000062CC,995,actst,data,534,checksum,w,,,rv_t094,checksum update
+000062E0,996,actst,sync,194,,,0,,rv_t094,Peterson: leave critical section
+0000630C,997,actst,marker,219,,,,leave,rv_t094,transaction exit
+00006330,998,actst,marker,220,,,,enter,rv_t095,transaction entry
+00006340,999,actst,sync,195,,,0,,rv_t095,Peterson: announce intent
+00006360,1000,actst,sync,196,,,0,,rv_t095,Peterson: critical section entered
+00006394,1001,actst,data,535,balance,r,,,rv_t095,read-modify-write; read half
+0000639C,1002,actst,data,536,balance,w,,,rv_t095,read-modify-write; write half
+000063A4,1003,actst,data,537,count,r,,,rv_t095,transaction counter; read
+000063AC,1004,actst,data,538,count,w,,,rv_t095,transaction counter; write
+000063BC,1005,actst,data,539,checksum,w,,,rv_t095,checksum update
+000063D0,1006,actst,sync,197,,,0,,rv_t095,Peterson: leave critical section
+000063FC,1007,actst,marker,221,,,,leave,rv_t095,transaction exit
+00006420,1008,actst,marker,222,,,,enter,rv_t096,transaction entry
+00006430,1009,actst,sync,198,,,0,,rv_t096,Peterson: announce intent
+00006450,1010,actst,sync,199,,,0,,rv_t096,Peterson: critical section entered
+00006484,1011,actst,data,540,balance,r,,,rv_t096,read-modify-write; read half
+0000648C,1012,actst,data,541,balance,w,,,rv_t096,read-modify-write; write half
+00006494,1013,actst,data,542,count,r,,,rv_t096,transaction counter; read
+0000649C,1014,actst,data,543,count,w,,,rv_t096,transaction counter; write
+000064AC,1015,actst,data,544,checksum,w,,,rv_t096,checksum update
+000064C0,1016,actst,sync,200,,,0,,rv_t096,Peterson: leave critical section
+000064EC,1017,actst,marker,223,,,,leave,rv_t096,transaction exit
+0000652C,1018,actcap,value,48,,,,,rv_t096,ring index at run time
+00006558,1019,actcap,value,49,,,,,rv_t096,account value at run time
+00006594,1020,actst,marker,224,,,,enter,rv_t097,transaction entry
+000065A4,1021,actst,sync,201,,,0,,rv_t097,Peterson: announce intent
+000065C4,1022,actst,sync,202,,,0,,rv_t097,Peterson: critical section entered
+000065F8,1023,actst,data,545,balance,r,,,rv_t097,read-modify-write; read half
+00006600,1024,actst,data,546,balance,w,,,rv_t097,read-modify-write; write half
+00006608,1025,actst,data,547,count,r,,,rv_t097,transaction counter; read
+00006610,1026,actst,data,548,count,w,,,rv_t097,transaction counter; write
+00006620,1027,actst,data,549,checksum,w,,,rv_t097,checksum update
+00006634,1028,actst,sync,203,,,0,,rv_t097,Peterson: leave critical section
+00006660,1029,actst,marker,225,,,,leave,rv_t097,transaction exit
+00006684,1030,actst,marker,226,,,,enter,rv_t098,transaction entry
+00006694,1031,actst,sync,204,,,0,,rv_t098,Peterson: announce intent
+000066B4,1032,actst,sync,205,,,0,,rv_t098,Peterson: critical section entered
+000066E8,1033,actst,data,550,balance,r,,,rv_t098,read-modify-write; read half
+000066F0,1034,actst,data,551,balance,w,,,rv_t098,read-modify-write; write half
+000066F8,1035,actst,data,552,count,r,,,rv_t098,transaction counter; read
+00006700,1036,actst,data,553,count,w,,,rv_t098,transaction counter; write
+00006710,1037,actst,data,554,checksum,w,,,rv_t098,checksum update
+00006724,1038,actst,sync,206,,,0,,rv_t098,Peterson: leave critical section
+00006750,1039,actst,marker,227,,,,leave,rv_t098,transaction exit
+00006774,1040,actst,marker,228,,,,enter,rv_t099,transaction entry
+00006784,1041,actst,sync,207,,,0,,rv_t099,Peterson: announce intent
+000067A4,1042,actst,sync,208,,,0,,rv_t099,Peterson: critical section entered
+000067D8,1043,actst,data,555,balance,r,,,rv_t099,read-modify-write; read half
+000067E0,1044,actst,data,556,balance,w,,,rv_t099,read-modify-write; write half
+000067E8,1045,actst,data,557,count,r,,,rv_t099,transaction counter; read
+000067F0,1046,actst,data,558,count,w,,,rv_t099,transaction counter; write
+00006800,1047,actst,data,559,checksum,w,,,rv_t099,checksum update
+00006814,1048,actst,sync,209,,,0,,rv_t099,Peterson: leave critical section
+00006840,1049,actst,marker,229,,,,leave,rv_t099,transaction exit
+00006864,1050,actst,sync,210,,,2,,rv_lock_order,outer lock; taken
+00006894,1051,actst,sync,211,,,3,,rv_lock_order,inner lock; taken
+000068C0,1052,actst,sync,212,,,3,,rv_lock_order,inner lock; release
+000068E8,1053,actst,sync,213,,,2,,rv_lock_order,outer lock; release

@@ -1,10 +1,13 @@
-// -*- indent-tabs-mode:t; tab-width:4 -*-
-// vim: tabstop=4:noexpandtab
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
+// -*- indent-tabs-mode: t; tab-width: 4 -*-
 
 /**
  * @file    ct_L23_preproc_act_cap_tb.sv
  * @brief   Directed command-detection testbench for ct_L23_preproc_act_cap.
- * @description Verifies that only matching ACT_CAP CSR transactions generate
+ * @details Verifies that only matching ACT_CAP CSR transactions generate
  *   act_cap output after the configured pipeline delay.
  * @stimulus Sends one LOAD transaction that should miss and one
  *   CSR_READ_WRITE transaction that should emit the programmed ACT_CAP
@@ -62,7 +65,7 @@ module ct_L23_preproc_act_cap_tb;
 
 		cmd.Cmd.value           = ct_cs_cpuif__trActCapStCmd_e__ACT_CAP_ST_DAQ_PC_CURR;
 		cmd.Sink.value          = ct_cs_cpuif__trActCapStSink_e__ACT_CAP_ST_SINK_NEXUS;
-		cmd.DirectData.value 	= 24'h12_3456;
+		cmd.DirectData.value    = 24'h12_3456;
 
 		tip_rst <= 1;
 		extra_delay <= 2;

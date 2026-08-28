@@ -1,10 +1,11 @@
-// vim: set ts=4 et:
+// SPDX-FileCopyrightText: 2021 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
 // -*- indent-tabs-mode: t; tab-width: 4 -*-
 
 /**
-* Copyright (c) 2021 by Accemic Technologies GmbH Kiefersfelden Germany
-* SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
-*/
+ */
 package wishbone;
 	//@brief Get mask for wishbone hub from address and size. Map mask to wishbone 32 range.
 	function logic [29:0] wb32_getmask32(logic [31:0] addr, logic [31:0] size);
@@ -35,9 +36,9 @@ package wishbone;
 	endfunction : wb32_getmask64
 
 	/*
-	 * @brief	Convert size into mask. Useful for wb_hub
-	 * @details	e.g.
-	 *         	      'h1000 -> 'h0xxx
+	 * @brief   Convert size into mask. Useful for wb_hub
+	 * @details e.g.
+	 *                'h1000 -> 'h0xxx
 	 */
 	function logic [63:0] size2mask(logic [63:0] size);
 		if($clog2(size) == $clog2(size+1)) begin
@@ -48,7 +49,7 @@ package wishbone;
 	endfunction : size2mask
 
 	/*
-	 * @brief	Get width of an address mask
+	 * @brief   Get width of an address mask
 	 */
 	function logic [31:0] mask2width(logic [63:0] mask);
 		mask2width=0;
@@ -60,7 +61,7 @@ package wishbone;
 	endfunction : mask2width
 
 	/*
-	 * @brief	Get part width of for wb_width_converter
+	 * @brief   Get part width of for wb_width_converter
 	 */
 	function int unsigned getpartwidth(int unsigned WIDE_DATA_WIDTH,int unsigned PART_COUNT);
 		getpartwidth= 1 + (WIDE_DATA_WIDTH-1)/PART_COUNT;
@@ -72,16 +73,20 @@ endpackage : wishbone
 // Wishbone interface
 //--------------------------------------------------------------------------------
 interface wb_if #(
-	int DATA_WIDTH,
-	int ADDR_WIDTH,
-	int NUM_SEL = DATA_WIDTH / 8
+	// Defaults added locally so ct_encoder can be elaborated as an OOC
+	// synthesis top (interface ports flatten to ports). They match the
+	// env's WB_DATA_WIDTH/WB_ADDR_WIDTH; every real instantiation overrides
+	// them explicitly, so simulation is unaffected. Synth-support only.
+	int DATA_WIDTH = 32,
+	int ADDR_WIDTH = 32,
+	int NUM_SEL    = DATA_WIDTH / 8
 );
 
-	logic 	[DATA_WIDTH-1:0] 	data_m2s;
-	logic 	[DATA_WIDTH-1:0] 	data_s2m;
-	logic 	[ADDR_WIDTH-1:0] 	addr;
-	logic         				cyc;
-	logic  	[NUM_SEL-1:0]  		sel;
+	logic   [DATA_WIDTH-1:0]    data_m2s;
+	logic   [DATA_WIDTH-1:0]    data_s2m;
+	logic   [ADDR_WIDTH-1:0]    addr;
+	logic                       cyc;
+	logic   [NUM_SEL-1:0]       sel;
 	logic   stb;
 	logic   we;
 	logic   ack;
@@ -103,8 +108,8 @@ interface wb_if #(
 	endtask
 
 	task write;
-		input logic	[ADDR_WIDTH-1:0] addr_in;
-		input logic	[DATA_WIDTH-1:0] data_in;
+		input logic [ADDR_WIDTH-1:0] addr_in;
+		input logic [DATA_WIDTH-1:0] data_in;
 
 		begin
 			addr     <= addr_in;
@@ -117,7 +122,7 @@ interface wb_if #(
 	endtask
 
 	task read;
-		input logic	[ADDR_WIDTH -1:0] addr_in;
+		input logic [ADDR_WIDTH -1:0] addr_in;
 
 		begin
 			addr <= addr_in;

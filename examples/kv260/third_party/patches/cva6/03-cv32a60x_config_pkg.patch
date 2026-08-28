@@ -1,0 +1,16 @@
+--- a/core/include/cv32a60x_config_pkg.sv
++++ b/core/include/cv32a60x_config_pkg.sv
+@@ -23,7 +23,12 @@
+       VLEN: unsigned'(32),
+       FpgaEn: bit'(0),
+       FpgaAlteraEn: bit'(0),
+-      TechnoCut: bit'(1),
++      // [Accemic Delta D3 -- CVA6_PIN.md] Upstream 1 (ASIC techno-cut wrapper
++      // whose body sits behind translate_off) = black box in the FPGA
++      // implementation (DRC INBB-3, gate C5). 0 -> direct tc_sram instance
++      // (BRAM mapping); behaviorally identical in simulation (the
++      // translate_off path instantiated the same tc_sram).
++      TechnoCut: bit'(0),
+       SuperscalarEn: bit'(0),
+       ALUBypass: bit'(0),
+       NrCommitPorts: unsigned'(1),

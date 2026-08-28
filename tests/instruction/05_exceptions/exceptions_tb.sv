@@ -63,7 +63,7 @@ module exceptions_tb;
 		env.csr.Set_te_trTeControl_Enable      (1'b1);
 		env.csr.Set_te_trTeControl_InstTracing (1'b1);
 		env.csr.Set_te_trTeControl_Active      (1'b1);
-		env.wait_cycles(20);
+		env.cpu.idle(20);
 		$display("[exceptions_tb] %0t: starting scenario", $time);
 
 		env.cpu.enter(.start_pc(MAIN_PC));
@@ -81,7 +81,10 @@ module exceptions_tb;
 
 		// --- 2) co-reported exception (iretire=1), for contrast -------------
 		env.cpu.run(8);                                                          // 0x1014, 0x1018 (2 L)
-		env.cpu.exception_trap(.cause(LOAD_FAULT), .handler(ISR_B));       // retired E @0x101c (iretire=1)
+		// tval carries the faulting data address here -- exercises the
+		// E-Trace F3.1 tval field with a non-zero value (N-Trace has no
+		// tval wire field; byte streams unchanged there).
+		env.cpu.exception_trap(.cause(LOAD_FAULT), .handler(ISR_B), .tval(32'hDEAD_BEE0)); // retired E @0x101c (iretire=1)
 		env.cpu.run(8);                                                          // ISR_B body: 0x1050, 0x1054 (2 L)
 		env.cpu.mret();                                                          // R @0x1058 -> resume at 0x1020
 
@@ -100,15 +103,15 @@ module exceptions_tb;
 		env.cpu.exit_trace();
 
 		// ---- Trace-off (drain + Program Trace Correlation message) ----
-		env.wait_cycles(50);
+		env.cpu.idle(50);
 		env.csr.Set_te_trTeControl_InstTracing (1'b0);
-		env.wait_cycles(200);
+		env.cpu.idle(200);
 		env.csr.Set_te_trTeControl_Enable      (1'b0);
 		env.atb_force_flush = 1'b1;
-		env.wait_cycles(2000);
+		env.cpu.idle(2000);
 		env.atb_force_flush = 1'b0;
 		env.csr.Set_te_trTeControl_Active(1'b0);
-		env.wait_cycles(10000);
+		env.cpu.idle(10000);
 
 		if (env.cpu.event_count() == 0) begin
 			$error("[exceptions_tb] cpu_model event log empty");

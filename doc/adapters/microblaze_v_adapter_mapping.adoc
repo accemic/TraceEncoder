@@ -1,0 +1,94 @@
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CC-BY-4.0
+
+= MicroBlaze V `TRACE` bus -> CTTE TIP -- signal mapping (living doc)
+
+Migrated 2026-08 from an internal predecessor repository; see
+link:../../rtl/adapters/README.md[`rtl/adapters/README.md`] for the
+package-level provenance.
+
+[NOTE]
+====
+Consolidates the MicroBlaze V implementation concept §4 and the technical
+integration report §8/§17.1 against the **authoritative** TIP types in the
+pinned CTTE core (`rtl/pkg/tip_pkg.sv` / `tip_if.sv`). **Mapping rules
+marked "G1" are hypotheses until confirmed by the truth table**
+(link:microblaze_v_trace_semantics.adoc[`microblaze_v_trace_semantics.adoc`]).
+====
+
+== TIP target side (fact, from `tip_pkg.sv`)
+
+* `tip_if.master` fields: `itype, ecause, tval, priv, iaddr, _context,
+  _time, ctype, iretire, ilastsize, impdef` + data flow (`dretire, dtype,
+  daddr, dsize, data, sdata, lresp, ldata`).
+* `tip_itype_e` (4 bit): OTHER=0, EXCEPTION_TRAP=1, INTERRUPT=2,
+  EXCEPTION_IR=3, NOT_TAKEN_BRANCH=4, TAKEN_BRANCH=5, UNINFERABLE_JUMP=6,
+  RESERVED=7, UNINFERABLE_CALL=8, INFERRABLE_CALL=9,
+  UNINFERABLE_TAIL_CALL=10, INFERRABLE_TAIL_CALL=11, CO_ROUTINE_SWAP=12,
+  RETURN=13, OTHER_UNINFERABLE_JUMP=14, OTHER_INFERABLE_JUMP=15.
+* `tip_ecause_e` is **4 bit** (values 0-7 plus `ECALL_FROM_M=11`; the
+  sentinel `ECAUSE_NONE` sits at a reserved code, see the header comment
+  in `rtl/pkg/tip_pkg.sv`). Special causes -> `impdef`.
+* `icause_e`: `MEXT=11` (machine external interrupt).
+* The adapter **imports** `tip_pkg` -- the enums are **not** duplicated (AD-01).
+
+== Control-flow mapping (MVP-carrying)
+
+[cols="1,3,4,2", options="header"]
+|===
+| TIP field | AMD `TRACE` source (§17.1) | Rule | Status
+
+| `iaddr` | `Trace_PC` | width/bit-order normalization | G0 bit check (table 7.4)
+| `iretire` | `Trace_Valid_Instr` **+ trap rules** | 1 per retired instr; trap special cases | **G1** (tables 1+2)
+| `itype` | instr decode(`Trace_Instruction`) + `Trace_Jump_Taken` + trap | priority §5.1: trap>return>branch>JAL>JALR | decode is spec-fixed; trap is **G1**
+| `ilastsize` | instr length | RV32-without-C: **constant 1** (2 halfwords) | MVP-fixed
+| `priv` | ~~`Trace_Privilege_Mode`~~ **not exposed** (microblaze_riscv:1.0) | MVP: constant M-mode | **corrected** (port list)
+| `ecause` | `Trace_Exception_Kind[0:5]` (**6 bit confirmed**) | 0-15 direct; >15 -> special cause via `impdef` | **G1** (tables 2+4)
+| `_time` | adapter cycle counter (64 bit) | free-running, `tip_clk` (AD-06) | adapter-internal
+| `tval` | not exposed | **MVP = 0** (no program-flow blocker, AD-04) | MVP-fixed
+| `_context` | ~~`Trace_PID_Reg`~~ **not exposed** (microblaze_riscv:1.0) | MVP = 0 | **corrected** (port list)
+| `ctype` | no direct source | MVP `UNREPORTED` (=0) | MVP-fixed
+|===
+
+[NOTE]
+====
+**Empirical correction (2026-07-15):** `Trace_Privilege_Mode` +
+`Trace_PID_Reg` (assumed in the original integration report §17.1) are
+**not** exposed on `microblaze_riscv:1.0`. NEWLY available:
+`Trace_OF/EX/MEM_PipeRun` + `Trace_Halted` (a G1 retirement aid). All buses
+are `[0:31]` VHDL-ascending (R4 confirmed) -> the normalizer mirrors them.
+Full list: link:microblaze_v_trace_ports.adoc[`microblaze_v_trace_ports.adoc`].
+====
+
+== itype decision priority (§5.1 -- the decode part is spec-fixed, G2)
+
+`1` reset/idle -> `2` trap entry (**G1**) -> `3` trap return
+(`mret`/`sret`->EXCEPTION_IR) -> `4` cond. branch (`Trace_Jump_Taken`? TAKEN
+: NOT_TAKEN) -> `5` JAL (rd in {x1,x5}->INFERRABLE_CALL; rd=x0->jump) ->
+`6` JALR (rd/rs1 link relationship -> UNINFERABLE_CALL/RETURN/
+CO_ROUTINE_SWAP/...) -> `7` OTHER. The non-trap rows are already encoded as
+a reference: link:itype_decoder_vectors.csv[`itype_decoder_vectors.csv`] +
+`sw/.../build/*.oracle.csv`.
+
+== Data-flow mapping (P2/P3 -- not MVP, §4.2)
+
+[cols="1,3,4,2", options="header"]
+|===
+| TIP field | AMD source | Rule | Status
+
+| `dtype` (STORE=1) | `Trace_Data_Write` | store directly derivable | P2 (G8)
+| `daddr` | `Trace_Data_Address` | | P2
+| `dsize` | `Trace_Data_Byte_Enable` | 2^dsize bytes | P2
+| `sdata` | `Trace_Data_Write_Value` | store value at `dretire` | P2
+| `ldata`/`lresp` | **no direct load-data signal** | `Trace_New_Reg_Value` is ambiguous -> a bus monitor is needed | P3 (§4.2, table 6.2)
+|===
+
+== Adapter top interface (integration report §17.1)
+
+AMD inputs: `trace_valid_instr, trace_instruction[31:0], trace_pc,
+trace_jump_taken, trace_exception_taken, trace_exception_kind[5:0],
+trace_privilege_mode[1:0], trace_pid_reg[7:0]` (+ data:
+`trace_data_access/_address/_read/_write/_write_value/_byte_enable,
+trace_reg_write/_addr/_new_reg_value`) -> `tip_if.master`. MVP parameters:
+`IADDR_WIDTH=32, DATA_WIDTH=32, SUPPORT_RVC=0, SUPPORT_DATA_TRACE=0`
+(unsupported combinations are caught via an elaboration assertion, §17.2).

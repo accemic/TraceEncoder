@@ -1,0 +1,47 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+#
+# SymbiYosys job for the eTIP slot bound of ct_L23_preproc_composer_etip.
+# The property is the module's OWN immediate assertion a_p4_slot_bound
+# (msg_id_next <= ETIP_PAR_MSG) at the allocation site.
+#   bmc0/bmc1 : bounded reachability, SPLIT_DATA_ACCESS = 0 / 1
+#   prv0/prv1 : k-induction -- the bound is a per-beat combinational
+#               property over inputs and registered state, so a successful
+#               induction is an UNBOUNDED statement over every reachable
+#               (and every unreachable) state.
+# Input build/composer_slots_formal.v is produced by run.sh.
+
+[tasks]
+bmc0
+bmc1
+prv0
+prv1
+
+[options]
+# BMC depth 45: the ICNT pre-drain arm needs the cumulated halfword counter
+# to reach the 8-bit cap. The counter grows by at most (1 << ilastsize) = 8
+# per beat, so that arm is UNREACHABLE before step 32 -- a depth-20 run
+# silently misses one of the thirteen allocation sites and reports a bound
+# that is one slot too small. Measured: with ETIP_PAR_MSG forced to 8 the
+# depth-20 run passes and the depth-45 run fails.
+bmc0: mode bmc
+bmc0: depth 45
+bmc1: mode bmc
+bmc1: depth 45
+prv0: mode prove
+prv0: depth 8
+prv1: mode prove
+prv1: depth 8
+
+[engines]
+smtbmc bitwuzla
+
+[script]
+read -formal composer_slots_formal.v
+bmc0: prep -top f_slots0
+prv0: prep -top f_slots0
+bmc1: prep -top f_slots1
+prv1: prep -top f_slots1
+
+[files]
+build/composer_slots_formal.v

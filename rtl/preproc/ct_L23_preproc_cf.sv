@@ -9,7 +9,7 @@
  * @file    ct_L23_preproc_cf.sv
  * @brief   Control-flow trace filter pipeline stage.
  *
- * @description
+ * @details
  *   Implements the control-flow filtering and validation pipeline for processor trace events.
  *   This stage receives TIP events and relevant sideband signals, applies filter rules based on
  *   programmable comparators, and determines whether a control-flow (CF) hit or region transition
@@ -56,18 +56,18 @@ import tip_pkg::*;
 import ct_pkg::*;
 
 module ct_L23_preproc_cf #(
-	int DIM = 4,
+	int DIM             = 4,
 	// Keep TB/integration compatibility: default comes from ct_pkg.
 	int EXTRA_DELAY_MAX = ct_pkg::EXTRA_DELAY_MAX
 )(
-	input uwire logic           clk,                    // trace input clock
-	input uwire logic           rst,                    // reset
-	tip_if.slave                tip,                    // TIP from CPU
-	ct_hit_if.slave             cf_filter,
-	ct_hit_if.master_region     cf_qualifier,
-	ct_cs_tipclk_if.slave       cs_tip,                 // control / status interface
-	output delay_t              internal_delay,         // delay of this component including all submodules
-	input uwire delay_t         extra_delay             // extra delay to be added for syncronizing preproc modules
+	input uwire logic       clk,            // trace input clock
+	input uwire logic       rst,            // reset
+	tip_if.slave            tip,            // TIP from CPU
+	ct_hit_if.slave         cf_filter,
+	ct_hit_if.master_region cf_qualifier,
+	ct_cs_tipclk_if.slave   cs_tip,         // control / status interface
+	output delay_t          internal_delay, // delay of this component including all submodules
+	input uwire delay_t     extra_delay     // extra delay to be added for syncronizing preproc modules
 );
 
 
@@ -75,7 +75,10 @@ module ct_L23_preproc_cf #(
 	logic       PrevHit;
 
 	logic  valid;
-	assign valid = tip.iretire;
+	// TipBeatRetires, not a bare assignment: at a block iretire width a
+	// plain `valid = tip.iretire` keeps only the LSB, so a two-halfword
+	// block would read as "nothing retired". Identical wire at width 1.
+	assign valid = TipBeatRetires(tip.iretire);
 
 	typedef struct packed {
 		logic  valid;

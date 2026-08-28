@@ -1,13 +1,13 @@
-// -*- indent-tabs-mode:t; tab-width:4 -*-
-// vim: tabstop=4:noexpandtab
+// SPDX-FileCopyrightText: 2020 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
+// -*- indent-tabs-mode: t; tab-width: 4 -*-
 /**
- * Copyright (c) 2020 by Accemic Technologies GmbH Kiefersfelden Germany
- * SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
- *
- * @brief	Generic interface for a counted vector source
+ * @brief   Generic interface for a counted vector source
  *          which allows to acknowledge parts of the vector.
  *
- * @author	Albert Schulz <aschulz@accemic.com>
+ * @author  Albert Schulz <aschulz@accemic.com>
  */
 interface cvsource_if2 #(type T=logic[7:0], int unsigned P)(
 	input uwire clk,

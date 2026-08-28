@@ -1,0 +1,83 @@
+# gate    : sim_gates_P8
+# package : P8 (audit fix round)
+# command : bash scripts/cli_tesyncreq_test.sh   (10 legs)
+# HEAD    : 9a41049
+# when    : 2026-08-05 18:18:51 WEDT
+# superseded-by : verification/evidence/P8/reverify_at_294bf6d.log
+#           : the system test + the P8-relevant stage-2 subset, re-run at 294bf6d.
+#           : This tree (9a41049) was rebased away; the verdicts below
+#           : were never demonstrated on the branch (checked by
+#           : scripts/check_evidence_stamp.py).
+# note    : verdict only. New since the audit: req2/req3 (the queue-depth
+#           MEASUREMENT behind the corrected register contract, audit A-1),
+#           reqnop (the activity control that makes "switched on AND asked"
+#           falsifiable, audit B-7) and qcoll (the request inside a running
+#           byte quota, audit B-5 -- the same-BEAT case is formal, P-SYNC-11).
+# ----------------------------------------------------------------
+======================================================
+off lossless vs own reference                 : PASS (98 PCs)
+req lossless vs own reference                 : PASS (102 PCs)
+reqnop lossless vs own reference              : PASS (102 PCs)
+req2 lossless vs own reference                : PASS (114 PCs)
+req3 lossless vs own reference                : PASS (114 PCs)
+cfonly lossless vs own reference              : PASS (103 PCs)
+cfsync lossless vs own reference              : PASS (103 PCs)
+quota lossless vs own reference               : PASS (102 PCs)
+qcoll lossless vs own reference               : PASS (98 PCs)
+------------------------------------------------------
+sim leg completed (off)                       : PASS (1)
+sim leg completed (req)                       : PASS (1)
+sim leg completed (reqnop)                    : PASS (1)
+sim leg completed (req2)                      : PASS (1)
+sim leg completed (req3)                      : PASS (1)
+sim leg completed (cfonly)                    : PASS (1)
+sim leg completed (cfsync)                    : PASS (1)
+sim leg completed (quota)                     : PASS (1)
+sim leg completed (qcoll)                     : PASS (1)
+sim leg completed (ovf)                       : PASS (1)
+------------------------------------------------------
+OFF: no explicit sync at all                  : PASS (0)
+REQ: exactly one SYNC = 14                    : PASS (1)
+REQ2: two writes -> two SYNC = 14             : PASS (2)
+REQ3: three writes -> still two               : PASS (2)
+CFONLY: the CF_SYNC path alone works          : PASS (1)
+CFSYNC: collision yields ONE message          : PASS (1)
+QUOTA: the request still gets its sync        : PASS (1)
+QCOLL: request inside the quota stream        : PASS (1)
+------------------------------------------------------
+OFF: source stays 0 (reset + end)             : PASS (2)
+REQ: source reads 4 (SYNC_REQ_TE)             : PASS (1)
+REQ2: source reads 4 after the burst          : PASS (1)
+REQ3: source reads 4 after the burst          : PASS (1)
+CFONLY: source reads 1 (control leg)          : PASS (1)
+CFSYNC: source reads 1 (the later event)      : PASS (1)
+QUOTA: source reads 4 after the request       : PASS (1)
+OVF: request recorded despite the storm       : PASS (1)
+------------------------------------------------------
+QUOTA: quota syncs keep coming (SYNC = 2)     : PASS (2)
+QCOLL: quota keeps running around it          : PASS (2)
+OFF: no quota syncs in the sparse mode        : PASS (0)
+------------------------------------------------------
+OVF: overflow really happened (Error msg)     : PASS (1)
+OVF: stream still decodes                     : PASS
+------------------------------------------------------
+REQ adds exactly one message vs OFF           : PASS (1)
+REQ2 adds exactly two messages vs OFF         : PASS (2)
+------------------------------------------------------
+ACT: identical up to the request              : PASS (first differing byte 93)
+ACT: same PC sequence as the control          : PASS (same)
+ACT: exactly one message more                 : PASS (1)
+ACT: and that message is the SYNC = 14        : PASS (1)
+ACT: the control asked for nothing            : PASS (2)
+======================================================
+OVERALL: PASS
+rc=0
+--- compiled-out negative: scripts/cli_tesyncreq_test.sh ro, switch at 0 ---
+req lossless vs own reference                 : PASS (102 PCs)
+both reads return 0 (request inert)           : PASS (2)
+NO SYNC = 14 with the feature out             : PASS (0)
+sim leg completed                             : PASS (1)
+OVERALL: PASS
+--- unit testbench rtl/preproc/test/ct_L23_preproc_sync_tb (xsim) ---
+Testcase: Global Testset passed. Checked 28 assertions.
+Info: Testbench passed.

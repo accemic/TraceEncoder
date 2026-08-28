@@ -1,0 +1,40 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: ISC
+#
+# Buildroot configuration for the Linux CVA6 on the KV260.
+# Base: qemu_riscv32_virt_defconfig (Buildroot 2025.02) -- differences:
+#   * ISA rv32ima WITHOUT C/F/D  -> target core cv32a6_ima_sv32_fpga
+#   * initramfs IN the kernel image -> exactly ONE artifact to load
+#   * kernel fragment for the 8250 polled console + RVC off
+# host-qemu stays on: allows the SW-side sanity boot without hardware.
+BR2_riscv=y
+BR2_RISCV_32=y
+# Careful: the chooser is called BR2_riscv_custom (not BR2_RISCV_ISA_CUSTOM)
+# -- without it the default BR2_riscv_g pulls in F+D and the toolchain
+# builds rv32imafdc against a core with no FPU and no C.
+BR2_riscv_custom=y
+BR2_RISCV_ISA_RVM=y
+BR2_RISCV_ISA_RVA=y
+# BR2_RISCV_ISA_RVF is not set
+# BR2_RISCV_ISA_RVD is not set
+# BR2_RISCV_ISA_RVC is not set
+BR2_RISCV_ABI_ILP32=y
+BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_6_12=y
+BR2_DOWNLOAD_FORCE_CHECK_HASHES=y
+BR2_INIT_BUSYBOX=y
+BR2_LINUX_KERNEL=y
+# Kernel: take the version shipped with this Buildroot release -- only that
+# one has a hash in linux/linux.hash, and BR2_DOWNLOAD_FORCE_CHECK_HASHES
+# otherwise aborts ("No hash found for linux-6.12.9.tar.xz").
+BR2_LINUX_KERNEL_LATEST_VERSION=y
+BR2_LINUX_KERNEL_DEFCONFIG="rv32"
+BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="$(BR2_EXTERNAL_CVA6_PATH)/cva6.config"
+BR2_TARGET_ROOTFS_CPIO=y
+BR2_TARGET_ROOTFS_INITRAMFS=y
+# BR2_TARGET_ROOTFS_TAR is not set
+BR2_TARGET_OPENSBI=y
+BR2_TARGET_OPENSBI_CUSTOM_VERSION=y
+BR2_TARGET_OPENSBI_CUSTOM_VERSION_VALUE="1.6"
+BR2_TARGET_OPENSBI_PLAT="generic"
+BR2_PACKAGE_HOST_QEMU=y
+BR2_PACKAGE_HOST_QEMU_SYSTEM_MODE=y

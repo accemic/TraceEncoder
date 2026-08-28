@@ -1,10 +1,13 @@
-// -*- indent-tabs-mode:t; tab-width:4 -*-
-// vim: tabstop=4:noexpandtab
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
+// -*- indent-tabs-mode: t; tab-width: 4 -*-
 
 /**
  * @file    ct_L23_preproc_act_st_tb.sv
  * @brief   Directed table-lookup testbench for ct_L23_preproc_act_st.
- * @description Programs the action-state memory through wext and verifies
+ * @details Programs the action-state memory through wext and verifies
  *   instruction-address lookups with a mixed sequence of hit and miss inputs.
  * @environment Uses tip_clk stimulus and wb_clk memory writes to configure
  *   the lookup table before issuing retired instruction traces.
@@ -48,8 +51,11 @@ module ct_L23_preproc_act_st_tb;
 	ct_cs_tipclk_if                             cs_tip ();
 	ocram_write_if #(.A_BITS(M0_STAGES), .T(m0_kr_t)) wext   (.clk(wb_clk));
 
-	// Instantiate DUT
-	ct_L23_preproc_act_st dut
+	// Instantiate DUT. The explicit .DIM matters (C0b audit B-2): without
+	// it the DUT elaborates at the module DEFAULT (4) while the TB loads
+	// M0_N entries through a wext sized for M0_STAGES -- the run passes,
+	// but it exercises a 15-slot tree, not the product dimension.
+	ct_L23_preproc_act_st #(.DIM(ct_pkg::M0_DIM)) dut
 	(
 		.clk (tip_clk),
 		.rst (tip_rst),
@@ -67,7 +73,10 @@ module ct_L23_preproc_act_st_tb;
 		wext.ce   <= 1;
 		wext.we   <= 1;
 		wext.addr <= addr;
-		wext.d    <= (m0_kr_t)'{key, value};
+		// typed assignment pattern -- the historical `(m0_kr_t)'{...}`
+		// cast-of-pattern is xsim-only; Verilator rejects it, and this TB
+		// never had a Verilator run before C0b.
+		wext.d    <= m0_kr_t'{key, value};
 		@(posedge wb_clk);
 	endtask
 
@@ -159,7 +168,14 @@ module ct_L23_preproc_act_st_tb;
 			@(posedge tip_clk);
 			if (act_st.valid) begin
 				exp_cmd = expected_cmd_q.pop_front();
-				act_st_cmd = M0_R'(act_st.cmd);
+				// explicit repack in struct DECLARATION order ({Cmd, Sink,
+				// DirectData} -- what the historical M0_R'(act_st.cmd) cast
+				// flattened to under xsim; Verilator rejects casting an
+				// UNPACKED hwif struct outright). For the (i << 8) memory
+				// words of this TB that flattening equals plain i.
+				act_st_cmd = { act_st.cmd.Cmd.value,
+				               act_st.cmd.Sink.value,
+				               act_st.cmd.DirectData.value };
 				void'(tt_assert(act_st_cmd == exp_cmd,
 					$sformatf("%0.2f: Line %0d *** Unexpected act_st.cmd: %h (expected: %h)",
 						$realtime, `__LINE__, act_st_cmd, exp_cmd)));

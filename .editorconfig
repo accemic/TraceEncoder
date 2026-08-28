@@ -1,5 +1,20 @@
 # SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
 # SPDX-License-Identifier: ISC
+#
+# Canonical whitespace conventions for this repository.
+#
+# Indentation is by TAB, rendered four columns wide, for everything that is
+# written by hand in a hardware-design idiom: SystemVerilog, shell, Make,
+# constraints. That is what the sources have always used and what the
+# per-file vim / Emacs modelines declare, so the two can never disagree.
+# Alignment *within* a line (port lists, comment columns) uses spaces, so a
+# file reads the same at any tab width.
+#
+# Languages whose ecosystems mandate spaces keep spaces: Python (PEP 8),
+# YAML (tabs are illegal), JSON, and the prose formats.
+#
+# Generated files (rtl/pkg/ct_cs_cpuif*.sv, tests/lib/ct_cs_cpuif_wb_helper.sv)
+# follow their generator's style — never reformat them, rerun `make rdl`.
 
 root = true
 
@@ -8,20 +23,65 @@ charset = utf-8
 end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
-indent_style = space
-indent_size = 2
+indent_style = tab
+tab_width = 4
+indent_size = 4
 
 [*.{sv,svh,v,vh}]
-indent_size = 2
+indent_style = tab
+tab_width = 4
 
-[*.rdl]
-indent_size = 2
+[*.{sh,bash}]
+indent_style = tab
+tab_width = 4
 
 [Makefile]
 indent_style = tab
+tab_width = 4
 
-[*.{md,markdown}]
-trim_trailing_whitespace = false
+[*.{xdc,f}]
+indent_style = tab
+tab_width = 4
+
+[*.abc]
+indent_style = space
+indent_size = 4
+
+[*.py]
+indent_style = space
+indent_size = 4
+
+[*.{tcl,rdl}]
+indent_style = space
+indent_size = 4
 
 [*.{yml,yaml}]
+indent_style = space
 indent_size = 2
+
+[*.json]
+indent_style = space
+indent_size = 2
+
+[*.adoc]
+indent_style = space
+indent_size = 2
+
+# Markdown keeps trailing whitespace: two trailing spaces are a hard line
+# break, and stripping them silently reflows the rendered text.
+[*.{md,markdown}]
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = false
+
+# Verbatim third-party text — never reformatted.
+[LICENSES/**]
+insert_final_newline = false
+trim_trailing_whitespace = false
+
+[third_party/**]
+indent_style = unset
+indent_size = unset
+tab_width = unset
+trim_trailing_whitespace = false
+insert_final_newline = false

@@ -1,10 +1,13 @@
-// -*- indent-tabs-mode:t; tab-width:4 -*-
-// vim: tabstop=4:noexpandtab
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
+// -*- indent-tabs-mode: t; tab-width: 4 -*-
 
 /**
  * @file    ct_L23_preproc_perfcnt_tb.sv
  * @brief   Directed counter testbench for ct_L23_preproc_perfcnt.
- * @description Validates read-range performance counting and axis clear
+ * @details Validates read-range performance counting and axis clear
  *   behavior for the preprocessor performance counter block.
  * @environment Drives tip traffic and perfcnt clear signals on a single tip
  *   clock after configuring one DATA_RD address range through cs_tip.
@@ -26,7 +29,7 @@ module ct_L23_preproc_perfcnt_tb;
 	import ct_perfcnt_pkg::*;
 	import ct_pkg::*;
 
-	localparam delay_t   	EXTRA_DELAY = 2;
+	localparam delay_t      EXTRA_DELAY = 2;
 	localparam int          DELAY_CYCLES = 0;
 
 	localparam TIP_CLK_PERIOD    = 1.0;
@@ -37,11 +40,11 @@ module ct_L23_preproc_perfcnt_tb;
 
 	logic tip_clk = 0; always #(TIP_CLK_PERIOD/2.0)  tip_clk   = ~tip_clk;
 
-	tip_if          				tip    ();
-	ct_cs_tipclk_if 				cs_tip ();
-	ct_perfcnt_if					perfcnt();
-	uwire[7:0]          			internal_delay;
-	tip_data_t						data;
+	tip_if                          tip    ();
+	ct_cs_tipclk_if                 cs_tip ();
+	ct_perfcnt_if                   perfcnt();
+	uwire[7:0]                      internal_delay;
+	tip_data_t                      data;
 
 	// Parameters for DUT
 	localparam type T = logic [31:0];
@@ -62,10 +65,10 @@ module ct_L23_preproc_perfcnt_tb;
 
 		tip_rst         <= '1;
 
-		perfcnt.data_rd_counter_clr_etip 	<= '0;
-		perfcnt.data_wr_counter_clr_etip 	<= '0;
+		perfcnt.data_rd_counter_clr_etip    <= '0;
+		perfcnt.data_wr_counter_clr_etip    <= '0;
 		perfcnt.data_rd_th_counter_clr_etip <= '0;
-		perfcnt.ifetch_th_counter_clr_etip 	<= '0;
+		perfcnt.ifetch_th_counter_clr_etip  <= '0;
 
 		TipTSetDefault(tipt);
 		TipSendMsg (tip, tip_clk, tipt, 2);
@@ -75,30 +78,30 @@ module ct_L23_preproc_perfcnt_tb;
 		PerfCntSetRange(cs_tip,DATA_RD, 0, 2, 8);
 
 		@(posedge tip_clk);
-		perfcnt.data_rd_counter_clr_axis 	<= '1;
-		perfcnt.data_wr_counter_clr_axis 	<= '1;
-		perfcnt.data_rd_th_counter_clr_axis	<= '1;
-		perfcnt.ifetch_th_counter_clr_axis 	<= '1;
+		perfcnt.data_rd_counter_clr_axis    <= '1;
+		perfcnt.data_wr_counter_clr_axis    <= '1;
+		perfcnt.data_rd_th_counter_clr_axis <= '1;
+		perfcnt.ifetch_th_counter_clr_axis  <= '1;
 
 		@(posedge tip_clk);
-		perfcnt.data_rd_counter_clr_axis 	<= '0;
-		perfcnt.data_wr_counter_clr_axis 	<= '0;
-		perfcnt.data_rd_th_counter_clr_axis	<= '0;
-		perfcnt.ifetch_th_counter_clr_axis 	<= '0;
+		perfcnt.data_rd_counter_clr_axis    <= '0;
+		perfcnt.data_wr_counter_clr_axis    <= '0;
+		perfcnt.data_rd_th_counter_clr_axis <= '0;
+		perfcnt.ifetch_th_counter_clr_axis  <= '0;
 
 		for (int i = 0 ; i < 10; i++) begin
 			TipTSetDefault(tipt);
-			tipt.dtype 		= LOAD;
-			tipt.daddr		= 5;
-			tipt.data		= 32'h0123_0000 + i;
-			tipt.dsize		= 2;
-			tipt.dretire	= '1;
+			tipt.dtype      = LOAD;
+			tipt.daddr      = 5;
+			tipt.data       = 32'h0123_0000 + i;
+			tipt.dsize      = 2;
+			tipt.dretire    = '1;
 			TipSendMsg (tip, tip_clk, tipt, DELAY_CYCLES);
 
 			TipTSetDefault(tipt);
-			tipt.itype		= OTHER;
-			tipt.iaddr		= 100;
-			tipt.iretire	= '1;
+			tipt.itype      = OTHER;
+			tipt.iaddr      = 100;
+			tipt.iretire    = '1;
 			TipSendMsg (tip, tip_clk, tipt, DELAY_CYCLES);
 		end
 

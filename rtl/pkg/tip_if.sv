@@ -12,7 +12,7 @@
  *
  * @details
  *   Conforms to the RISC-V trace ingress-port specifications:
- *   - E-Trace: https://docs.riscv.org/reference/e-trace/ingressPort.html
+ *   - E-Trace: https://docs.riscv.org/reference/e-trace/v2.0/ingressPort.html
  *   - N-Trace: https://docs.riscv.org/reference/nexus-trace/ntrace_ingress_port.html
  */
 
@@ -28,6 +28,24 @@ interface tip_if ();
 	tip_context_t   _context;  // context
 	tip_time_t      _time;     // core time
 	tip_ctype_t     ctype;     // reporting behavior for context
+	// iretire / iaddr / ilastsize have TWO shapes, selected at build time by
+	// ct_pkg::CT_EN_BLOCK_TIP (see there for the full contract):
+	//
+	//   SR ingress (CT_EN_BLOCK_TIP = 0, historical, one bit wide)
+	//     iretire   1 = exactly one instruction retired on this beat
+	//     iaddr     that instruction's address
+	//     ilastsize log2(halfwords) of that instruction
+	//
+	//   Block ingress (CT_EN_BLOCK_TIP = 1, CT_IRETIRE_WIDTH bits)
+	//     iretire   number of HALFWORDS retired by the block on this beat
+	//               (0 = nothing retired; a trap marker may still ride the
+	//               beat). Must not exceed 2^CT_IRETIRE_WIDTH - 1: an
+	//               adapter whose core produces longer linear runs splits
+	//               them into several itype = OTHER blocks.
+	//     iaddr     address of the FIRST instruction of the block
+	//     ilastsize log2(halfwords) of the LAST instruction of the block
+	//     itype     termination type of the block -- only the LAST
+	//               instruction of a block may be a control-flow event
 	tip_iretire_t   iretire;   // number of instructions / halfwords retired in this block
 	tip_ilastsize_t ilastsize; // size of the retired instruction
 	tip_impdef_t    impdef;    // implementation defined sideband signals
@@ -44,14 +62,43 @@ interface tip_if ();
 	logic [TIP_LRESP_WIDTH-1:0] lresp; // load response: 2=OK, 3=error (valid when lresp[1]=1)
 	logic [TIP_LDATA_WIDTH-1:0] ldata; // load data (valid when lresp[1]=1)
 
+	// Generic event sideband, gold standard -- integrator contract;
+	// consumed only when the matching ct_pkg::CT_EN_* switch is set, and an
+	// adapter whose core does not provide the signal ties it 0):
+	//   debug_mode : LEVEL, 1 while the hart is in debug mode. Contract: the
+	//                level rises on the beat AFTER the last pre-debug retire
+	//                and falls before the first post-debug retire. While 1,
+	//                no instruction trace is generated or counted (N-Trace
+	//                "no trace in debug"); entry emits Correlation EVCODE=0,
+	//                exit re-anchors with SYNC=3.
+	//   evti       : PULSE (>= 1 tip_clk cycle), external trace trigger.
+	//                While tracing, the next retire is upgraded to a SYNC=0
+	//                marker (N-Trace Table 25: trace ENABLED BY a trigger
+	//                uses SYNC=5 instead -- that path is the existing
+	//                TRACE_ENABLE one-shot).
+	//   power_down : LEVEL, 1 while the hart is powered down (no retires
+	//                expected). Entry emits Correlation EVCODE=1, exit
+	//                re-anchors with SYNC=9.
+	//   trigger    : PULSE, watchpoint/trigger marker. While tracing and
+	//                trTeControl.InstTrigEnable is set, the next retire is
+	//                upgraded to a SYNC=6 marker (Trace Event, Table 25).
+	//                Integrators wire a core watchpoint unit or trigger
+	//                fabric here; adapters without one tie it 0.
+	logic           debug_mode;
+	logic           evti;
+	logic           power_down;
+	logic           trigger;
+
 	modport master (
 		output  itype, ecause, tval, priv, iaddr, _context, _time, ctype, iretire, ilastsize, impdef,
-		        dretire, dtype, daddr, dsize, data, sdata, lresp, ldata
+		        dretire, dtype, daddr, dsize, data, sdata, lresp, ldata,
+		        debug_mode, evti, power_down, trigger
 	);
 
 	modport slave (
 		input   itype, ecause, tval, priv, iaddr, _context, _time, ctype, iretire, ilastsize, impdef,
-		        dretire, dtype, daddr, dsize, data, sdata, lresp, ldata
+		        dretire, dtype, daddr, dsize, data, sdata, lresp, ldata,
+		        debug_mode, evti, power_down, trigger
 	);
 
 endinterface // tip_if

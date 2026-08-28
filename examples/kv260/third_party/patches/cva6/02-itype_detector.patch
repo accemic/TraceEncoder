@@ -1,0 +1,21 @@
+--- a/corev_apu/instr_tracing/ITI/cva6_iti/itype_detector.sv
++++ b/corev_apu/instr_tracing/ITI/cva6_iti/itype_detector.sv
+@@ -72,10 +72,15 @@
+     // initialization
+     itype_o = iti_pkg::STANDARD;
+ 
+-    if (exception) begin  // exception
+-      itype_o = iti_pkg::EXC;
+-    end else if (interrupt) begin  // interrupt
++    // [Accemic Delta D2 -- CVA6_PIN.md] Check interrupt BEFORE exception:
++    // ex_valid (exception_i) is also set for interrupts -- the upstream
++    // order classified every interrupt as EXC (gate C1 measurement
++    // 2026-07-24: a timer IRQ arrived as itype=1/cause=7 instead of itype=2).
++    // interrupt_i carries the distinction (mcause MSB).
++    if (interrupt) begin  // interrupt
+       itype_o = iti_pkg::INT;
++    end else if (exception) begin  // exception
++      itype_o = iti_pkg::EXC;
+     end else if (valid_i) begin
+       if (eret) begin  // exception or interrupt return
+         itype_o = iti_pkg::ERET;

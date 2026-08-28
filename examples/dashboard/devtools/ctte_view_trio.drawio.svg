@@ -1,0 +1,243 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1224" height="774" viewBox="0 0 1224 774" content="&lt;mxfile host=&quot;TraceEncoder&quot; agent=&quot;devtools/compact_layout.py&quot; version=&quot;24.7.5&quot;&gt;
+  &lt;diagram id=&quot;arch-trio&quot; name=&quot;trio&quot;&gt;
+    &lt;mxGraphModel dx=&quot;1400&quot; dy=&quot;900&quot; grid=&quot;1&quot; gridSize=&quot;10&quot; guides=&quot;1&quot; tooltips=&quot;1&quot; connect=&quot;1&quot; arrows=&quot;1&quot; fold=&quot;1&quot; page=&quot;1&quot; pageScale=&quot;1&quot; pageWidth=&quot;1224&quot; pageHeight=&quot;774&quot; math=&quot;0&quot; shadow=&quot;0&quot; background=&quot;#0b0f17&quot;&gt;
+      &lt;root&gt;
+        &lt;mxCell id=&quot;0&quot;/&gt;
+        &lt;mxCell id=&quot;1&quot; parent=&quot;0&quot;/&gt;
+        &lt;mxCell id=&quot;ct0&quot; value=&quot;CEDARtools.TraceEncoder · ENC0 · MicroBlaze V&quot; style=&quot;rounded=1;dashed=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#3c5270;fontColor=#C98500;verticalAlign=top;align=left;spacingLeft=6;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;362&quot; y=&quot;30&quot; width=&quot;564&quot; height=&quot;158&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;ct1&quot; value=&quot;CEDARtools.TraceEncoder · ENC1 · TGC5B&quot; style=&quot;rounded=1;dashed=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#3c5270;fontColor=#C98500;verticalAlign=top;align=left;spacingLeft=6;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;362&quot; y=&quot;284&quot; width=&quot;564&quot; height=&quot;158&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;ct2&quot; value=&quot;CEDARtools.TraceEncoder · ENC2 · CVA6&quot; style=&quot;rounded=1;dashed=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#3c5270;fontColor=#C98500;verticalAlign=top;align=left;spacingLeft=6;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;362&quot; y=&quot;538&quot; width=&quot;564&quot; height=&quot;158&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cpu0&quot; value=&quot;Core&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#20293a;strokeColor=#C98500;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;30&quot; y=&quot;40&quot; width=&quot;190&quot; height=&quot;138&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;tip0&quot; value=&quot;Trace ingress&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;246&quot; y=&quot;86&quot; width=&quot;92&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;preproc0&quot; value=&quot;Preproc&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;382&quot; y=&quot;86&quot; width=&quot;84&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;fifo0&quot; value=&quot;FIFO&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;486&quot; y=&quot;78&quot; width=&quot;84&quot; height=&quot;62&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;msggen0&quot; value=&quot;MsgGen&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;590&quot; y=&quot;56&quot; width=&quot;84&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;nexusfmt0&quot; value=&quot;Nexus Fmt&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;694&quot; y=&quot;56&quot; width=&quot;92&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;mseomdo0&quot; value=&quot;MSEO/MDO&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;806&quot; y=&quot;56&quot; width=&quot;100&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;teinst0&quot; value=&quot;te_inst&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;590&quot; y=&quot;116&quot; width=&quot;84&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;tepktz0&quot; value=&quot;te Pktz&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;694&quot; y=&quot;116&quot; width=&quot;92&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;axis0&quot; value=&quot;AXIS&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#141b26;strokeColor=#4a5a72;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;382&quot; y=&quot;196&quot; width=&quot;84&quot; height=&quot;40&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;kriaps0&quot; value=&quot;Kria PS&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#141b26;strokeColor=#4a5a72;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;246&quot; y=&quot;196&quot; width=&quot;92&quot; height=&quot;40&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cpu1&quot; value=&quot;Core&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#20293a;strokeColor=#C98500;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;30&quot; y=&quot;294&quot; width=&quot;190&quot; height=&quot;138&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;preproc1&quot; value=&quot;Preproc&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;382&quot; y=&quot;340&quot; width=&quot;84&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;fifo1&quot; value=&quot;FIFO&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;486&quot; y=&quot;332&quot; width=&quot;84&quot; height=&quot;62&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;msggen1&quot; value=&quot;MsgGen&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;590&quot; y=&quot;310&quot; width=&quot;84&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;nexusfmt1&quot; value=&quot;Nexus Fmt&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;694&quot; y=&quot;310&quot; width=&quot;92&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;mseomdo1&quot; value=&quot;MSEO/MDO&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;806&quot; y=&quot;310&quot; width=&quot;100&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;teinst1&quot; value=&quot;te_inst&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;590&quot; y=&quot;370&quot; width=&quot;84&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;tepktz1&quot; value=&quot;te Pktz&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;694&quot; y=&quot;370&quot; width=&quot;92&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;axis1&quot; value=&quot;AXIS&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#141b26;strokeColor=#4a5a72;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;382&quot; y=&quot;450&quot; width=&quot;84&quot; height=&quot;40&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;kriaps1&quot; value=&quot;Kria PS&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#141b26;strokeColor=#4a5a72;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;246&quot; y=&quot;450&quot; width=&quot;92&quot; height=&quot;40&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;cpu2&quot; value=&quot;Core&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#20293a;strokeColor=#C98500;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;30&quot; y=&quot;548&quot; width=&quot;190&quot; height=&quot;138&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;tip2&quot; value=&quot;Trace ingress&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;246&quot; y=&quot;594&quot; width=&quot;92&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;preproc2&quot; value=&quot;Preproc&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;382&quot; y=&quot;594&quot; width=&quot;84&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;fifo2&quot; value=&quot;FIFO&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;486&quot; y=&quot;586&quot; width=&quot;84&quot; height=&quot;62&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;msggen2&quot; value=&quot;MsgGen&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;590&quot; y=&quot;564&quot; width=&quot;84&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;nexusfmt2&quot; value=&quot;Nexus Fmt&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;694&quot; y=&quot;564&quot; width=&quot;92&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;mseomdo2&quot; value=&quot;MSEO/MDO&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;806&quot; y=&quot;564&quot; width=&quot;100&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;teinst2&quot; value=&quot;te_inst&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;590&quot; y=&quot;624&quot; width=&quot;84&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;tepktz2&quot; value=&quot;te Pktz&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;694&quot; y=&quot;624&quot; width=&quot;92&quot; height=&quot;46&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;axis2&quot; value=&quot;AXIS&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#141b26;strokeColor=#4a5a72;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;382&quot; y=&quot;704&quot; width=&quot;84&quot; height=&quot;40&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;kriaps2&quot; value=&quot;Kria PS&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#141b26;strokeColor=#4a5a72;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;246&quot; y=&quot;704&quot; width=&quot;92&quot; height=&quot;40&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;funnel&quot; value=&quot;Trace Funnel&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#1c2532;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;950&quot; y=&quot;30&quot; width=&quot;78&quot; height=&quot;666&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;ddr&quot; value=&quot;Mem (DDR4)&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#18202c;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;1082&quot; y=&quot;262&quot; width=&quot;112&quot; height=&quot;54&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;uram&quot; value=&quot;Mem (URAM)&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#18202c;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;1082&quot; y=&quot;336&quot; width=&quot;112&quot; height=&quot;54&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;pib&quot; value=&quot;PIB&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=4;fillColor=#18202c;strokeColor=#33445c;fontColor=#e8eef7;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;1082&quot; y=&quot;410&quot; width=&quot;112&quot; height=&quot;54&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e0&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;cpu0&quot; target=&quot;tip0&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e1&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;tip0&quot; target=&quot;preproc0&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e2&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;preproc0&quot; target=&quot;fifo0&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e3&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;fifo0&quot; target=&quot;msggen0&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e4&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;msggen0&quot; target=&quot;nexusfmt0&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e5&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;nexusfmt0&quot; target=&quot;mseomdo0&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e6&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;fifo0&quot; target=&quot;teinst0&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e7&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;teinst0&quot; target=&quot;tepktz0&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e8&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;preproc0&quot; target=&quot;axis0&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e9&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;axis0&quot; target=&quot;kriaps0&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e10&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;cpu1&quot; target=&quot;preproc1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e11&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;preproc1&quot; target=&quot;fifo1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e12&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;fifo1&quot; target=&quot;msggen1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e13&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;msggen1&quot; target=&quot;nexusfmt1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e14&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;nexusfmt1&quot; target=&quot;mseomdo1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e15&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;fifo1&quot; target=&quot;teinst1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e16&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;teinst1&quot; target=&quot;tepktz1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e17&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;preproc1&quot; target=&quot;axis1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e18&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;axis1&quot; target=&quot;kriaps1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e19&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;cpu2&quot; target=&quot;tip2&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e20&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;tip2&quot; target=&quot;preproc2&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e21&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;preproc2&quot; target=&quot;fifo2&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e22&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;fifo2&quot; target=&quot;msggen2&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e23&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;msggen2&quot; target=&quot;nexusfmt2&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e24&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;nexusfmt2&quot; target=&quot;mseomdo2&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e25&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;fifo2&quot; target=&quot;teinst2&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e26&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;teinst2&quot; target=&quot;tepktz2&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e27&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;preproc2&quot; target=&quot;axis2&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e28&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;axis2&quot; target=&quot;kriaps2&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e29&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;mseomdo0&quot; target=&quot;funnel&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e30&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;tepktz0&quot; target=&quot;funnel&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e31&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;mseomdo1&quot; target=&quot;funnel&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e32&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;tepktz1&quot; target=&quot;funnel&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e33&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;mseomdo2&quot; target=&quot;funnel&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e34&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;tepktz2&quot; target=&quot;funnel&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e35&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;funnel&quot; target=&quot;ddr&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e36&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;funnel&quot; target=&quot;uram&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;trio_e37&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#44536e;strokeWidth=1.7;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;funnel&quot; target=&quot;pib&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+      &lt;/root&gt;
+    &lt;/mxGraphModel&gt;
+  &lt;/diagram&gt;
+&lt;/mxfile&gt;">
+<rect width="100%" height="100%" fill="#0b0f17"/>
+<rect x="362" y="30" width="564" height="158" rx="10" fill="none" stroke="#3c5270" stroke-dasharray="5 4"/>
+<text x="372" y="25" font-family="Segoe UI" font-size="12" font-weight="600" fill="#C98500">CEDARtools.TraceEncoder · ENC0 · MicroBlaze V</text>
+<rect x="362" y="284" width="564" height="158" rx="10" fill="none" stroke="#3c5270" stroke-dasharray="5 4"/>
+<text x="372" y="279" font-family="Segoe UI" font-size="12" font-weight="600" fill="#C98500">CEDARtools.TraceEncoder · ENC1 · TGC5B</text>
+<rect x="362" y="538" width="564" height="158" rx="10" fill="none" stroke="#3c5270" stroke-dasharray="5 4"/>
+<text x="372" y="533" font-family="Segoe UI" font-size="12" font-weight="600" fill="#C98500">CEDARtools.TraceEncoder · ENC2 · CVA6</text>
+<path d="M220,109 L236.4,109" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M244.1,109 L236.4,105.15 L236.4,112.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M338,109 L372.4,109" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M380.1,109 L372.4,105.15 L372.4,112.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M466,109 L476.4,109" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M484.1,109 L476.4,105.15 L476.4,112.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M570,109 L580,109 L580,79 L580.4,79" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M588.1,79 L580.4,75.15 L580.4,82.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M674,79 L684.4,79" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M692.1,79 L684.4,75.15 L684.4,82.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M786,79 L796.4,79" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M804.1,79 L796.4,75.15 L796.4,82.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M570,109 L580,109 L580,139 L580.4,139" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M588.1,139 L580.4,135.15 L580.4,142.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M674,139 L684.4,139" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M692.1,139 L684.4,135.15 L684.4,142.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M424,132 L424,186.4" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M424,194.1 L420.15,186.4 L427.85,186.4 Z" fill="#5b6b85" stroke="none"/>
+<path d="M382,216 L347.6,216" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M339.9,216 L347.6,212.15 L347.6,219.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M220,363 L372.4,363" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M380.1,363 L372.4,359.15 L372.4,366.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M466,363 L476.4,363" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M484.1,363 L476.4,359.15 L476.4,366.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M570,363 L580,363 L580,333 L580.4,333" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M588.1,333 L580.4,329.15 L580.4,336.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M674,333 L684.4,333" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M692.1,333 L684.4,329.15 L684.4,336.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M786,333 L796.4,333" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M804.1,333 L796.4,329.15 L796.4,336.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M570,363 L580,363 L580,393 L580.4,393" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M588.1,393 L580.4,389.15 L580.4,396.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M674,393 L684.4,393" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M692.1,393 L684.4,389.15 L684.4,396.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M424,386 L424,440.4" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M424,448.1 L420.15,440.4 L427.85,440.4 Z" fill="#5b6b85" stroke="none"/>
+<path d="M382,470 L347.6,470" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M339.9,470 L347.6,466.15 L347.6,473.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M220,617 L236.4,617" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M244.1,617 L236.4,613.15 L236.4,620.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M338,617 L372.4,617" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M380.1,617 L372.4,613.15 L372.4,620.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M466,617 L476.4,617" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M484.1,617 L476.4,613.15 L476.4,620.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M570,617 L580,617 L580,587 L580.4,587" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M588.1,587 L580.4,583.15 L580.4,590.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M674,587 L684.4,587" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M692.1,587 L684.4,583.15 L684.4,590.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M786,587 L796.4,587" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M804.1,587 L796.4,583.15 L796.4,590.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M570,617 L580,617 L580,647 L580.4,647" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M588.1,647 L580.4,643.15 L580.4,650.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M674,647 L684.4,647" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M692.1,647 L684.4,643.15 L684.4,650.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M424,640 L424,694.4" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M424,702.1 L420.15,694.4 L427.85,694.4 Z" fill="#5b6b85" stroke="none"/>
+<path d="M382,724 L347.6,724" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M339.9,724 L347.6,720.15 L347.6,727.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M906,79 L940.4,79" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M948.1,79 L940.4,75.15 L940.4,82.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M786,139 L940.4,139" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M948.1,139 L940.4,135.15 L940.4,142.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M906,333 L940.4,333" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M948.1,333 L940.4,329.15 L940.4,336.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M786,393 L940.4,393" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M948.1,393 L940.4,389.15 L940.4,396.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M906,587 L940.4,587" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M948.1,587 L940.4,583.15 L940.4,590.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M786,647 L940.4,647" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M948.1,647 L940.4,643.15 L940.4,650.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M1028,363 L1055,363 L1055,289 L1072.4,289" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M1080.1,289 L1072.4,285.15 L1072.4,292.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M1028,363 L1072.4,363" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M1080.1,363 L1072.4,359.15 L1072.4,366.85 Z" fill="#5b6b85" stroke="none"/>
+<path d="M1028,363 L1055,363 L1055,437 L1072.4,437" fill="none" stroke="#5b6b85" stroke-width="1.7"/>
+<path d="M1080.1,437 L1072.4,433.15 L1072.4,440.85 Z" fill="#5b6b85" stroke="none"/>
+<rect x="30" y="40" width="190" height="138" rx="6" fill="#20293a" stroke="#C98500"/>
+<text x="36" y="57" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Core</text>
+<rect x="246" y="86" width="92" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="252" y="103" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Trace ingress</text>
+<rect x="382" y="86" width="84" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="388" y="103" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Preproc</text>
+<rect x="486" y="78" width="84" height="62" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="492" y="95" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">FIFO</text>
+<rect x="590" y="56" width="84" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="596" y="73" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">MsgGen</text>
+<rect x="694" y="56" width="92" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="700" y="73" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Nexus Fmt</text>
+<rect x="806" y="56" width="100" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="812" y="73" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">MSEO/MDO</text>
+<rect x="590" y="116" width="84" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="596" y="133" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">te_inst</text>
+<rect x="694" y="116" width="92" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="700" y="133" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">te Pktz</text>
+<rect x="382" y="196" width="84" height="40" rx="6" fill="#141b26" stroke="#4a5a72"/>
+<text x="388" y="213" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">AXIS</text>
+<rect x="246" y="196" width="92" height="40" rx="6" fill="#141b26" stroke="#4a5a72"/>
+<text x="252" y="213" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Kria PS</text>
+<rect x="30" y="294" width="190" height="138" rx="6" fill="#20293a" stroke="#C98500"/>
+<text x="36" y="311" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Core</text>
+<rect x="382" y="340" width="84" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="388" y="357" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Preproc</text>
+<rect x="486" y="332" width="84" height="62" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="492" y="349" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">FIFO</text>
+<rect x="590" y="310" width="84" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="596" y="327" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">MsgGen</text>
+<rect x="694" y="310" width="92" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="700" y="327" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Nexus Fmt</text>
+<rect x="806" y="310" width="100" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="812" y="327" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">MSEO/MDO</text>
+<rect x="590" y="370" width="84" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="596" y="387" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">te_inst</text>
+<rect x="694" y="370" width="92" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="700" y="387" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">te Pktz</text>
+<rect x="382" y="450" width="84" height="40" rx="6" fill="#141b26" stroke="#4a5a72"/>
+<text x="388" y="467" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">AXIS</text>
+<rect x="246" y="450" width="92" height="40" rx="6" fill="#141b26" stroke="#4a5a72"/>
+<text x="252" y="467" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Kria PS</text>
+<rect x="30" y="548" width="190" height="138" rx="6" fill="#20293a" stroke="#C98500"/>
+<text x="36" y="565" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Core</text>
+<rect x="246" y="594" width="92" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="252" y="611" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Trace ingress</text>
+<rect x="382" y="594" width="84" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="388" y="611" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Preproc</text>
+<rect x="486" y="586" width="84" height="62" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="492" y="603" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">FIFO</text>
+<rect x="590" y="564" width="84" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="596" y="581" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">MsgGen</text>
+<rect x="694" y="564" width="92" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="700" y="581" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Nexus Fmt</text>
+<rect x="806" y="564" width="100" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="812" y="581" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">MSEO/MDO</text>
+<rect x="590" y="624" width="84" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="596" y="641" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">te_inst</text>
+<rect x="694" y="624" width="92" height="46" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="700" y="641" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">te Pktz</text>
+<rect x="382" y="704" width="84" height="40" rx="6" fill="#141b26" stroke="#4a5a72"/>
+<text x="388" y="721" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">AXIS</text>
+<rect x="246" y="704" width="92" height="40" rx="6" fill="#141b26" stroke="#4a5a72"/>
+<text x="252" y="721" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Kria PS</text>
+<rect x="950" y="30" width="78" height="666" rx="6" fill="#1c2532" stroke="#33445c"/>
+<text x="956" y="47" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Trace Funnel</text>
+<rect x="1082" y="262" width="112" height="54" rx="6" fill="#18202c" stroke="#33445c"/>
+<text x="1088" y="279" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Mem (DDR4)</text>
+<rect x="1082" y="336" width="112" height="54" rx="6" fill="#18202c" stroke="#33445c"/>
+<text x="1088" y="353" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">Mem (URAM)</text>
+<rect x="1082" y="410" width="112" height="54" rx="6" fill="#18202c" stroke="#33445c"/>
+<text x="1088" y="427" font-family="Segoe UI" font-size="12" font-weight="600" fill="#e8eef7">PIB</text>
+</svg>

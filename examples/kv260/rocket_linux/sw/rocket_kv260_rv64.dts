@@ -1,0 +1,191 @@
+/dts-v1/;
+
+/*
+ * SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+ * SPDX-License-Identifier: ISC
+ *
+ * rocket_kv260_rv64.dts -- devicetree of the RV64 Rocket Linux machine in the
+ * KV260's PL (RV64 program, package L2). Describes the vendored generat
+ * `Rocket64t1` (examples/kv260/third_party/rocket_ref/, pin ROCKET_PIN.md)
+ * in the KV260 environment -- not the nexys-video board it was generated
+ * for.
+ *
+ * DELTA vs. the CVA6 machine (sw/cva6_linux/cva6_kv260_rv64.dts, package
+ * L1): the three deltas are NOT a matter of taste, they follow from the
+ * generat:
+ *
+ *   1. RAM @0x8000_0000 instead of @0x6400_0000. The generat's system bus
+ *      decodes memory EXCLUSIVELY starting at 0x8000_0000
+ *      (system-nexys-video.v:616-629, three AddressSet terms spanning
+ *      0x8000_0000..0x3_FFFF_FFFF = 14 GiB); 0x4000_0000..0x7FFF_FFFF goes
+ *      to the MMIO port, everything below to internal peripherals. A
+ *      CVA6-style RAM address of 0x6400_0000 would never be treated as
+ *      memory by the core. The base is additionally hardwired in the
+ *      bootrom (bootrom/bootrom.lds `memory_mem : ORIGIN = 0x80000000`,
+ *      `_ram`) and in the Chisel config (`WithExtMemSize`, rocket-chip
+ *      default base) -- three places, none reachable without a generat
+ *      rebuild. Translation to the reserved PS DDR window 0x6400_0000
+ *      +192 MiB (docs/SPEC_board_memory_map.md) is done by the board
+ *      wrapper (R4/R5): ps_addr = rocket_addr - 0x1C00_0000.
+ *
+ *   2. Console @0x6001_0000 instead of @0x1000_0000. The generat has NO
+ *      UART (0 console modules; the three uart greps in the generat are hex
+ *      constants of the ROM mux chain). The console must hang off the
+ *      mmio_axi4 port externally, i.e. in the window
+ *      0x4000_0000..0x7FFF_FFFF -- 0x1000_0000 lands in the internal cbus
+ *      and thus in the TLError device. 0x6001_0000 is the same address the
+ *      vivado-risc-v reference design uses for its UART
+ *      (board/nexys-video/bootrom.dts) -- not a random value.
+ *      The 8250 block itself is the one from
+ *      rtl/board_kv260/cva6_linux_periph.sv (only the UART part; CLINT and
+ *      PLIC are present in the generat).
+ *
+ *   3. PLIC present. The CVA6 SoC has none, this generat does
+ *      (system-nexys-video.dts:78-87, module TLPLIC, riscv,ndev = 8). A DTS
+ *      should describe the hardware; the node stays without device IRQs.
+ *
+ * Deliberately taken over UNCHANGED from L1 (no delta without a reason):
+ *   - #address-cells/#size-cells = <1>. All addresses of this machine lie
+ *     below 4 GiB (0x8000_0000 + 192 MiB = 0x8C00_0000); OpenSBI's and
+ *     Linux's DT parsers read the cell count generically. The 1-cell form
+ *     is board-proven (CVA6 boot 2026-07-27).
+ *   - bootargs shape incl. "no4lvl" (Sv39 enforcement, rationale below),
+ *     keep_bootcon, rdinit.
+ *   - riscv,isa/-base/-extensions kept conservative: the core can do more
+ *     (zihpm, xrocket -- system-nexys-video.dts:30), the toolchain does not
+ *     use it. Listing less than the core can do is always safe, more never
+ *     is: the kernel patches alternatives based on exactly this list.
+ *
+ * CLOCK CORRESPONDENCE (hard rule of this generat): the mtime tick comes
+ * from a FIXED /100 divider in the generat
+ * (system-nexys-video.v:99468-99470 `Counter` wraps at 7'h63, :100931) --
+ * timebase-frequency is thus MANDATORILY clock-frequency/100, not a free
+ * choice. If the PL frequency changes, BOTH values here must be updated
+ * together. Counter-check against the reference design: nexys-video runs
+ * at 50 MHz and carries timebase 500 kHz (system-nexys-video.dts:11,13);
+ * vivado-risc-v computes it the same way (Makefile:200-201,
+ * ROCKET_TIMEBASE_FREQ = ROCKET_FREQ_MHZ * 10000).
+ * 75 MHz is the PL clock of the KV260 Linux/Trio design (CLK_HZ in
+ * rtl/board_kv260/cva6_linux_periph.sv, clock-frequency in
+ * sw/cva6_linux/cva6_kv260_rv64.dts:94) -- not yet timing-closed for the
+ * Rocket (R4).
+ *
+ * "no4lvl" enforces Sv39: Linux 6.12 no longer has a Kconfig switch for
+ * this, it instead tries Sv57 -> Sv48 -> Sv39 at runtime
+ * (arch/riscv/mm/init.c, set_satp_mode). "no4lvl" is read directly from
+ * this DTB BEFORE any paging (__pi_set_satp_mode_from_cmdline,
+ * arch/riscv/kernel/pi/cmdline_early.c:43), disables L5 and L4, and returns
+ * immediately. The Rocket only implements Sv39 (mmu-type,
+ * system-nexys-video.dts:27).
+ *
+ * The console runs via earlycon (uart8250,mmio32): earlycon writes
+ * directly into THR and polls LSR bit 5 -- exactly the feature set of the
+ * 8250 ring. The regular driver would run an 8250 autoconfiguration
+ * (loopback via MCR, FIFO detection) that the minimal peripheral does not
+ * serve. keep_bootcon keeps earlycon active in case no regular port
+ * registers.
+ */
+
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+	compatible = "accemic,rocket-kv260";
+	model = "Accemic Rocket64t1 RV64 CTTE Demonstrator (KV260 PL)";
+
+	chosen {
+		bootargs = "earlycon=uart8250,mmio32,0x60010000 keep_bootcon console=ttyS0 no4lvl rdinit=/sbin/init";
+		stdout-path = "/soc/serial@60010000";
+	};
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		/* MANDATORILY clock-frequency/100 -- fixed divider in the generat, see header. */
+		timebase-frequency = <750000>;
+
+		/* reg == mhartid. The generat has exactly one tile
+		 * (1x module RocketTile) with hart ID 0; the bootrom reads
+		 * mhartid and branches on it (rom_orig.dis:10054). */
+		cpu@0 {
+			device_type = "cpu";
+			reg = <0>;
+			status = "okay";
+			compatible = "sifive,rocket0", "riscv";
+			riscv,isa = "rv64imac_zicsr_zifencei";
+			riscv,isa-base = "rv64i";
+			riscv,isa-extensions = "i", "m", "a", "c", "zicsr", "zifencei";
+			mmu-type = "riscv,sv39";
+			clock-frequency = <75000000>;
+			/* Cache geometry from the generat (system-nexys-video.dts:15-26) */
+			i-cache-size = <16384>;
+			i-cache-block-size = <64>;
+			i-cache-sets = <64>;
+			d-cache-size = <16384>;
+			d-cache-block-size = <64>;
+			d-cache-sets = <64>;
+			tlb-split;
+
+			cpu0_intc: interrupt-controller {
+				#interrupt-cells = <1>;
+				compatible = "riscv,cpu-intc";
+				interrupt-controller;
+			};
+		};
+	};
+
+	memory@80000000 {
+		device_type = "memory";
+		/* 192 MiB -- size of the KV260 window the board wrapper
+		 * mirrors here (PS DDR 0x6400_0000..0x6FFF_FFFF,
+		 * docs/SPEC_board_memory_map.md address plan v3). The first
+		 * 64 MiB of the reserved window (starting at 0x6000_0000)
+		 * belong to the trace sink and must NOT lie inside this
+		 * mapping. Correspondence rule: this size == window size in
+		 * the board wrapper == reserved-memory share of the guest. */
+		reg = <0x80000000 0x0C000000>;
+	};
+
+	soc {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "simple-bus";
+		ranges;
+
+		/* Contained in the generat (module CLINT, system-nexys-video.v:85351;
+		 * address system-nexys-video.dts:58-63). mtime ticks with
+		 * timebase-frequency. */
+		clint@2000000 {
+			compatible = "riscv,clint0", "sifive,clint0";
+			reg = <0x02000000 0x00010000>;
+			interrupts-extended = <&cpu0_intc 3>, <&cpu0_intc 7>;
+		};
+
+		/* Also in the generat (module TLPLIC; system-nexys-video.dts:78-87).
+		 * 8 external sources at the top level's `interrupts[7:0]`
+		 * port; none used in the KV260 wrapper today -- the node
+		 * describes the hardware, not a usage. */
+		plic: interrupt-controller@c000000 {
+			#interrupt-cells = <1>;
+			compatible = "riscv,plic0";
+			interrupt-controller;
+			reg = <0x0c000000 0x04000000>;
+			riscv,ndev = <8>;
+			riscv,max-priority = <7>;
+			interrupts-extended = <&cpu0_intc 11>, <&cpu0_intc 9>;
+		};
+
+		/* NOT in the generat -- external 8250 block on the mmio_axi4
+		 * port (window 0x4000_0000..0x7FFF_FFFF). Polling, hence no
+		 * "interrupts" property even though a PLIC exists: the block
+		 * from cva6_linux_periph.sv has no IRQ output (IER is stored
+		 * but never acted on). */
+		serial@60010000 {
+			compatible = "ns16550a";
+			reg = <0x60010000 0x00000100>;
+			reg-shift = <2>;
+			reg-io-width = <4>;
+			clock-frequency = <75000000>;
+			current-speed = <115200>;
+		};
+	};
+};

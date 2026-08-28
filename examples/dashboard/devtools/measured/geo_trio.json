@@ -1,0 +1,1604 @@
+{
+ "scenario": "trio",
+ "scale": 2.4,
+ "blocks": [
+  {
+   "id": "cpu0",
+   "x": 24.08,
+   "y": 29.31,
+   "w": 99.45,
+   "h": 72.23,
+   "cls": "blk k-core cpu",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "MicroBlaze V",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "sub",
+     "text": "RV32IM · 75 MHz design · 128 KiB",
+     "px": 5.75863,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "stat",
+     "text": "core0_run",
+     "px": 5.75863,
+     "weight": "400",
+     "color": "rgb(228, 233, 241)",
+     "family": "Consolas"
+    }
+   ]
+  },
+  {
+   "id": "tip0",
+   "x": 137.16,
+   "y": 53.39,
+   "w": 48.16,
+   "h": 24.08,
+   "cls": "blk k-ingress",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "TIP adapter",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "preproc0",
+   "x": 208.34,
+   "y": 53.39,
+   "w": 43.97,
+   "h": 24.08,
+   "cls": "blk k-ntrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "Preproc",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "fifo0",
+   "x": 262.8,
+   "y": 49.2,
+   "w": 43.97,
+   "h": 32.45,
+   "cls": "blk k-ntrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "FIFO",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "cnt",
+     "text": "max 0 ovf 0",
+     "px": 5.23512,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Consolas"
+    }
+   ]
+  },
+  {
+   "id": "msggen0",
+   "x": 317.23,
+   "y": 37.69,
+   "w": 43.97,
+   "h": 24.08,
+   "cls": "blk k-ntrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "MsgGen",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "nexusfmt0",
+   "x": 371.69,
+   "y": 37.69,
+   "w": 48.16,
+   "h": 24.08,
+   "cls": "blk k-ntrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "Nexus Fmt",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "cnt",
+     "text": "SRC off",
+     "px": 5.23512,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Consolas"
+    }
+   ]
+  },
+  {
+   "id": "mseomdo0",
+   "x": 430.31,
+   "y": 37.69,
+   "w": 52.34,
+   "h": 24.08,
+   "cls": "blk k-ntrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "MSEO/MDO",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "teinst0",
+   "x": 317.23,
+   "y": 69.09,
+   "w": 43.97,
+   "h": 24.08,
+   "cls": "blk k-etrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "te_inst",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "tepktz0",
+   "x": 371.69,
+   "y": 69.09,
+   "w": 48.16,
+   "h": 24.08,
+   "cls": "blk k-etrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "te Pktz",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "axis0",
+   "x": 208.34,
+   "y": 110.98,
+   "w": 43.97,
+   "h": 20.94,
+   "cls": "blk k-side",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "AXIS",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "cnt",
+     "text": "b —",
+     "px": 5.23512,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Consolas"
+    }
+   ]
+  },
+  {
+   "id": "kriaps0",
+   "x": 137.16,
+   "y": 110.98,
+   "w": 48.16,
+   "h": 20.94,
+   "cls": "blk k-side",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "Kria PS",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "cpu1",
+   "x": 24.08,
+   "y": 162.28,
+   "w": 99.45,
+   "h": 72.23,
+   "cls": "blk k-core cpu",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "TGC5B",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "sub",
+     "text": "RV32IMC · 75 MHz design · 64 KiB",
+     "px": 5.75863,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "stat",
+     "text": "core1_run",
+     "px": 5.75863,
+     "weight": "400",
+     "color": "rgb(228, 233, 241)",
+     "family": "Consolas"
+    },
+    {
+     "sel": "hint",
+     "text": "Own run bit core1_run — CONTROL b0 releases all cores at once",
+     "px": 9.5,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "preproc1",
+   "x": 208.34,
+   "y": 186.36,
+   "w": 43.97,
+   "h": 24.08,
+   "cls": "blk k-ntrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "Preproc",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "fifo1",
+   "x": 262.8,
+   "y": 182.17,
+   "w": 43.97,
+   "h": 32.45,
+   "cls": "blk k-ntrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "FIFO",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "cnt",
+     "text": "max 0 ovf 0",
+     "px": 5.23512,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Consolas"
+    }
+   ]
+  },
+  {
+   "id": "msggen1",
+   "x": 317.23,
+   "y": 170.66,
+   "w": 43.97,
+   "h": 24.08,
+   "cls": "blk k-ntrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "MsgGen",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "nexusfmt1",
+   "x": 371.69,
+   "y": 170.66,
+   "w": 48.16,
+   "h": 24.08,
+   "cls": "blk k-ntrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "Nexus Fmt",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "cnt",
+     "text": "SRC 0",
+     "px": 5.23512,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Consolas"
+    }
+   ]
+  },
+  {
+   "id": "mseomdo1",
+   "x": 430.31,
+   "y": 170.66,
+   "w": 52.34,
+   "h": 24.08,
+   "cls": "blk k-ntrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "MSEO/MDO",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "teinst1",
+   "x": 317.23,
+   "y": 202.06,
+   "w": 43.97,
+   "h": 24.08,
+   "cls": "blk k-etrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "te_inst",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "tepktz1",
+   "x": 371.69,
+   "y": 202.06,
+   "w": 48.16,
+   "h": 24.08,
+   "cls": "blk k-etrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "te Pktz",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "axis1",
+   "x": 208.34,
+   "y": 243.95,
+   "w": 43.97,
+   "h": 20.94,
+   "cls": "blk k-side",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "AXIS",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "cnt",
+     "text": "n/c",
+     "px": 5.23512,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Consolas"
+    }
+   ]
+  },
+  {
+   "id": "kriaps1",
+   "x": 137.16,
+   "y": 243.95,
+   "w": 48.16,
+   "h": 20.94,
+   "cls": "blk k-side",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "Kria PS",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "cpu2",
+   "x": 24.08,
+   "y": 295.25,
+   "w": 99.45,
+   "h": 72.23,
+   "cls": "blk k-core cpu",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "CVA6",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "sub",
+     "text": "RV32IMA · 75 MHz design · DDR @0x6400_0000",
+     "px": 5.75863,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "stat",
+     "text": "cva6_run",
+     "px": 5.75863,
+     "weight": "400",
+     "color": "rgb(228, 233, 241)",
+     "family": "Consolas"
+    }
+   ]
+  },
+  {
+   "id": "tip2",
+   "x": 137.16,
+   "y": 319.34,
+   "w": 48.16,
+   "h": 24.08,
+   "cls": "blk k-ingress",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "ITI shim",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "preproc2",
+   "x": 208.34,
+   "y": 319.34,
+   "w": 43.97,
+   "h": 24.08,
+   "cls": "blk k-ntrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "Preproc",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "fifo2",
+   "x": 262.8,
+   "y": 315.14,
+   "w": 43.97,
+   "h": 32.45,
+   "cls": "blk k-ntrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "FIFO",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "cnt",
+     "text": "max 0 ovf 0",
+     "px": 5.23512,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Consolas"
+    }
+   ]
+  },
+  {
+   "id": "msggen2",
+   "x": 317.23,
+   "y": 303.63,
+   "w": 43.97,
+   "h": 24.08,
+   "cls": "blk k-ntrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "MsgGen",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "nexusfmt2",
+   "x": 371.69,
+   "y": 303.63,
+   "w": 48.16,
+   "h": 24.08,
+   "cls": "blk k-ntrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "Nexus Fmt",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "cnt",
+     "text": "SRC 0",
+     "px": 5.23512,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Consolas"
+    }
+   ]
+  },
+  {
+   "id": "mseomdo2",
+   "x": 430.31,
+   "y": 303.63,
+   "w": 52.34,
+   "h": 24.08,
+   "cls": "blk k-ntrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "MSEO/MDO",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "teinst2",
+   "x": 317.23,
+   "y": 335.05,
+   "w": 43.97,
+   "h": 24.08,
+   "cls": "blk k-etrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "te_inst",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "tepktz2",
+   "x": 371.69,
+   "y": 335.05,
+   "w": 48.16,
+   "h": 24.08,
+   "cls": "blk k-etrace",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "te Pktz",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "axis2",
+   "x": 208.34,
+   "y": 376.92,
+   "w": 43.97,
+   "h": 20.94,
+   "cls": "blk k-side",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "AXIS",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "cnt",
+     "text": "n/c",
+     "px": 5.23512,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Consolas"
+    }
+   ]
+  },
+  {
+   "id": "kriaps2",
+   "x": 137.16,
+   "y": 376.92,
+   "w": 48.16,
+   "h": 20.94,
+   "cls": "blk k-side",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "Kria PS",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    }
+   ]
+  },
+  {
+   "id": "funnel",
+   "x": 505.7,
+   "y": 24.08,
+   "w": 40.83,
+   "h": 348.66,
+   "cls": "blk k-merge",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "Trace Funnel",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "sub",
+     "text": "prio-arb · msg-atomic MDO=6",
+     "px": 5.75863,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "cnt",
+     "text": "prio —",
+     "px": 5.23512,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Consolas"
+    }
+   ]
+  },
+  {
+   "id": "ddr",
+   "x": 574.81,
+   "y": 145.53,
+   "w": 58.63,
+   "h": 28.27,
+   "cls": "blk k-sink",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "DDR4",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "cnt",
+     "text": "0 B disabled · drops 0",
+     "px": 5.23512,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Consolas"
+    }
+   ]
+  },
+  {
+   "id": "uram",
+   "x": 574.81,
+   "y": 184.27,
+   "w": 58.63,
+   "h": 28.27,
+   "cls": "blk k-sink",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "URAM",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "cnt",
+     "text": "0/1024 KiB ring",
+     "px": 5.23512,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Consolas"
+    }
+   ]
+  },
+  {
+   "id": "pib",
+   "x": 574.81,
+   "y": 223.02,
+   "w": 58.63,
+   "h": 28.27,
+   "cls": "blk k-sink",
+   "texts": [
+    {
+     "sel": "h3",
+     "text": "PIB",
+     "px": 5.75863,
+     "weight": "600",
+     "color": "rgb(228, 233, 241)",
+     "family": "Segoe UI"
+    },
+    {
+     "sel": "cnt",
+     "text": "disabled drops —",
+     "px": 5.23512,
+     "weight": "400",
+     "color": "rgb(151, 164, 186)",
+     "family": "Consolas"
+    }
+   ]
+  }
+ ],
+ "containers": [
+  {
+   "id": "ct0",
+   "x": 197.88,
+   "y": 24.08,
+   "w": 295.25,
+   "h": 82.7,
+   "text": "CEDARtools.TraceEncoder (CTTE) · ENC0 · MicroBlaze V",
+   "px": 6.28215
+  },
+  {
+   "id": "ct1",
+   "x": 197.88,
+   "y": 157.05,
+   "w": 295.25,
+   "h": 82.7,
+   "text": "CEDARtools.TraceEncoder (CTTE) · ENC1 · TGC5B",
+   "px": 6.28215
+  },
+  {
+   "id": "ct2",
+   "x": 197.88,
+   "y": 290.02,
+   "w": 295.25,
+   "h": 82.7,
+   "text": "CEDARtools.TraceEncoder (CTTE) · ENC2 · CVA6",
+   "px": 6.28215
+  }
+ ],
+ "edges": [
+  {
+   "s": "cpu0",
+   "t": "tip0",
+   "d": "M220,109 L236.4,109",
+   "pts": [
+    [
+     220,
+     109
+    ],
+    [
+     236.4,
+     109
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "tip0",
+   "t": "preproc0",
+   "d": "M338,109 L372.4,109",
+   "pts": [
+    [
+     338,
+     109
+    ],
+    [
+     372.4,
+     109
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "preproc0",
+   "t": "fifo0",
+   "d": "M466,109 L476.4,109",
+   "pts": [
+    [
+     466,
+     109
+    ],
+    [
+     476.4,
+     109
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "fifo0",
+   "t": "msggen0",
+   "d": "M570,109 L580,109 L580,79 L580.4,79",
+   "pts": [
+    [
+     570,
+     109
+    ],
+    [
+     580,
+     109
+    ],
+    [
+     580,
+     79
+    ],
+    [
+     580.4,
+     79
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "msggen0",
+   "t": "nexusfmt0",
+   "d": "M674,79 L684.4,79",
+   "pts": [
+    [
+     674,
+     79
+    ],
+    [
+     684.4,
+     79
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "nexusfmt0",
+   "t": "mseomdo0",
+   "d": "M786,79 L796.4,79",
+   "pts": [
+    [
+     786,
+     79
+    ],
+    [
+     796.4,
+     79
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "fifo0",
+   "t": "teinst0",
+   "d": "M570,109 L580,109 L580,139 L580.4,139",
+   "pts": [
+    [
+     570,
+     109
+    ],
+    [
+     580,
+     109
+    ],
+    [
+     580,
+     139
+    ],
+    [
+     580.4,
+     139
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "teinst0",
+   "t": "tepktz0",
+   "d": "M674,139 L684.4,139",
+   "pts": [
+    [
+     674,
+     139
+    ],
+    [
+     684.4,
+     139
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "preproc0",
+   "t": "axis0",
+   "d": "M424,132 L424,186.4",
+   "pts": [
+    [
+     424,
+     132
+    ],
+    [
+     424,
+     186.4
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "axis0",
+   "t": "kriaps0",
+   "d": "M382,216 L347.6,216",
+   "pts": [
+    [
+     382,
+     216
+    ],
+    [
+     347.6,
+     216
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "cpu1",
+   "t": "preproc1",
+   "d": "M220,363 L372.4,363",
+   "pts": [
+    [
+     220,
+     363
+    ],
+    [
+     372.4,
+     363
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "preproc1",
+   "t": "fifo1",
+   "d": "M466,363 L476.4,363",
+   "pts": [
+    [
+     466,
+     363
+    ],
+    [
+     476.4,
+     363
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "fifo1",
+   "t": "msggen1",
+   "d": "M570,363 L580,363 L580,333 L580.4,333",
+   "pts": [
+    [
+     570,
+     363
+    ],
+    [
+     580,
+     363
+    ],
+    [
+     580,
+     333
+    ],
+    [
+     580.4,
+     333
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "msggen1",
+   "t": "nexusfmt1",
+   "d": "M674,333 L684.4,333",
+   "pts": [
+    [
+     674,
+     333
+    ],
+    [
+     684.4,
+     333
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "nexusfmt1",
+   "t": "mseomdo1",
+   "d": "M786,333 L796.4,333",
+   "pts": [
+    [
+     786,
+     333
+    ],
+    [
+     796.4,
+     333
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "fifo1",
+   "t": "teinst1",
+   "d": "M570,363 L580,363 L580,393 L580.4,393",
+   "pts": [
+    [
+     570,
+     363
+    ],
+    [
+     580,
+     363
+    ],
+    [
+     580,
+     393
+    ],
+    [
+     580.4,
+     393
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "teinst1",
+   "t": "tepktz1",
+   "d": "M674,393 L684.4,393",
+   "pts": [
+    [
+     674,
+     393
+    ],
+    [
+     684.4,
+     393
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "preproc1",
+   "t": "axis1",
+   "d": "M424,386 L424,440.4",
+   "pts": [
+    [
+     424,
+     386
+    ],
+    [
+     424,
+     440.4
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "axis1",
+   "t": "kriaps1",
+   "d": "M382,470 L347.6,470",
+   "pts": [
+    [
+     382,
+     470
+    ],
+    [
+     347.6,
+     470
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "cpu2",
+   "t": "tip2",
+   "d": "M220,617 L236.4,617",
+   "pts": [
+    [
+     220,
+     617
+    ],
+    [
+     236.4,
+     617
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "tip2",
+   "t": "preproc2",
+   "d": "M338,617 L372.4,617",
+   "pts": [
+    [
+     338,
+     617
+    ],
+    [
+     372.4,
+     617
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "preproc2",
+   "t": "fifo2",
+   "d": "M466,617 L476.4,617",
+   "pts": [
+    [
+     466,
+     617
+    ],
+    [
+     476.4,
+     617
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "fifo2",
+   "t": "msggen2",
+   "d": "M570,617 L580,617 L580,587 L580.4,587",
+   "pts": [
+    [
+     570,
+     617
+    ],
+    [
+     580,
+     617
+    ],
+    [
+     580,
+     587
+    ],
+    [
+     580.4,
+     587
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "msggen2",
+   "t": "nexusfmt2",
+   "d": "M674,587 L684.4,587",
+   "pts": [
+    [
+     674,
+     587
+    ],
+    [
+     684.4,
+     587
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "nexusfmt2",
+   "t": "mseomdo2",
+   "d": "M786,587 L796.4,587",
+   "pts": [
+    [
+     786,
+     587
+    ],
+    [
+     796.4,
+     587
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "fifo2",
+   "t": "teinst2",
+   "d": "M570,617 L580,617 L580,647 L580.4,647",
+   "pts": [
+    [
+     570,
+     617
+    ],
+    [
+     580,
+     617
+    ],
+    [
+     580,
+     647
+    ],
+    [
+     580.4,
+     647
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "teinst2",
+   "t": "tepktz2",
+   "d": "M674,647 L684.4,647",
+   "pts": [
+    [
+     674,
+     647
+    ],
+    [
+     684.4,
+     647
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "preproc2",
+   "t": "axis2",
+   "d": "M424,640 L424,694.4",
+   "pts": [
+    [
+     424,
+     640
+    ],
+    [
+     424,
+     694.4
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "axis2",
+   "t": "kriaps2",
+   "d": "M382,724 L347.6,724",
+   "pts": [
+    [
+     382,
+     724
+    ],
+    [
+     347.6,
+     724
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "mseomdo0",
+   "t": "funnel",
+   "d": "M906,79 L940.4,79",
+   "pts": [
+    [
+     906,
+     79
+    ],
+    [
+     940.4,
+     79
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "tepktz0",
+   "t": "funnel",
+   "d": "M786,139 L940.4,139",
+   "pts": [
+    [
+     786,
+     139
+    ],
+    [
+     940.4,
+     139
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "mseomdo1",
+   "t": "funnel",
+   "d": "M906,333 L940.4,333",
+   "pts": [
+    [
+     906,
+     333
+    ],
+    [
+     940.4,
+     333
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "tepktz1",
+   "t": "funnel",
+   "d": "M786,393 L940.4,393",
+   "pts": [
+    [
+     786,
+     393
+    ],
+    [
+     940.4,
+     393
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "mseomdo2",
+   "t": "funnel",
+   "d": "M906,587 L940.4,587",
+   "pts": [
+    [
+     906,
+     587
+    ],
+    [
+     940.4,
+     587
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "tepktz2",
+   "t": "funnel",
+   "d": "M786,647 L940.4,647",
+   "pts": [
+    [
+     786,
+     647
+    ],
+    [
+     940.4,
+     647
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "funnel",
+   "t": "ddr",
+   "d": "M1028,363 L1055,363 L1055,289 L1072.4,289",
+   "pts": [
+    [
+     1028,
+     363
+    ],
+    [
+     1055,
+     363
+    ],
+    [
+     1055,
+     289
+    ],
+    [
+     1072.4,
+     289
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "funnel",
+   "t": "uram",
+   "d": "M1028,363 L1072.4,363",
+   "pts": [
+    [
+     1028,
+     363
+    ],
+    [
+     1072.4,
+     363
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  },
+  {
+   "s": "funnel",
+   "t": "pib",
+   "d": "M1028,363 L1055,363 L1055,437 L1072.4,437",
+   "pts": [
+    [
+     1028,
+     363
+    ],
+    [
+     1055,
+     363
+    ],
+    [
+     1055,
+     437
+    ],
+    [
+     1072.4,
+     437
+    ]
+   ],
+   "stroke": null,
+   "width": null
+  }
+ ],
+ "page": {
+  "innerHeight": 1005,
+  "scrollHeight": 1012,
+  "innerWidth": 1670,
+  "scrollWidth": 1655,
+  "overflowX": -15,
+  "overflow": 7,
+  "bodyH": 1012,
+  "main": {
+   "top": 52,
+   "bottom": 1012,
+   "h": 960
+  },
+  "con": {
+   "top": 0,
+   "bottom": 0,
+   "h": 0
+  },
+  "conwrap": {
+   "top": 0,
+   "bottom": 0,
+   "h": 0
+  },
+  "panel": {
+   "top": 52,
+   "bottom": 1012,
+   "h": 960,
+   "scrollH": 960,
+   "innerOverflow": 0
+  },
+  "pipe": {
+   "top": 152,
+   "bottom": 574,
+   "h": 422
+  },
+  "conStyleH": "221.188px"
+ },
+ "stage": {
+  "w": 658,
+  "h": 422
+ }
+}

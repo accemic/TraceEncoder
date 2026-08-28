@@ -1,0 +1,65 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: ISC
+#
+# Buildroot configuration for the RV64 Linux CVA6 on the KV260. ADDITIVE
+# variant alongside cva6_kv260_defconfig (in ../../cva6_linux/sw/) -- the
+# RV32 file stays unchanged, both live in the same BR2_EXTERNAL tree and
+# share the download directory.
+#
+# Target core: cv64a6_imac_sv39_ctrace (delta D6,
+# third_party/cva6_ref/core/include/cv64a6_imac_sv39_ctrace_config_pkg.sv).
+# Differences vs. the RV32 version -- each derived from D6:
+#
+#   * 64 bit (CVA6ConfigXlen = 64)
+#   * ISA rv64imac WITH C -- CVA6ConfigCExtEn = 1, passed through as
+#     RVC: bit'(CVA6ConfigCExtEn). This is the difference to the RV32
+#     stage: there C was OFF in the core, here C is ON in the core. Zcb
+#     and Zicond are additionally present, but deliberately NOT requested
+#     -- the toolchain is allowed to use less than the core can, never
+#     more.
+#   * NO F/D -- CVA6ConfigRVF/RVD = 0 (cvfpu generated away). Consequence
+#     for the ABI: lp64, NOT lp64d/lp64f. An lp64d userspace would take an
+#     illegal-instruction trap on this core on the first fld/fsd.
+#   * MMU Sv39 -- CVA6ConfigMmuPresent = 1, configuration name ..._sv39_...;
+#     the level is forced via the bootarg "no4lvl" in cva6_kv260_rv64.dts
+#     (Buildroot/Kconfig has no switch for this, Linux 6.12 chooses the
+#     satp mode at runtime).
+#   * Kernel defconfig: ARCH DEFAULT instead of a named defconfig.
+#     arch/riscv/configs/defconfig IS the 64-bit variant; an
+#     "rv64_defconfig" does not exist -- arch/riscv/Makefile only knows
+#     rv32_defconfig.
+#
+# host-qemu stays on: allows the SW-side sanity boot without hardware.
+BR2_riscv=y
+BR2_RISCV_64=y
+# Careful: the chooser is called BR2_riscv_custom (not BR2_RISCV_ISA_CUSTOM)
+# -- without it the default BR2_riscv_g pulls in F+D and the toolchain
+# builds rv64imafdc against a core with no FPU.
+BR2_riscv_custom=y
+BR2_RISCV_ISA_RVM=y
+BR2_RISCV_ISA_RVA=y
+BR2_RISCV_ISA_RVC=y
+# BR2_RISCV_ISA_RVF is not set
+# BR2_RISCV_ISA_RVD is not set
+BR2_RISCV_USE_MMU=y
+BR2_RISCV_ABI_LP64=y
+BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_6_12=y
+BR2_DOWNLOAD_FORCE_CHECK_HASHES=y
+BR2_INIT_BUSYBOX=y
+BR2_LINUX_KERNEL=y
+# Kernel: take the version shipped with this Buildroot release -- only
+# that one has a hash in linux/linux.hash, and
+# BR2_DOWNLOAD_FORCE_CHECK_HASHES otherwise aborts (same finding as in the
+# RV32 stage; applies here unchanged).
+BR2_LINUX_KERNEL_LATEST_VERSION=y
+BR2_LINUX_KERNEL_USE_ARCH_DEFAULT_CONFIG=y
+BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="$(BR2_EXTERNAL_CVA6_PATH)/cva6_rv64.config"
+BR2_TARGET_ROOTFS_CPIO=y
+BR2_TARGET_ROOTFS_INITRAMFS=y
+# BR2_TARGET_ROOTFS_TAR is not set
+BR2_TARGET_OPENSBI=y
+BR2_TARGET_OPENSBI_CUSTOM_VERSION=y
+BR2_TARGET_OPENSBI_CUSTOM_VERSION_VALUE="1.6"
+BR2_TARGET_OPENSBI_PLAT="generic"
+BR2_PACKAGE_HOST_QEMU=y
+BR2_PACKAGE_HOST_QEMU_SYSTEM_MODE=y

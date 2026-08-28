@@ -8,7 +8,7 @@
 /**
  * @author   Alexander Weiss <aweiss@accemic.com>, Albert Schulz <aschulz@accemic.com>, Alexander Lange <alange@accemic.com>
  *
- * @brief    Accemic CEDARtools.TraceEncoder Performance Counter Package (for simulation)
+ * @brief    CEDARtools.TraceEncoder Performance Counter Package (for simulation)
  */
 
 package ct_perfcnt_pkg;
@@ -21,14 +21,14 @@ package ct_perfcnt_pkg;
 	// Performance Counter and Comparator /Filter Helper
 	//------------------------------------------------------------------------
 	// Example usage:
-	// The following example configures the C‑Trace control/status interface
+	// The following example configures the CTTE control/status interface
 	// to count all instructions executed within the address range
 	// from 0x1000 to 0x1100.
 	//
 	// PerfCntInit(cs_tip);
 	// PerfCntSetRange(cs_tip, INSTR_FETCH_TH, 0, 32'h1000, 32'h1100);
 	//
-	// At runtime, the C‑Trace will now count all instructions fetched
+	// At runtime, the CTTE will now count all instructions fetched
 	// from addresses between 0x1000 and 0x1100 (inclusive).
 	//------------------------------------------------------------------------
 
@@ -36,9 +36,9 @@ package ct_perfcnt_pkg;
 	// Task: PerfCntInit
 	// Initializes all performance counter range registers
 	// (read, write, instruction fetch, and data read thresholds)
-	// to zero in the connected C‑Trace control/status interface.
+	// to zero in the connected CTTE control/status interface.
 	// Parameter:
-	//   cs_tip - Virtual C‑Trace control/status interface.
+	//   cs_tip - Virtual CTTE control/status interface.
 	// Example usage:
 	//   PerfCntInit(cs_tip);
 	//   This call resets all performance counter ranges to 0x0,
@@ -69,10 +69,10 @@ package ct_perfcnt_pkg;
 	//------------------------------------------------------------------------
 	// Task: PerfCntSetRange
 	// Sets the lower and upper address limits of a specific
-	// performance counter range in the connected C‑Trace
+	// performance counter range in the connected CTTE
 	// control/status interface for a selected counter type.
 	// Parameters:
-	//   cs_tip        - Virtual C‑Trace control/status interface.
+	//   cs_tip        - Virtual CTTE control/status interface.
 	//   perfcnt_type  - Counter type (DATA_RD, DATA_WR,
 	//                   DATA_RD_TH, INSTR_FETCH_TH).
 	//   idx           - Index of the range (must be valid).

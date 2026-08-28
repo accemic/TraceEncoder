@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+import @rtl/external/amba                     : atb_if
+import @rtl/external/wishbone                 : wb_package
+import @rtl                                   : ct_L1_funnel
+import @examples/kv260/common/tgc5b/rtl                : ct_axil_to_wb
+import @examples/kv260/common                 : ct_axis_wp_shim ct_trace_sinks
+import @examples/kv260/tgc5b2_axis_wp/rtl     : tgc5b_wp_synth_wrap
+
+read_sv tgc5b2_axis_soc_top.sv

@@ -1,0 +1,10 @@
+# Build outputs. The images are NOT committed: they link newlib, and a binary
+# of mixed provenance is exactly what the licence audit told us not to ship;
+# build.sh regenerates all of them (the sim leg and the board recipe say so).
+*.elf
+*.bin
+*.hex
+*.dis
+*.sym
+wp_table_none.txt
+__pycache__/

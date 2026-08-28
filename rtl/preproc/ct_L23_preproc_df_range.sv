@@ -13,7 +13,7 @@
  * @date    2025-11-01
  * @author   Alexander Weiss
  *
- * @description
+ * @details
  *   This module performs hardware-accelerated range-based filtering of retired
  *   *data addresses* from the TIP stream.
  *
@@ -102,21 +102,31 @@ import tip_pkg::*;
 import ct_pkg::*;
 
 module ct_L23_preproc_df_range #(
-	int DIM               = 4,
+	int DIM             = 4,
 	// Keep integration/TB compatibility: other preproc modules use ct_pkg::EXTRA_DELAY_MAX.
-	int EXTRA_DELAY_MAX   = ct_pkg::EXTRA_DELAY_MAX
+	int EXTRA_DELAY_MAX = ct_pkg::EXTRA_DELAY_MAX
 )(
-	input uwire logic           clk,                    // trace input clock
-	input uwire logic           rst,                    // reset
-	tip_if.slave                tip,                    // TIP from CPU
-	input uwire logic           wext_clk,
-	ocram_write_if.impl         wext,                   // vector_binary_search memory config
-	ct_hit_if.master            df_range,
-	output delay_t              internal_delay,         // delay of this component including all submodules
-	input uwire delay_t         extra_delay             // extra delay to be added for syncronizing preproc modules
+	input uwire logic   clk,            // trace input clock
+	input uwire logic   rst,            // reset
+	tip_if.slave        tip,            // TIP from CPU
+	input uwire logic   wext_clk,
+	ocram_write_if.impl wext,           // vector_binary_search memory config
+	ct_hit_if.master    df_range,
+	output delay_t      internal_delay, // delay of this component including all submodules
+	input uwire delay_t extra_delay     // extra delay to be added for syncronizing preproc modules
 );
 
 	localparam type   P             = logic [0:0];
+
+	// Elaboration budget guard (C0b, same pattern as act_st): the df_range
+	// chain is a constant vbs(4*DIM-1) + 1 = 4*DIM cycles. The poison
+	// instance keeps the violation fatal where $fatal is demoted to a
+	// warning (Verilator under abc's blanket -Wno-fatal).
+	localparam int DF_RANGE_CHAIN_DELAY = 4*DIM; // (4*DIM - 1) + 1
+	if (DF_RANGE_CHAIN_DELAY > EXTRA_DELAY_MAX) begin : genDfRangeBudgetGuard
+		$fatal(1, "ct_L23_preproc_df_range: chain delay %0d (= 4*DIM) exceeds EXTRA_DELAY_MAX=%0d -- raise PREPROC_DELAY_MAX with M1_DIM", DF_RANGE_CHAIN_DELAY, EXTRA_DELAY_MAX);
+		ct_elab_guard_violation poison ();
+	end
 
 	typedef struct packed {
 		logic                           hit_valid;

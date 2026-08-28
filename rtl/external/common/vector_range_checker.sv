@@ -1,18 +1,18 @@
-// vim: set ts=4 et:
+// SPDX-FileCopyrightText: 2025 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
 // -*- indent-tabs-mode: t; tab-width: 4 -*-
 `default_nettype none
 
 /**
- * SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
- * Copyright (c) 2025 Accemic Technologies GmbH, Kiefersfelden, Germany
- *
  * @file    vector_range_checker.sv
  * @author  Alexander Weiss <aweiss@accemic.com>
  * @author  Albert Schulz <aschulz@accemic.com>
  *
  * @brief   Compare input against list of inclusive ranges and report hit/index with programmed delay.
  *
- * @description
+ * @details
  *   The vector_range_checker module implements a fully parameterized comparator engine for matching
  *   a given input value against a configurable list of inclusive ranges [refs_low..refs_high].
  *   For each clock cycle, valid input is broadcasted to all range comparators and evaluated in parallel.
@@ -51,20 +51,20 @@
  */
 
 module vector_range_checker #(
-	parameter int N             	= 8,
-	parameter type T            	= logic[7:0],
-	localparam int INTERNAL_DELAY 	= 1,                  // externally readable latency of this module
-	parameter  int EXTRA_DELAY    	= 0
+	parameter int  N              = 8,
+	parameter type T              = logic[7:0],
+	localparam int INTERNAL_DELAY = 1, // externally readable latency of this module
+	parameter  int EXTRA_DELAY    = 0
 ) (
-	input  uwire                   		clk,
-	input  uwire                   		rst,            // synchronous active-high reset
-	input  uwire                   		valid,
-	input  T                       		data_in,
-	input  T [N-1:0]               		refs_low,
-	input  T [N-1:0]               		refs_high,
-	output uwire logic                  hit,
-	output uwire logic				   	no_hit,
-	output uwire logic [$clog2(N)-1:0]  hit_index
+	input  uwire                       clk,
+	input  uwire                       rst, // synchronous active-high reset
+	input  uwire                       valid,
+	input  T                           data_in,
+	input  T [N-1:0]                   refs_low,
+	input  T [N-1:0]                   refs_high,
+	output uwire logic                 hit,
+	output uwire logic                 no_hit,
+	output uwire logic [$clog2(N)-1:0] hit_index
 );
 
 	// Stage 0: combinational range match
@@ -77,7 +77,7 @@ module vector_range_checker #(
 
 	// Priority encode combinationally
 	logic                        comb_hit;
-	logic					     comb_no_hit;
+	logic                        comb_no_hit;
 	logic [$clog2(N)-1:0]        comb_index;
 	always_comb begin
 		comb_hit    = |is_match;
@@ -94,9 +94,9 @@ module vector_range_checker #(
 	// Pipeline registers for delay
 
 	typedef struct packed {
-		logic           		hit;
-		logic					no_hit;
-		logic[$clog2(N)-1:0]   	hit_index;
+		logic                   hit;
+		logic                   no_hit;
+		logic[$clog2(N)-1:0]    hit_index;
 	} pipe_t;
 
 	pipe_t  [EXTRA_DELAY:0] vrc_pipe;
@@ -107,7 +107,7 @@ module vector_range_checker #(
 		end else begin
 			// stage 0 capture
 			vrc_pipe[0].hit           <= comb_hit;
-			vrc_pipe[0].no_hit		  <= comb_no_hit;
+			vrc_pipe[0].no_hit        <= comb_no_hit;
 			vrc_pipe[0].hit_index     <= comb_index;
 			// shift through remaining stages
 			for (int idx = 1; idx <= EXTRA_DELAY; idx++) begin
@@ -117,9 +117,9 @@ module vector_range_checker #(
 	end
 
 	// Output is at the tail of the pipeline
-	assign hit       	= vrc_pipe[EXTRA_DELAY].hit;
-	assign no_hit		= vrc_pipe[EXTRA_DELAY].no_hit;
-	assign hit_index 	= vrc_pipe[EXTRA_DELAY].hit_index;
+	assign hit          = vrc_pipe[EXTRA_DELAY].hit;
+	assign no_hit       = vrc_pipe[EXTRA_DELAY].no_hit;
+	assign hit_index    = vrc_pipe[EXTRA_DELAY].hit_index;
 
 endmodule
 `default_nettype wire

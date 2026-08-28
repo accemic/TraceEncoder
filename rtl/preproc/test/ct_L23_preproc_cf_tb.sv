@@ -1,10 +1,13 @@
-// -*- indent-tabs-mode:t; tab-width:4 -*-
-// vim: tabstop=4:noexpandtab
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
+// -*- indent-tabs-mode: t; tab-width: 4 -*-
 
 /**
  * @file    ct_L23_preproc_cf_tb.sv
  * @brief   Directed control-flow qualifier testbench for ct_L23_preproc_cf.
- * @description Validates CF qualification by combining delayed TIP traffic,
+ * @details Validates CF qualification by combining delayed TIP traffic,
  *   component-filter outputs, and programmable address-based match conditions.
  * @environment Integrates ct_L23_preproc_tip_delay,
  *   ct_L23_preproc_comp_filters, and ct_L23_preproc_cf on tip_clk with
@@ -143,8 +146,8 @@ module ct_L23_preproc_cf_tb;
 		CompSetMode3    (cs_tip, 1, RANGE_LOW, RANGE_HIGH);
 		FilterSetInstComp   (cs_tip, 1, 0, 1);  // Filter 1: trTeFilterComp1 = 1
 
-		cs_tip.trTeInstTracingSet 	= 0;
-		cs_tip.trTeInstTracingSet 	= 0;
+		cs_tip.trTeInstTracingSet   = 0;
+		cs_tip.trTeInstTracingSet   = 0;
 		cs_tip.trTeInstTracing      = 1;
 
 	endtask

@@ -1,0 +1,32 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: ISC
+#
+# Provenance record of the KV260 demo bundle series.
+#
+# The ready-to-load demo apps are TRACKED IN THIS REPOSITORY, one per demo
+# under examples/kv260/<demo>/fpga/prebuilt/<app>/ -- there is nothing to
+# fetch. Each prebuilt directory was extracted verbatim from one bundle of
+# the board-gated series below; its per-file MANIFEST.sha256 verifies the
+# extracted set, and this file records which series those bundles were and
+# the sha256 of each deterministic tarball (package_kv260_app.py --bundle),
+# so the extraction can be re-audited against the archived bundles.
+#
+# ABOUT THE VERSION. `vX.Y.Z-demoN` is the version of the DEMO SERIES, not of
+# the encoder: a series is rebuilt whenever a bundle's inputs change (a fixed
+# board script, a re-vendored core), and N counts those rebuilds. It does not
+# have to equal the number in VERSION -- the encoder RTL inside a bundle is
+# whatever commit its build log names, and that is recorded in the bundle's
+# own provenance file.
+
+version  = v1.0.1-demo2
+
+# sha256 per bundle tarball <app>-<version>.tar.gz of the series above.
+sha256.cva6_2_rv32_ctrace_kv260         = 1c5cb8849b579f6a91489e545c99a5b2d5b94a77d7eb2c24311f7bfaeffe24d7
+sha256.cva6_linux64_x64ctx_ctrace_kv260 = 1d2a129117b29e56896e9262c193fdfe6c8c5e4787d24a98eea2199a6465c2ec
+sha256.cva6_linux_ctrace_kv260          = fbe952eaec9c9dbd2bb0ab1a09d7de6281e63706c5a27b24c9cfc7cfd2815eae
+sha256.duo_ctrace_kv260                 = 4b8ce43f3c867c0796db6eb959d4a92206f4c31c7464c7b7484a0ad73d06b850
+sha256.mbv_ctrace_kv260                 = 00eb3634e9ac5bb0aebd088d3849072a32acb9d03db0a2496c39a794022cead1
+sha256.rocket2_ctrace_kv260             = bfc8839b002198b456c4a2f553d3c8831f3e432427cea8de115b05a6fce3773b
+sha256.rocket_x64_ctrace_kv260          = c87da3ae38a831f8a5f2d9c08d88286934155b7fa484451233d88ad9f556792a
+sha256.tgc5b2_axis_wp_c0b               = ccbea4d52a77000d6d9c805f14d32899c6bab51ce3778f4af7a207cb25be7fdb
+sha256.trio_ctrace_kv260                = af4c7c51562944e7beb6646ef265a91cebf9f82a1f1ff050de06c783a4137fa2

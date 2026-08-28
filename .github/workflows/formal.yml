@@ -1,0 +1,147 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: ISC
+#
+# The SymbiYosys property gates of the emission core. Licence-free (OSS CAD
+# Suite + sv2v), no decoder, no hardware -- so unlike the XSIM gate battery
+# and the board campaign, this one really can run on a hosted runner.
+#
+# Split into two jobs because of wall clock, not because of scope. sby runs
+# the tasks of one .sby CONCURRENTLY and they contend, so a target costs one
+# wall clock for all of its tasks (formal/README.md records mseo_mdo at
+# ~3200 s per task that way, and a livecover attempt that ran 1:29:35 without
+# concluding). A hosted job is capped at 6 h, so a PR gets the targets that
+# are measurably quick and the rest runs nightly.
+#
+# Measured on this tree, 2026-08-21, oss-cad-suite 2026-08-02:
+#   ovf_injector      prove 58 s, cover 3 s          -> PR tier
+#   msg_gen           cover 92 s, bmc 287 s          -> PR tier
+#                     CAVEAT: that bmc figure is a run that ABORTED at step
+#                     20 on the stale-mirror defect described below. The
+#                     complete 50 steps cost 401 s on the Windows
+#                     workstation and 581 s with two other sby runs on the
+#                     same box (2026-08-24), so budget for more than the
+#                     table says -- still far inside the 6 h job cap.
+#   nexus_formatter   still in yosys AST derivation after 11 min for a
+#                     SINGLE task on an idle machine            -> nightly only
+# nexus_formatter was in the PR tier in the first draft of this file. That was
+# wrong and it was wrong for an instructive reason: it had been tiered by the
+# DEPTHS in its .sby (bmc 40, cover 25, prove 15), which say nothing about
+# elaboration cost.
+#
+# RED=1 (the mutation counter-proofs) is deliberately NOT wired in: two of the
+# run_red.sh scripts do `git worktree add` at hardcoded SHAs into a directory
+# outside the repository root, which a shallow actions/checkout cannot serve.
+# Run those by hand on a full clone -- see formal/README.md.
+#
+# RESOLVED 2026-08-24; this was KNOWN RED from the first run of this workflow
+# on 2026-08-21. `msg_gen bmc` failed with a counterexample at step 20 on
+# A_msg4_slot_pays (P-MSG-4). The cause was neither the RTL nor the property's
+# timing: formal/msg_gen/wrapper.sv enumerated seven of the RTL's EIGHT
+# drain-hold arms, so a cycle in which the RTL legitimately drained an
+# accumulated ICNT read as a free emission slot. The eighth arm
+# (cf_sync_icnt_overflow_hold) entered the RTL on 2026-08-12 with ee25d098f85,
+# which touched rtl/ only -- the mirror was complete when written on
+# 2026-08-02 and silently stopped being so nine days before this workflow
+# first ran and showed it. Keeping the job red rather than waiving it was the
+# right call: the criterion was intact, the wrapper was not.
+#
+# Fixed by completing the mirror, plus two additions so the next arm cannot
+# cost the same detour: A_consume_decomposition (the hold set derived from
+# consume_etip's own definition instead of counted -- a ninth arm turns THAT
+# assertion red, by name) and A_msg4_no_idle_beat (the debt claim with no hold
+# enumeration at all). Measured on the pinned toolchain: bmc PASS at depth 50,
+# cover PASS with 8/8 witnesses -- including the new C_freeslot_reached,
+# without which completing a hold list could buy a green run by emptying the
+# property. Mutation counter-proof: formal/msg_gen/run_red_p4.sh.
+# Reproduce with:
+#   TARGETS=msg_gen bash scripts/run_formal.sh
+
+name: formal
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      targets:
+        description: "Space-separated formal targets (default: the full set)"
+        required: false
+        default: ""
+  schedule:
+    # 02:30 UTC nightly -- the full set, including the multi-hour targets.
+    - cron: "30 2 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  # Fast tier: bounded depths and the cheap solvers. Runs on every PR.
+  formal-fast:
+    name: "formal: ${{ matrix.target }}"
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [ovf_injector, msg_gen]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-formal
+      - name: Run ${{ matrix.target }}
+        run: TARGETS='${{ matrix.target }}' FORMAL_TIMEOUT=2400 bash scripts/run_formal.sh
+      - name: Upload solver logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: formal-fast-${{ matrix.target }}
+          path: |
+            formal/${{ matrix.target }}/${{ matrix.target }}_*/
+            formal/${{ matrix.target }}/build/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # Full tier: everything, including preproc_sync (12 tasks) and mseo_mdo.
+  # Nightly and on demand only.
+  formal-full:
+    name: "formal-full: ${{ matrix.target }}"
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - ovf_injector
+          - preproc_sync
+          - msg_gen
+          - mseo_mdo
+          - nexus_formatter
+          - composer_slots
+          - nexus_formatter_xlen64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # nexus_formatter_xlen64 copies the tracked sources into bld/ via
+          # `git ls-files`, so it needs a real checkout, not an export.
+          fetch-depth: 1
+      - uses: ./.github/actions/setup-formal
+      - name: Run ${{ matrix.target }}
+        run: |
+          want='${{ github.event.inputs.targets }}'
+          if [ -n "$want" ] && ! printf '%s ' $want | grep -qw '${{ matrix.target }}'; then
+            echo "::notice::${{ matrix.target }} not in the requested set ($want) -- skipped"
+            exit 0
+          fi
+          TARGETS='${{ matrix.target }}' FORMAL_TIMEOUT=18000 bash scripts/run_formal.sh
+      - name: Upload solver logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: formal-full-${{ matrix.target }}
+          path: |
+            formal/${{ matrix.target }}/${{ matrix.target }}_*/
+            formal/${{ matrix.target }}/build/
+          retention-days: 14
+          if-no-files-found: ignore

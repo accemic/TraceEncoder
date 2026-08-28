@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+import	@rtl/external/common    : signal_cdc
+import	@rtl/pkg                : ct_sync_req_pacer
+import	@rtl/external/testtools : tt
+
+# Check Simulation
+#
+# Driven by scripts/cli_syncreqrst_test.sh, which runs it TWICE: once as
+# built (must pass) and once with `+strobe`, the red control that rebuilds
+# the request as the retired one-cycle pulse (must fail). `abc -sim` cannot
+# pass plusargs, so the script drives xvlog/xelab/xsim directly.
+read_sim	ct_sync_req_pacer_tb.sv
+simulate	ct_sync_req_pacer_tb

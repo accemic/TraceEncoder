@@ -14,11 +14,11 @@
  */
 
 module ct_axis_decoder (
-	input  uwire logic                  clk,
-	input  uwire logic                  rst,
-	axis_if.slave                       axis,
-	output uwire                        dec_axis_valid,
-	output uwire                        dec_axis_error,
+	input  uwire logic                        clk,
+	input  uwire logic                        rst,
+	axis_if.slave                             axis,
+	output uwire                              dec_axis_valid,
+	output uwire                              dec_axis_error,
 	output ct_axis_decoder_pkg::ct_axis_msg_t dec_axis_msg
 );
 

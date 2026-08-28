@@ -1,0 +1,99 @@
+# gate    : timing_per_profile_P10B
+# package : P10-B (timing leg of the campaign closing round)
+# command : bash scripts/p10_timing_matrix.sh            (all five profiles)
+#           CT_P10_HEAD=7a0b7b2 CT_P10_BUDGETS="75mhz:13.333" \
+#             bash scripts/p10_timing_matrix.sh voll_gold   (that one leg re-run
+#             at the pinned commit; its first pass had run at 8678011, and the
+#             two results are identical to the picosecond)
+# HEAD    : 7a0b7b2
+# when    : 2026-08-06 21:33:44 WEDT
+# tool    : Vivado v.2022.1.2 (win64) Build 3605665 -- the version .abc.config
+#           pins, and the one P4/P7/P8 were measured with. NOT comparable with
+#           the Vivado 2026.1 figures in the P2/P3 rows of the flag table.
+# part    : xck26-sfvc784-2LV-c, out of context, top ct_encoder
+# note    : first timing measurement of this encoder that exists as an artefact.
+#           Every package OOC run before this one used synth_encoder_ooc.tcl,
+#           which knows neither create_clock nor report_timing; the timing
+#           variant of the script had been broken since ecb87b0 (SPDX header in
+#           the file list, no comment filter) and is fixed in 8678011.
+
+VERDICT
+  75 MHz (13.333 ns, the KV260 board budget -- "slack in the target
+  configuration"): MET by all five profiles, smallest margin +1.753 ns
+  (eonly). Vivado's own line in each report: "All user specified timing
+  constraints are met."
+  200 MHz (5.0 ns, headroom probe): MET by featparity_gold (+0.339 ns) and
+  slimfull_gold (+0.362 ns); NOT met by the three full-profile builds
+  (voll_gold / nonly -4.158 ns, eonly -6.580 ns). That is a result, not a
+  failure: 200 MHz is not a requirement anywhere in this project.
+
+NUMBERS (read from the reports named in the last column, not from the driver)
+
+profile        CLB LUTs*  Reg as FF  BRAM  WNS@13.333  WNS@5.0   crit. path  Fmax      report directory
+voll_gold          25784      20168   9.5     +4.175    -4.158     9.158 ns  109.2 MHz verification/evidence/P10/voll_gold/
+featparity_gold         4938       4824  10       +8.672    +0.339     4.661 ns  214.5 MHz verification/evidence/P10/featparity_gold/
+slimfull_gold       4290       3984  10       +8.695    +0.362     4.638 ns  215.6 MHz verification/evidence/P10/slimfull_gold/
+nonly               25784      20168   9.5     +4.175    -4.158     9.158 ns  109.2 MHz verification/evidence/P10/nonly/
+eonly               26372      16953   9.5     +1.753    -6.580    11.580 ns  86.4 MHz verification/evidence/P10/eonly/
+
+  crit. path = budget - WNS; Fmax = 1000 / crit. path. The two budgets of one
+  profile agree on that path to the picosecond in all five cases, which is
+  what makes the second run a control rather than a repetition.
+
+DESIGN TIMING SUMMARY, verbatim per report (WNS / TNS / failing / total endpoints)
+  voll_gold      75mhz   WNS=4.175  TNS=0.000      failing=0     total=44824  "All user specified timing constraints are met."
+  voll_gold      200mhz  WNS=-4.158 TNS=-2262.302  failing=2777  total=44824  "Timing constraints are not met."
+  featparity_gold    75mhz   WNS=8.672  TNS=0.000      failing=0     total=11623  "All user specified timing constraints are met."
+  featparity_gold    200mhz  WNS=0.339  TNS=0.000      failing=0     total=11623  "All user specified timing constraints are met."
+  slimfull_gold  75mhz   WNS=8.695  TNS=0.000      failing=0     total=10032  "All user specified timing constraints are met."
+  slimfull_gold  200mhz  WNS=0.362  TNS=0.000      failing=0     total=10032  "All user specified timing constraints are met."
+  nonly          75mhz   WNS=4.175  TNS=0.000      failing=0     total=44824  "All user specified timing constraints are met."
+  nonly          200mhz  WNS=-4.158 TNS=-2262.302  failing=2777  total=44824  "Timing constraints are not met."
+  eonly          75mhz   WNS=1.753  TNS=0.000      failing=0     total=36359  "All user specified timing constraints are met."
+  eonly          200mhz  WNS=-6.580 TNS=-1345.749  failing=1155  total=36359  "Timing constraints are not met."
+
+CONTROLS THAT CAME OUT OF THE RUN ITSELF
+  * nonly and voll_gold are the SAME build: the two profile definitions
+    produce a byte-identical rtl/pkg/ct_pkg.sv (checked before the runs), and
+    the two independent synthesis runs then agree on every figure including
+    TNS (-2262.302) and the failing-endpoint count (2777). The protocol pair
+    is therefore N-only = the committed full profile, E-only = the same
+    profile with the back-end selector flipped -- which is how P9 measured it.
+  * voll_gold @ 75 MHz was synthesized twice, once at 8678011 and once at
+    7a0b7b2 (comment-only commits apart): WNS 4.175, 25784 LUTs, 20168 FFs
+    both times. The filed report is the pinned one.
+  * Utilization is budget-independent by construction (the constraints are
+    applied after synth_design), and the two runs of each profile confirm it
+    to the LUT -- so each profile's two util_flat reports are a
+    reproducibility control on the synthesis, not a duplicate.
+
+WHAT THIS NUMBER IS NOT
+  Out-of-context synthesis of ct_encoder alone, with one clock per clock port
+  at the same budget and set_clock_groups -asynchronous between them (the
+  encoder's CDC structures are exactly what a real SoC XDC decouples the same
+  way). It is therefore NOT a placed-and-routed figure, and cross-domain paths
+  are excluded from the analysis by that constraint. The only P&R number this
+  project has is the mbv_kv260 reference design of 2026-08-01 (WNS +2.186 ns
+  at 75 MHz), which predates P2..P9 and is marked historical in the
+  documentation.
+
+  [ANNOTATION 2026-08-14 -- the log body above is left byte-for-byte as it was
+  recorded; numbers do not disappear from a measurement log.  The +2.186 ns
+  quoted above is traceable in the artifacts only as Vivado's ROUTER ESTIMATE
+  ([Route 35-416]/[Route 35-57], carrying the tool's own pre-signoff caveat).
+  The routed timing summary of the same design reports WNS 2.679 ns
+  (TNS 0.000, 0 of 74 269 endpoints failing):
+      proj/mbv_kv260.runs/impl_1/mbv_kv260_top_timing_summary_routed.rpt:155
+  Whether both belong to the same run is not decidable from the tree (log
+  2026-08-01 11:49, report mtime 2026-08-02 09:12) -- which does not change the
+  conclusion: a router estimate must not be quoted as a placed-and-routed
+  result, whichever run it came from.  The three doc/ occurrences were pulled
+  to 2.679 on 2026-08-14; this file keeps its original reading plus this note.]
+
+RETRIES (tool hiccups, not results)
+  Four of the eleven legs had to be repeated because Vivado could not read its
+  own realtime tcl out of .Xil ("invalid argument") when a run started right
+  after the previous one released it -- the hiccup scripts/p8_ooc_pair.sh
+  documents. The driver now removes .Xil with the output directory and repeats
+  the leg once; every repeat succeeded. Driver log: bld/p10_timing_driver.log,
+  per-leg Vivado logs bld/p10_<profile>_<budget>.log (both gitignored).

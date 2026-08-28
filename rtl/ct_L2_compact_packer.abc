@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+import  @rtl/pkg : ct_pkg nexus_vendor_riscv_pkg ct_cs_if
+import  @rtl/mseo_mdo : ct_L2_mseo_mdo_formatter_atb_chunk_packer  ct_L2_mseo_mdo_formatter_atb_flush_detect
+import  @rtl/external/amba          : atb_if
+import  @rtl/external/stream        : source_if  sink_if
+import  @rtl/external/memory/fifo   : fifo1clk_fwft  fifo2clk_fwft
+
+read_sv ct_L2_compact_packer.sv

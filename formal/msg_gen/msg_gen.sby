@@ -1,0 +1,48 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+#
+# SymbiYosys job for ct_L2_msg_gen (P-MSG-1..4, abstracted eTIP payload).
+#   bmc   : all properties + the module's own drift-guard assertions,
+#           depth 50 (brief acceptance: BMC >= 50)
+#   cover : non-vacuity witnesses (incl. the Gate-15 clobber collision)
+#   prove : k-induction ATTEMPT. It does NOT currently pass and is NOT part
+#           of the accepted criterion for this target -- that is BMC depth
+#           50, and the CI task set is `bmc cover`
+#           (ci/run_stage2b_formal.sh). The module's own drift guards
+#           reference deep reachability invariants (repeated-history,
+#           RepeatBranch) and are not inductive without strengthening
+#           invariants; the task is kept configured so that a future
+#           strengthening can be tried without re-deriving the job.
+#           Status, measured, not assumed: `DONE (UNKNOWN, rc=4)`,
+#           `returned FAIL for induction`. PRE-EXISTING, not caused by any
+#           of the P1..P9 packages -- the same task returns `UNKNOWN, rc=4`
+#           at the pre-P4 commit a210f82. The earlier comment here said
+#           "kept only while it passes", which had stopped being true
+#           without anyone noticing, because the CI task set hides it
+#           (P4 re-audit finding C-10).
+# Input build/msg_gen_formal.v is produced by run.sh.
+
+[tasks]
+bmc
+cover
+prove
+
+[options]
+bmc: mode bmc
+bmc: depth 50
+cover: mode cover
+cover: depth 40
+prove: mode prove
+prove: depth 15
+
+[engines]
+# bitwuzla: ~an order of magnitude faster than yices on this module
+# (yices needed >10 min for 22 of 50 BMC steps)
+smtbmc bitwuzla
+
+[script]
+read -formal msg_gen_formal.v
+prep -top f_msg_check
+
+[files]
+build/msg_gen_formal.v

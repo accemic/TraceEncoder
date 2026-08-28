@@ -1,0 +1,172 @@
+{
+  "_comment": [
+    "Block type -> CSR relevance for the detail panel of the architecture view",
+    "(from an earlier finding, 2026-08-13: 'When I click on a block, I want",
+    "to see all the CSRs related to that block -- even if only a single bit",
+    "is relevant to it.'). DATA-DRIVEN: index.html loads this file and",
+    "resolves the entries against regmap.json + the scenario card -- NO",
+    "block->register mapping hardcoded in JS.",
+    "",
+    "Schema per block (key = diagram block base without row suffix):",
+    "  note:  sentence that ALWAYS sits above the list (or alone, if no",
+    "         register resolves) -- for pure wire blocks it says WHERE the",
+    "         control belongs.",
+    "  csrs:  list of entries:",
+    "    {\"path\": \"<substring of regmap.regs[].path>\", \"fields\": [..]}",
+    "         fields = the bit fields relevant to THIS block; they are",
+    "         highlighted in the panel, the remaining fields of the register",
+    "         are collapsed ('N more fields'). Without fields, the whole",
+    "         register counts as relevant.",
+    "    {\"home\": \"<REG_HOME group>\"}  adopts an existing",
+    "         register group (filters/comps/wp/df/uram/ddr/pib/atb/ts/pc).",
+    "  Resolution: soc.* entries are DROPPED if the CTRL card of the",
+    "  active scenario does not know the register (the same source of truth",
+    "  as fixSocOffsets -- a register with an MBV offset in a foreign SoC",
+    "  would be a plausible wrong number).",
+    "",
+    "scenarios: additive additions/overrides per scenario id,",
+    "  same structure; note overrides, csrs is appended.",
+    "",
+    "Domain sources of the mapping: RDL descriptions in regmap.json",
+    "(generated from ct_cs_cpuif.rdl), FINDINGS_axis_wp_analyse.md part W2,",
+    "the CSR group chips and the block descriptions (BLOCK_META)."
+  ],
+  "blocks": {
+    "cpu": {
+      "note": "Core start/stop and run-state live in the SoC wrapper's CTRL window. Since U1 every core has its own release bit (CONTROL b8/b9, trio b10 for the CVA6) and CONTROL b0 is the collective bit: effective = b0 | b(8+i). STATUS mirrors the EFFECTIVE state in the same bit positions, so one read tells which core is actually running. Scenario-specific observation registers (live PC, retire counters, window guards) are listed in the scenario card, not in the RDL regmap.",
+      "csrs": [
+        { "path": "soc.CONTROL", "fields": ["core_run", "core0_run", "core1_run", "cva6_run", "cva6_run2", "irq_gen_en"] },
+        { "path": "soc.STATUS" }
+      ]
+    },
+    "tip": {
+      "note": "Pure signal adapter (H2E/TCI/ITI -> TIP) — it has no CSRs of its own. What it forwards is qualified on the ENCODER side: trTeControl.InstTracing is the instruction-ingress master switch (highlighted below); filtering happens in the Preproc block. Enable is the second, stronger switch: effective tracing is (Enable AND InstTracing), and Enable is also the swwel write lock of ~500 encoder fields — clear it with the 'TE enabled' switch on the encoder card, 'Encoder trace off' clears InstTracing only.",
+      "csrs": [
+        { "path": "te.trTeControl", "fields": ["Active", "Enable", "InstTracing"] }
+      ]
+    },
+    "preproc": {
+      "note": "TIP ingress, instruction typing and qualification: filters, comparators, DF ranges and the watchpoint unit (ACT-ST dispatch) all act HERE.",
+      "csrs": [
+        { "path": "te.trTeControl", "fields": ["InstTracing", "InstMode", "InstSeqSyncEnable", "InstTrigEnable", "InstStallOrOverflow", "InstSyncMode", "InstSyncMax", "InstSyncReq"] },
+        { "path": "trTeInstFilters" },
+        { "path": "trTeDataControl" },
+        { "path": "trTeDataFilters" },
+        { "path": "trTeCsrControl" },
+        { "path": "trTeSyncStatus" },
+        { "home": "filters" },
+        { "home": "comps" },
+        { "home": "wp" },
+        { "home": "df" }
+      ]
+    },
+    "fifo": {
+      "csrs": [
+        { "path": "TipFifoStatus" },
+        { "path": "TipFifoHistCtrl" },
+        { "path": "TipFifoHistData" },
+        { "path": "te.trTeControl", "fields": ["Empty", "InstStallOrOverflow"] }
+      ]
+    },
+    "msggen": {
+      "csrs": [
+        { "path": "trTeInstFeatures", "fields": ["InstEnImplicitReturn", "InstEnBranchPrediction", "InstEnJumpTargetCache", "InstEnRepeatedHistory", "InstEnRepeatBranch", "InstEnWideIcnt", "InstEnIbhs", "InstEnRepeatInstr"] },
+        { "path": "te.trTeControl", "fields": ["InstMode", "SendConfig", "Context", "InstSyncMode", "InstSyncMax"] },
+        { "path": "trTeCsrControl" }
+      ]
+    },
+    "nexusfmt": {
+      "csrs": [
+        { "path": "trTeInstFeatures", "fields": ["SrcID", "SrcBits"] },
+        { "path": "te.trTeControl", "fields": ["InhibitSrc", "SendConfig", "SendDeviceId"] }
+      ]
+    },
+    "mseomdo": {
+      "csrs": [
+        { "path": "te.trTeControl", "fields": ["Format", "Empty"] }
+      ]
+    },
+    "teinst": {
+      "note": "E-Trace backend — active while trTeProtocolSel = 1 (DUAL build; switchable only at Enable = 0).",
+      "csrs": [
+        { "path": "trTeProtocolSel" },
+        { "path": "trTeInstFeatures", "fields": ["InstEnImplicitReturn", "InstEnBranchPrediction", "InstEnJumpTargetCache"] }
+      ]
+    },
+    "tepktz": {
+      "note": "E-Trace packetizer — shares the protocol switch with the te_inst generator.",
+      "csrs": [
+        { "path": "trTeProtocolSel" },
+        { "path": "te.trTeControl", "fields": ["Format"] }
+      ]
+    },
+    "funnel": {
+      "note": "Merges the per-encoder ATB streams message-atomically; the streams are told apart downstream by the Nexus SRC field (SrcID/SrcBits, Nexus Fmt block).",
+      "csrs": [
+        { "path": "soc.FUNNEL_CTRL" },
+        { "home": "atb" }
+      ]
+    },
+    "uram": {
+      "csrs": [
+        { "home": "uram" },
+        { "path": "soc.CONTROL", "fields": ["trace_clear", "trace_flush"] },
+        { "path": "soc.STATUS", "fields": ["trace_wrapped"] },
+        { "path": "soc.SINK_CTRL", "fields": ["uram_oneshot"] },
+        { "path": "soc.SINK_STAT", "fields": ["uram_stopped"] }
+      ]
+    },
+    "ddr": {
+      "csrs": [
+        { "path": "soc.SINK_CTRL", "fields": ["ddr_en", "ddr_clear", "ddr_circ"] },
+        { "path": "soc.SINK_STAT", "fields": ["ddr_full", "ddr_axi_err", "ddr_wrapped", "ddr_cfg_rej"] },
+        { "path": "soc.DDR_BASE" },
+        { "path": "soc.DDR_SIZE" },
+        { "path": "soc.DDR_WPTR" },
+        { "path": "soc.DDR_DROPS" },
+        { "path": "soc.DDR_BEATS" }
+      ]
+    },
+    "pib": {
+      "csrs": [
+        { "path": "soc.SINK_CTRL", "fields": ["pib_en", "pib_clear", "pib_calib", "pib_div", "pib_pattern"] },
+        { "path": "soc.PIB_DROPS" }
+      ]
+    },
+    "axis": {
+      "note": "ACT-CAP capture sink. The capture COMMANDS live in the watchpoint Cmd words (WP table of the encoder), not in own CSRs.",
+      "csrs": [
+        { "path": "soc.AXIS_BEATS" },
+        { "path": "soc.STATUS", "fields": ["axis_overflow"] }
+      ]
+    },
+    "kriaps": {
+      "note": "Processor side (Cortex-A53) — no PL CSRs. It programs the encoders through the CSR windows of the aperture table and consumes the sinks (URAM/DDR dumps; WP records via the server-side FIFO drain, /wp.html)."
+    },
+    "wpshim": {
+      "note": "ct_axis_wp_shim is counter-only: drop/fill/overflow live in the read-only WPCTRL window (shown live on the block and in /api/wp/status; ovf is sticky, cleared only by PL reset). The watchpoint unit that FEEDS the shim is configured below (trWp*); the C0b 1023-slot table is loaded indirectly.",
+      "csrs": [
+        { "home": "wp" }
+      ]
+    },
+    "wpfifo": {
+      "note": "axi_fifo_mm_s (PG080). Its register set sits in the fifo0/fifo1 windows and is NOT offered here: RDFD reads are destructive (every read pops a word) — the server drain is the only reader. Rates and backlog: block annotation, /api/wp/status and /wp.html."
+    }
+  },
+  "scenarios": {
+    "tgc5b2_axis_wp": {
+      "cpu": {
+        "note": "Each TGC5B core starts and stops on its own bit since U1: CONTROL b8 = core 0, b9 = core 1, effective = b0 | b(8+i); b0 stays the collective bit that releases both (kept for every existing script that writes CONTROL=1). STATUS b8/b9 mirror the effective state — on a bitstream before U1 they read 0 while b0 runs the cores, and the dashboard says so instead of showing a wrong lamp. WATCH OUT with the memory windows: RAM0 is accessible only while core 0 is halted, RAM1 only while core 1 is halted, and an access to the window of a RUNNING core never gets ready — the AXI transaction HANGS (SPEC_axis_wp_memory_map.md §10 point 2). The server refuses such reads and writes with HTTP 409 instead of hanging."
+      },
+      "uram": {
+        "note": "Primary sink of the shared three-sink subsystem (rtl/board_kv260/ct_trace_sinks.sv, T2): always-ready ring on the funnel-merged stream, so it never back-pressures the trace path. Its size is NOT hardcoded anywhere — read TRACE_BUFSZ @0x10 (0x0010_0000 = 1 MiB in the C0B_SINK3 build; the two earlier builds of this scenario have 256 KiB). SINK_CTRL b3 uram_oneshot switches circular (default, keeps the LAST 1 MiB) to one shot (keeps the FIRST 1 MiB); SINK_STAT b3 uram_stopped then reports the stopped ring."
+      },
+      "ddr": {
+        "note": "DDR4 sink, present only in the C0B_SINK3 bitstream (app tgc5b2_axis_wp_c0b_sink3) — the older builds of this scenario read zeros in this window, which is why the block is hidden for them. WATCH THE OFFSET: DDR_BEATS is at 0x38 here and 0x30 is PIB_DROPS (breaking change against the C0B_DDR build, SPEC §9). Before ddr_en = 1 the boot device tree must carry the reservation ctrace-pl-ddr (no-map 0x5000_0000..0x6FFF_FFFF, vivado/kv260_app/ctrace_resmem.dtso); since package U6 the reset window is DDR_BASE 0x5000_0000 / DDR_SIZE 256 MiB (address plan v4 — at the ~16.7 MB/s measured in U5 the ring now wraps after ~16 s instead of ~4 s). Base and size are READ-ONLY in this dashboard since package U9 (2026-08-16): the panel shows the window instead of offering input fields, and /api/write answers HTTP 403 for DDR_BASE and DDR_SIZE, curl included. The hardware alone is not enough — the U6 interlock refuses a write only while the sink is ARMED (it then latches SINK_STAT b4 ddr_cfg_rej, sticky until ddr_clear, instead of taking a size below the current write offset), whereas at ddr_en = 0 it takes any value: measured on a lab KV260 board on 2026-08-16, DDR_BASE 0x8000_0000 was written and read back, the armed sink then wedged (WPTR 0, every beat dropped, no BRESP) and only a PL app reload recovered it. A base one digit off would have been a DMA write master pointed into the memory of the hosting Linux. Change the window in the bitstream and the device tree, not at run time. Mode (SINK_CTRL b2), ddr_clear and ddr_en stay writable. Additive observer with its own FIFO: on overflow it drops and counts (DDR_DROPS), it never stalls the ring."
+      },
+      "pib": {
+        "note": "Parallel trace port of the C0B_SINK3 bitstream (hidden for the older builds of this scenario, which have no PIB). Pins on KV260 PMOD J2 (tgc5b2_axis_wp.xdc, pin-compatible with the KR260 reference adapter): pib_clk H12, pib_data[3:0] = E10/B10/E12/D11, LVCMOS33. Port rate = clk/2^(pib_div+1) — at 75 MHz PL clock the 4-bit DDR port is slower than the merged stream, so PIB_DROPS counting up under load is expected, not a defect. pib_calib sends the trPibCalibrate-compatible pattern selected by pib_pattern (0 = STANDARD AA/55/00/FF, 1 = MOVING_ONE, 2 = MOVING_ZERO) instead of trace."
+      }
+    }
+  }
+}

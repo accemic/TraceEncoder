@@ -18,16 +18,16 @@
  */
 
 module tip_dump #(
-	string  FILEPATH_TIP_PLN_TRACE_IP   = "",
-	string  FILEPATH_TIP_DUMP_RAW       = "",
-	string  FILEPATH_TIP_DUMP_DETAILS   = "",
-	int     DUMP_COUNT_MAX              = 500,          // Number of instructions to observe, linear address space required, starting from CODE_START
-	int     CODE_START                  = 0
+	string FILEPATH_TIP_PLN_TRACE_IP = "",
+	string FILEPATH_TIP_DUMP_RAW     = "",
+	string FILEPATH_TIP_DUMP_DETAILS = "",
+	int    DUMP_COUNT_MAX            = 500, // Number of instructions to observe, linear address space required, starting from CODE_START
+	int    CODE_START                = 0
 ) (
-	input uwire logic       clk,
-	input uwire logic       rst,
+	input uwire logic clk,
+	input uwire logic rst,
 	// tip input
-	tip_if.slave            tip
+	tip_if.slave      tip
 );
 
 	import nexus_vendor::*;

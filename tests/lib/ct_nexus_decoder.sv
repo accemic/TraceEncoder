@@ -22,12 +22,12 @@ module ct_nexus_decoder #(
 	bit INCLUDE_SRC    = 1'b0,
 	bit INCLUDE_TSTAMP = 1'b1
 ) (
-	input uwire logic                atb_atclk,           // ATB clock
-	input uwire logic                atb_atresetn,        // ATB reset (low active)
-	atb_if.slave                     atb,
-	output uwire                     dec_msg_valid,
-	output uwire                     dec_msg_error,
-	output nexus::nexus_message_t    dec_msg
+	input uwire logic             atb_atclk,    // ATB clock
+	input uwire logic             atb_atresetn, // ATB reset (low active)
+	atb_if.slave                  atb,
+	output uwire                  dec_msg_valid,
+	output uwire                  dec_msg_error,
+	output nexus::nexus_message_t dec_msg
 );
 
 	import nexus_vendor::*;
@@ -39,7 +39,7 @@ module ct_nexus_decoder #(
 	localparam int NUM_CHUNKS_PER_ATB_BEAT  = ATB_BEAT_WIDTH / NEXUS_CHUNK_WIDTH;
 	localparam int DF_ADDR_MAX_BITS         = NEXUS_MSG_ADDRESS_WIDTH + NEXUS_MSG_DSZ_WIDTH;
 	// The package-level NEXUS_MAX_CHUNKS is sized for generic packet transport,
-	// but real CEDARtools.TraceEncoder DF messages with 64-bit payloads and timestamps can exceed
+	// but real CTTE DF messages with 64-bit payloads and timestamps can exceed
 	// 20 chunks. Keep a larger local decoder window so long messages are not
 	// truncated before their terminating END_IDLE chunk arrives.
 	localparam int DECODER_MAX_CHUNKS        = 64;
@@ -100,11 +100,31 @@ module ct_nexus_decoder #(
 				fmt.fmt[idx++] = '{ name: UADDR, field_type: VARIABLE, max_bits: NEXUS_MSG_ADDRESS_WIDTH };
 				fmt.fmt[idx++] = '{ name: RDATA0, field_type: VENDOR_VARIABLE, max_bits: NEXUS_MSG_RDATA_WIDTH };
 			end
+			NEXUS_MSG_PROGRAM_TRACE_INDIRECT_BRANCH_HISTORY_SYNC: begin
+				fmt.fmt[idx++] = '{ name: SYNC, field_type: VENDOR_FIXED, max_bits: $bits(nexus_sync_reason_e) };
+				fmt.fmt[idx++] = '{ name: BTYPE, field_type: VENDOR_FIXED, max_bits: $bits(nexus_btype_e) };
+				fmt.fmt[idx++] = '{ name: ICNT, field_type: VARIABLE, max_bits: NEXUS_MSG_I_CNT_WIDTH };
+				fmt.fmt[idx++] = '{ name: PC_FADDR, field_type: VARIABLE, max_bits: NEXUS_MSG_ADDRESS_WIDTH };
+				fmt.fmt[idx++] = '{ name: RDATA0, field_type: VENDOR_VARIABLE, max_bits: NEXUS_MSG_RDATA_WIDTH };
+			end
 			NEXUS_MSG_DATA_TRACE_WRITE,
 			NEXUS_MSG_DATA_TRACE_READ: begin
 				fmt.fmt[idx++] = '{ name: DSZ, field_type: VENDOR_FIXED, max_bits: $bits(nexus_dsz_e) };
 				fmt.fmt[idx++] = '{ name: ELSZ, field_type: VENDOR_FIXED, max_bits: $bits(nexus_elsz_e) };
 				fmt.fmt[idx++] = '{ name: UADDR, field_type: VARIABLE, max_bits: DF_ADDR_MAX_BITS };
+				fmt.fmt[idx++] = '{ name: DQDATA, field_type: VARIABLE, max_bits: NEXUS_DQDATA_WIDTH };
+			end
+			// TCODE 13/14 (P3, CT_EN_DF_ADDR_COMPRESS): synchronizing 5/6
+			// forms; same layout, but the address slot carries the FULL
+			// (uncompressed) data address. Field name ADDR mirrors the
+			// package-level get_msg_format() table (the 5/6 slot stays
+			// UADDR there, carrying the XOR delta when compression is on).
+			// DF_ADDR_MAX_BITS keeps the shared variable-field window.
+			NEXUS_MSG_DATA_TRACE_WRITE_SYNC,
+			NEXUS_MSG_DATA_TRACE_READ_SYNC: begin
+				fmt.fmt[idx++] = '{ name: DSZ, field_type: VENDOR_FIXED, max_bits: $bits(nexus_dsz_e) };
+				fmt.fmt[idx++] = '{ name: ELSZ, field_type: VENDOR_FIXED, max_bits: $bits(nexus_elsz_e) };
+				fmt.fmt[idx++] = '{ name: ADDR, field_type: VARIABLE, max_bits: DF_ADDR_MAX_BITS };
 				fmt.fmt[idx++] = '{ name: DQDATA, field_type: VARIABLE, max_bits: NEXUS_DQDATA_WIDTH };
 			end
 			NEXUS_MSG_DATA_ACQUISITION: begin
@@ -114,6 +134,28 @@ module ct_nexus_decoder #(
 			NEXUS_MSG_ERROR: begin
 				fmt.fmt[idx++] = '{ name: ETYPE, field_type: FIXED, max_bits: $bits(nexus_etype_e) };
 				fmt.fmt[idx++] = '{ name: ECODE, field_type: VENDOR_FIXED, max_bits: NEXUS_MSG_ECODE_WIDTH };
+			end
+			NEXUS_MSG_OWNERSHIP_TRACE: begin
+				fmt.fmt[idx++] = '{ name: PROCESS, field_type: VENDOR_VARIABLE, max_bits: $bits(nexus_process_t) };
+			end
+			// TCODE 1 / 15 (P4): single variable payload field each -- the
+			// static device identifier resp. the watchpoint hit bitmap.
+			// Mirrors the package-level get_msg_format() table.
+			NEXUS_MSG_DEVICE_ID: begin
+				fmt.fmt[idx++] = '{ name: DEVID, field_type: VENDOR_VARIABLE, max_bits: NEXUS_MSG_DEVID_WIDTH };
+			end
+			NEXUS_MSG_WATCHPOINT: begin
+				fmt.fmt[idx++] = '{ name: WPHIT, field_type: VENDOR_VARIABLE, max_bits: NEXUS_MSG_WPHIT_IMPL_WIDTH };
+			end
+			NEXUS_MSG_VENDOR_CONFIG: begin
+				// SPEC_config_message.md v1: CFGVER fixed(4) + 6 var fields.
+				fmt.fmt[idx++] = '{ name: CFGVER, field_type: VENDOR_FIXED,    max_bits: NEXUS_MSG_CFGVER_WIDTH };
+				fmt.fmt[idx++] = '{ name: CAPS,   field_type: VENDOR_VARIABLE, max_bits: NEXUS_MSG_CFG_CAPS_WIDTH };
+				fmt.fmt[idx++] = '{ name: ENAB,   field_type: VENDOR_VARIABLE, max_bits: NEXUS_MSG_CFG_CAPS_WIDTH };
+				fmt.fmt[idx++] = '{ name: PARAM0, field_type: VENDOR_VARIABLE, max_bits: NEXUS_MSG_CFG_P0_WIDTH };
+				fmt.fmt[idx++] = '{ name: PARAM1, field_type: VENDOR_VARIABLE, max_bits: NEXUS_MSG_CFG_P1_WIDTH };
+				fmt.fmt[idx++] = '{ name: PARAM2, field_type: VENDOR_VARIABLE, max_bits: NEXUS_MSG_CFG_P2_WIDTH };
+				fmt.fmt[idx++] = '{ name: PARAM3, field_type: VENDOR_VARIABLE, max_bits: NEXUS_MSG_CFG_P3_WIDTH };
 			end
 			NEXUS_MSG_FLUSH: begin
 				// TCODE only

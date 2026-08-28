@@ -54,7 +54,12 @@ package cpu_model_pkg;
 		                            // re-executed after mret. No PCInfo slot is
 		                            // emitted by this event; the slot is filled in
 		                            // when cur_pc retires after mret.
-		CPU_EXCEPTION,              // synchronous exception trap
+		CPU_EXCEPTION,              // synchronous exception trap, co-reported: the trap-source
+		                            // instruction retired (iretire=1) -> occupies an L PCInfo slot.
+		CPU_EXCEPTION_NORETIRE,     // synchronous exception trap, faulting instruction NEVER retired
+		                            // (iretire=0, e.g. illegal/ecall). Per the iretire ingress rule
+		                            // it is NOT counted -> emits NO expected.pcs slot (matches AMD's
+		                            // native N-Trace + the 1:1 encoder count_halfwords=iretire fix).
 		CPU_MRET,                   // exception/interrupt return
 		CPU_LOAD,                   // data load retired
 		CPU_STORE,                  // data store retired

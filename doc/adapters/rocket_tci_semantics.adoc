@@ -1,0 +1,299 @@
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CC-BY-4.0
+
+= Rocket TraceCoreInterface truth table (G1, R3.2a + M3 context)
+:toc: macro
+:toclevels: 2
+
+Migrated 2026-08 from an internal predecessor repository; see
+link:../../rtl/adapters/README.md[`rtl/adapters/README.md`] for the
+package-level provenance. This is the specification level of
+link:../../rtl/adapters/rocket/[the Rocket adapter] -- every clamp in
+`rocket_tci_to_ctte_tip.sv` traces back to a finding in this document.
+
+**Measured against** RocketSystem rocket64t1/rocket64t2, rocket-chip pin
+`e01cf19f`/`f517abbf` + trace-ingress patches; measurements dated
+2026-08-04, last updated 2026-08-08.
+**Status:** R3.2a GREEN (TB_PASS 432 cycles, checker PASS: 104 retire + 4
+trap beats, gapless PC sequence from the reset vector `0x10040`; 4 checker
+mutation counter-probes red), 3 upstream trace defects U1-U3 measured. M3
+GREEN (the context edge measured on the 2-hart netlist rocket64t2: TB_PASS
+321 cycles, checker PASS, 4 CSV mutation counter-probes red).
+
+toc::[]
+
+**Measurement setup (CTTE-free):** `sim/rocket/tb_rocket_char.sv`
+instantiates the vendored generated netlist
+`third_party/rocket_ref/system-nexys-video.v` (top module `RocketSystem`,
+config `rocket64t1` = RV64IMAC without an FPU, retireWidth 1,
+`ROCKET_PIN.md`) standalone under XSIM 2026.1 -- without CTTE, without the
+shim. Testbench-own models: `rocket_axi_ram_sim` (mem_axi4, 4 MiB
+@0x8000_0000, `$readmemh`) + `rocket_axi_mmio_sim` (mmio_axi4, EXIT
+@0x6000_0000); DMI/l2_frontend/interrupts idle. Workload
+`sw/rocket_char/char_test.S` (RV64IMAC, M-mode, `-Ttext=0x80000000`,
+deterministic). Checker `tools/rocket_tci_check.py`: a static oracle = a PC
+walk over the instruction semantics from `char_test.dis` + `rom.dis` (NO
+RVFI on this netlist); cross-reference: the netlist's built-in commit-log
+printer delivered **108 `C0:` lines == 104 retire + 4 trap beats** in the
+same run (1:1). Checker sharpness: 4 mutation counter-probes
+(branch-verdict, mret-code, line-drop, ilastsize) -> all `== FAIL ==`.
+
+**Bootrom redirection (D-R32a-1):** reset vector 0x10040
+(Frontend.scala:117, netlist `:68830`). There, hart 0 jumps via
+`jal zero,0x10016` into the nexys-video bootrom's SD-card bootloader
+(C code @0x11462, polls SDC/UART -- a dead path in simulation that would
+otherwise zero word 0 of the workload). The run therefore compiles a
+work-local netlist copy with ONE patched ROM word (index 0xb:
+`jal zero,0x10016`->`jal zero,0x10000`, 0xfbfff06f-> 0xfa9ff06f;
+`sim/rocket/extract_tlrom.py`, self-verifying) -- hart 0 then takes the
+existing ROM direct entry 0x10000 (`c.jr s0`) into 0x8000_0000. The
+vendored file itself stays untouched; the same patched image is the oracle
+basis (`rom.dis`), the ROM preamble (13 instructions) is walked through by
+the checker too. A conditional `force` on the TLROM data bus did NOT work
+under XSIM 2026.1 (the commit log showed the original word) --
+compile-time patching is simulator-independent.
+
+== Beat semantics (measured)
+
+Combinational tap of the WB stage, 1 retire/cycle. `iretire` = `valid` =
+`wb_valid || wb_xcpt` -- **trap beats ALSO carry iretire=1** (U1). itype
+priority exception->interrupt->trap_return->br_taken->br_ntaken->jal->jalr
+(TraceCoreIngress, netlist `:76861-76886`). **Idle cycles are NOT
+neutral:** itype holds the decode of the last instruction (wb_ctrl
+unchanged), in the 432-cycle run **161 hanging classification lines at
+iretire=0** (37x TAKEN_BR, 71x ITUnJump, 53x ITInJump) -- a consumer MUST
+gate itype with iretire (shim idle-cycle rule, point 3). Not a single
+`iretire=0 + itype=EXC/INT` beat (the clamp does not swallow any traps).
+
+== Event -> beat (measured, `char_test` @ rocket64t1)
+
+[cols="3,1,2,1,1,1,1,1", options="header"]
+|===
+| Event | itype | iaddr | iretire | ilastsize | cause | tval | Count
+
+| ALU/load/store/csr/auipc/... | 0 | PC of the instr | 1 | 1 (32-bit) | 0* | 0 | 62
+| branch not-taken (incl. 64-bit discr., c.bnez) | 4 | PC of the branch | 1 | per encoding | 0* | 0 | 9
+| branch taken (incl. 64-bit discr., c.beqz) | 5 | PC of the branch | 1 | per encoding | 0* | 0 | 4
+| `jal` / `j` / `c.j` | 15 | PC of the jump | 1 | per encoding | 0* | 0 | 18
+| `jalr` call, `jalr` return, `c.jr`, `c.jalr` | 14 | PC of the jump | 1 | per encoding | 0* | 0 | 7
+| `mret` | **13 (ITReturn, U2!)** | PC of the mret | 1 | 1 | 0* | 0 | 4
+| `ecall` (M) | 1 EXC | PC of the ecall | **1 (U1!)** | 1 | **4 (U3!) instead of 11** | 0 | 1
+| illegal instr (`csrrs hgatp` without RVH) | 1 EXC | PC of the instr | **1 (U1!)** | 1 | 2 | **the instruction word** (0x680022f3) | 1
+| `ebreak` | 1 EXC | PC of the ebreak | **1 (U1!)** | 1 | **4 (U3!) instead of 3** | 0 | 1
+| MSIP IRQ (CLINT @0x0200_0000) | 2 INT | PC of the interrupted instr | **1 (U1!)** | 1 | **0x8000_0000_0000_0003 (MSB bit 63)** | 0 | 1
+|===
+
+\* cause/tval on non-trap beats are NOT zeroed, they carry the leftover
+state of the data path (in this run 0 resp. the last-seen values) -- only
+evaluate them at itype 1/2.
+
+`ilastsize`: 0 = 16-bit, 1 = 32-bit encoding -- measured over 10 compressed
++ 94 32-bit retires (golden from the `.dis` encoding length, 0 errors);
+the source is `valid & ~(&raw_inst[1:0])`, i.e. 0 on idle cycles.
+
+`priv`: constant 0x3 (M-mode); the 4-bit top port =
+`{1'd0, Cat(reg_debug, prv)}` (netlist `:79630`) -- bit 3 constant 0, bit 2
+= debug flag (not exercised).
+
+`time`: **free-running cycle counter of the CSR** (WideCounter, `:73982`;
+measured delta_time == delta_cycle == 362, ratio 1.0000) -- NOT CLINT mtime
+(which ticks at /100 = 1 MHz). `ctx`: **no port on this netlist** (0 hits
+in the 8.8 MB netlist; the `csr.io.ptbr.asid` path from the R0-A3 report
+does not exist at this rocket-chip pin's TraceCoreInterface export).
+
+== Upstream trace defects (measured; upstream PR candidates)
+
+[cols="1,3,3,4", options="header"]
+|===
+| # | Defect | Evidence | Consequence
+
+| U1 | Trap beats carry `iretire=1` (`iretire := valid`, `valid = wb_valid \|\| wb_xcpt`) | all 4 trap beats had iretire=1 | shim clamp 1 (EXC/INT => iretire=0) is MANDATORY -- otherwise the composer counts the faulting instr in ICNT
+| U2 | `trap_return -> ITReturn (13)` instead of `ITExcReturn (3)` | 4/4 mret beats = 13, 13 ONLY at mret PCs; jalr returns = 14 | shim clamp 2 (13->3) is unambiguous + lossless; `MAP_TRAP_RETURN_TO_ERET` default=1 FIXED. Statically: `trap_return = insn_ret` (CSR decode) also covers sret/dret
+| U3 | **NEW:** the trace `cause` = `wb_reg_xcpt ? wb_reg_cause : <mem-stage cause mux, default 4>` (netlist `:79663`) -- for traps raised internally by the CSR (ecall/ebreak, wb_xcpt=0) the beat carries the data-path leftover **4** instead of mcause 11/3 | the ecall beat cause=4, the ebreak beat cause=4; illegal (2) and IRQ (MSB\|3) correct; mcause correctness is **structurally** confirmed (audit C-R32a-A3): the CSR raises ecall/ebreak internally via `insn_call/insn_break` (`system-nexys-video.v:71775-71776`), and the trace-cause mux's value list at `:79663` does not contain 11/3 at all -- the defect sits exclusively in the trace path (the workload handler only discriminates bit 63, so it is NOT sufficient evidence by itself) | `ecause` at the TCI is NOT trustworthy for ecall/ebreak; not fixable in the shim (no discriminating information). The N-Trace wire is unaffected (ecause never goes out); E-Trace-format-3.x users must know this case
+|===
+
+Plus an ergonomics finding (not a defect, but a contract): **hanging itype
+classifications on idle cycles** (see above) -- Rocket's own encoder chain
+gates internally with iretire, every external consumer must do the same.
+
+== G1 questions -> answers (the measurement list from R3.1a §5)
+
+[cols="1,3,4,3", options="header"]
+|===
+| # | Question | Answer | Evidence
+
+| 1 | iretire on trap beats? | **1**, iaddr = PC of the faulting/interrupted instr (wb_reg_pc) | 4 trap-beat rows (table above; CSV cycle 299/318/337/381)
+| 2 | Code 13 only from trap_return? | **YES** -- 4/4 mret = 13, no 13 elsewhere; function returns = 14 | xRET beats @0x800000f4 (3x) + @0x80000110; checker gate "13 only at xRET"
+| 3 | iretire=0+EXC/INT beats? | **NONE** (hanging rows only itype 5/14/15) | the checker's hanging-classification histogram
+| 4 | priv encoding | 4-bit port `{1'd0, reg_debug, prv}`; constant 0x3 in M-mode; debug bit = bit 2, **not exercised** | netlist `:79630`; priv value set {0x3}
+| 5 | Codes 8-12 observed? | **NO** -- the emission set = {0,1,2,4,5,13,14,15}; 3/6/7 never either | itype histogram; TraceCoreIngress `:76877-76885` only emits these
+| 6 | ilastsize semantics | 0 = 16-bit, 1 = 32-bit (log2 halfwords); valid-gated | 10 compressed + 94 32-bit retires, 0 golden errors
+| 7 | cause MSB on IRQ | interrupt flag on **bit 63** of the 64-bit field | the INT beat cause=0x8000000000000003
+| 8 | ctx | `rocket64t1`: **no ctx export** (the connection binds `tci_ctx_i='0`). `rocket64t2` (M2): `trace_core_N_context[63:0]` = the satp image, **the edge and WARL measured in §Context (M3)** | t1: grep 0 hits, top ports `:98742-98749`. t2: top ports `:101303`/`:101312`, driver `:81054`/`:81645`
+| 9 | time behavior | 64 bit, monotonic, **+1 per cycle** = the CSR cycle counter (WideCounter), not mtime | ratio 1.0000 over 362 cycles; netlist `:73982`
+| 10 | port widths (D12) | iretire/ilastsize 1 - iaddr 64 (**only 40 driven**: `{24'd0, wb_reg_pc}`) - itype 4 - priv **4** (not 3; MSB const. 0) - tval 64 (**only 40 driven**) - cause/time 64 - **ctx missing** | netlist `:98742-98749`, `:79775`, `:79630-79633`
+|===
+
+== Context (M3, 2026-08-08) -- context edge, WARL and hart binding
+
+**Measurement setup (CTTE-free, a second run on the same bank):**
+`sim/rocket/tb_rocket_ctx.sv` instantiates the **2-hart** netlist
+`third_party/rocket_ref/rocket64t2/system-nexys-video.v` (M2) standalone
+under XSIM 2026.1 -- the same testbench models, the same one-word bootrom
+patch (D-R32a-1, now via `extract_tlrom.py --gen`), but a **cycle-exact**
+log of all context signals for **both** harts. Workload
+`sw/rocket_char/ctx_test.S` (M-mode, six `csrw satp`); checker
+`tools/rocket_ctx_check.py`. The run ends after **321 cycles** with
+`### TB_PASS` and `== PASS ==`; two independent runs produced an
+**md5-identical** CSV (`0E5C8351F897CBB30934C97325E50B47`, 271 rows).
+
+Why M-mode is sufficient: `satp` only affects translation in S/U, the write
+access itself is privilege-independent, and the edge sought is a
+pipeline/register property of the WB stage. What is measured is the
+**port**, not the translation.
+
+=== Context edge (the actual question)
+
+Port value = `{satp.MODE[63:60], 16'h0, satp.PPN[43:0]}` (netlist `:81054`
+/ `:81645`; the ASID slice is the literal `16'h0` -- M2 §1).
+
+[cols="1,1,1,1,2,2,2,1,1,2", options="header"]
+|===
+| # | Symbol | PC | Cycle | satp write value | Port BEFORE the beat | Port after | Edge after | Retires in between | Next retire
+
+| 1 | `w1_satp` | `0x80000024` | 151 | `0x8000000000000111` | `0x0000030f07d7b30f` | `0x8000000000000111` | 1 cycle | 0 | `0x80000028` carries `0x8000000000000111`
+| 2 | `w2_satp` | `0x80000040` | 187 | `0x8000000000000222` | `0x8000000000000111` | `0x8000000000000222` | 1 cycle | 0 | `0x80000044` carries `0x8000000000000222`
+| 3 | `w3_satp` | `0x8000005c` | 202 | `0x0000000000000000` | `0x8000000000000222` | `0x0000000000000000` | 1 cycle | 0 | `0x80000060` carries `0x0000000000000000`
+| 4 | `w4_satp` | `0x8000007c` | 214 | `0x80000fffffffffff` | `0x0000000000000000` | `0x80000000003fffff` | 1 cycle | 0 | `0x80000080` carries `0x80000000003fffff`
+| 5 | `w5_satp` | `0x80000098` | 245 | `0x9000000000000555` | `0x80000000003fffff` | *(no edge)* | **discarded** | 10 retires without motion | `0x8000009c` carries `0x80000000003fffff`
+| 6 | `w6a_satp` | `0x800000c0` | 284 | `0x8000000000000666` | `0x80000000003fffff` | `0x8000000000000666` | 1 cycle | 0 | `0x800000c4` carries `0x8000000000000666`
+| 7 | `w6b_satp` | `0x800000c4` | 289 | `0x8000000000000777` | `0x8000000000000666` | `0x8000000000000777` | 1 cycle | 0 | `0x800000c8` carries `0x8000000000000777`
+|===
+
+**Answer: the beat of the writing instruction still carries the OLD value;
+the new one appears exactly ONE cycle later, with NO retire in between.**
+The next retiring instruction therefore already carries the new context
+(column "next retire", 6/6 edges). Structural cause: the port hangs off the
+REGISTERS `reg_satp_mode`/`reg_satp_ppn` (`assign io_ptbr_* =
+reg_satp_*`, `:75988-75989`), which only update on the clock edge -- the
+trace beat of the `csrw` instruction is generated combinationally from the
+same WB stage, i.e. before that.
+
+**Consequence for the shim: NOTHING to compensate.** The placement is
+exactly the desired one -- the writing instruction still semantically
+belongs to the old address space (it is part of the predecessor's switch
+code), the first instruction after it belongs to the new one. Delaying by
+one beat would be a bug, not a fix. `rocket_tci_to_ctte_tip` correctly
+reports the change with `ctype = PRECISELY` on exactly this first beat of
+the new context.
+
+**Global gate (E9):** over the whole run there were **6 context changes,
+all in the cycle following a `csrw satp`**. In particular, `sfence.vma`
+(`w2_sfence` @`0x80000048`) does **not** move the context, nor do jumps,
+idle cycles, or the ROM preamble.
+
+=== WARL: only 22 of the 44 PPN bits are live
+
+[cols="2,3,4", options="header"]
+|===
+| Property | Measurement | Structural evidence (rocket64t2)
+
+| PPN field width at the port | 44 bit (`context[43:0]`) | `reg [43:0] reg_satp_ppn` `:73977`
+| **writable** PPN bits | **22** -- `0x80000FFFFFFFFFFF` becomes port `0x80000000003FFFFF` | `reg_satp_ppn <= {{22'd0}, new_satp_ppn[21:0]}` `:77358` (paddrBits 34 - pgIdxBits 12)
+| MODE values | 0 (Bare) and 8 (Sv39) accepted | `_reg_satp_mode_T = new_satp_mode & 4'h8` `:75694`
+| illegal MODE (9 = Sv48) | the write access fails **entirely**: MODE **and** PPN unchanged over the following 10 retires | gate `_T_1854 = (mode==0) \| (mode==8)` `:75691-75693` encloses BOTH assignments `:77350` / `:77357`
+|===
+
+The **ownership key of this core is therefore 22 bit wide**, not 44:
+`CT_CONTEXT_WIDTH = 22` suffices for uniqueness, 44 is the field width (and
+also the composer's maximum, `NEXUS_MSG_PROCESS_WIDTH`). The shim names
+this via `SATP_PPN_LIVE_WIDTH` and warns loudly below that width
+(`CTX_REQUIRE_UNIQUE_KEY=1` turns it into an elaboration abort).
+
+=== Hart binding and reset
+
+[cols="3,5", options="header"]
+|===
+| Question | Measurement
+
+| Is the port a per-hart quantity? | **Yes.** Hart 1 -- never woken, stays in the bootrom's `wfi`/MSIP loop @`0x1005c`, 3 retires -- holds its context **constant** at `0x424921ad424` over the whole run, while hart 0 changes six times, and carries a **different** value than hart 0. A broadcast would have been caught here (counter-probe CM2).
+| Reset value of satp? | **Only MODE is reset** (`if (reset) reg_satp_mode <= 4'h0`, `:77346-77348`); `reg_satp_ppn` has **no** reset branch at all -- its only occurrences are the `csr_wen` path `:77358` and the RANDOMIZE init `:77866`. Measured: hart 0 starts with `0x0000030f07d7b30f`, hart 1 with `0x0000042492 1ad424`; both RANDOMIZE garbage with a MODE nibble of 0.
+|===
+
+[NOTE]
+====
+**Disclosure note:** the context is therefore **undefined between reset and
+the first `satp` write** (in real hardware, the power-on state of the
+flip-flops). An ownership filter armed for a specific PPN can hit randomly
+in this window. This is not a shim defect -- the shim passes through
+whatever the core carries -- and is manageable in practice as long as
+filtering is only armed after kernel boot; it must, however, be considered
+when evaluating a board run.
+====
+
+=== Checker sharpness (mutation counter-probes, CSV copies in the scratchpad)
+
+[cols="4,2", options="header"]
+|===
+| Mutation | Result
+
+| CM1 the edge of `w1` moved one cycle earlier (the write beat already carries the new value) | `== FAIL ==` (E2 + E9)
+| CM2 hart 1 mirrors hart 0 (a broadcast instead of a per-hart quantity) | `== FAIL ==` (E6)
+| CM3 the illegal MODE-9 write access takes effect anyway | `== FAIL ==` (E5 + E2)
+| CM4 the edge of `w2` delayed by two cycles | `== FAIL ==` (E3 + E9)
+|===
+
+**Self-finding on gate blindness:** the **first** version of the checker
+stayed **green** on CM1. It derived the expectation from the port value *at
+the checked beat itself* -- an early edge shifted both the observed and
+the expected value together. The checker now runs an **independent WARL
+state model** (seeded once from the initial value, then advanced only from
+that model) plus the global gate E9. The same failure class as the three
+blind gates elsewhere in this program; it only became visible because the
+counter-probe ran BEFORE the result was accepted.
+
+== Open legs (explicit)
+
+* **S-/U-mode + Sv39:** not exercised (an M-mode workload; priv!=3 beats,
+  page-fault causes 12/13/15, satp activation open -- analogous to CVA6
+  Gate L1).
+* **Debug mode:** priv bit-2 behavior not exercised (no debugger attached
+  in the sim).
+* **sret/dret:** statically covered by `insn_ret`, dynamically only mret.
+* **PCs >= 2^40:** iaddr is only 40 bit driven; behavior above vaddrBits is
+  not representable in the 512-MiB window.
+* **ilastsize on trap beats:** carries the value of the faulting instr
+  (here always 1) -- semantically without retire meaning, not further
+  characterized.
+* The WFI/CEASE paths and Rocket's own in-tile encoder (TraceEncoder.scala)
+  are not part of this measurement.
+* **Context (M3):** the edge is measured in **M-mode**. A real Linux
+  `switch_mm` (S-mode, a `satp` write + `sfence.vma` with active
+  translation, then `sret` to U) is therefore NOT exercised; the measured
+  property is a pipeline/register property and hence
+  privilege-independent, but the S/U run is still open.
+* **Context (M3):** the ASID is not exercised because it is structurally 0
+  on this netlist (M2 §1); a `satp` write from inside a trap handler and a
+  change that coincides with a trap beat are open on the netlist (covered
+  in the shim's unit gate `tb_rocket_tci_unit`, vector Vc8).
+
+== Reproduction
+
+WARNING: **Not reproducible from this repository.** The characterization
+needs the vendored Rocket generated netlist (see
+link:../../examples/kv260/third_party/ROCKET_PIN.md[`examples/kv260/third_party/ROCKET_PIN.md`]),
+a bootrom patch, the stimulus programs `char_test`/`ctx_test`, and an XSIM
+run with an oracle and a checker (gate: `TB_PASS` plus the checker's own
+`== PASS ==`). The M3 context run additionally needs the 2-hart netlist
+`rocket64t2`. None of those drivers are part of this repository, and the
+raw data of the M3 green run (`ctx_log.csv`, md5
+`0E5C8351F897CBB30934C97325E50B47`, 271 rows, plus the run log) is not
+either.
+
+What *is* reproducible here is the shim's own unit gate, which encodes the
+same truth table -- including the width-neutral 2-bit and 44-bit context
+builds and the deliberately-red `CtxWidth` probe:
+
+----
+bash scripts/cli_adapters_test.sh      # includes tb_rocket_tci_unit
+----

@@ -1,0 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+import @examples/kv260/common : ct_soc_trace_ring ct_soc_ddr_sink ct_soc_pib
+
+read_sv ct_trace_sinks.sv

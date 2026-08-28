@@ -21,18 +21,31 @@ package tip_pkg;
 	localparam TIP_ITYPE_WIDTH      =  4;  // width of the itype bus
 	localparam TIP_ICAUSE_WIDTH     =  4;  // width of the interrupt cause bus
 	localparam TIP_ECAUSE_WIDTH     =  4;  // width of the exception cause bus
-	localparam TIP_IADDRESS_WIDTH   = 32;  // width of the instruction address bus
+	// Address widths follow the build knob ct_pkg::CT_XLEN (32 = historical).
+	// ct_pkg compiles first and is scoped explicitly here, exactly like
+	// nexus_vendor does for CT_TS_WIDTH -- no import, no mirrored constant.
+	localparam TIP_IADDRESS_WIDTH   = ct_pkg::CT_XLEN;  // width of the instruction address bus
 	localparam TIP_PRIVILEGE_WIDTH  =  3;  // width of the privilege bus
-	localparam TIP_CONTEXT_WIDTH    =  2;  // width of the context bus
+	// Context bus width follows the build knob ct_pkg::CT_CONTEXT_WIDTH
+	// (2 = historical). Scoped explicitly like TIP_IADDRESS_WIDTH above --
+	// no import, no mirrored constant.
+	localparam TIP_CONTEXT_WIDTH    = ct_pkg::CT_CONTEXT_WIDTH;  // width of the context bus
 	localparam TIP_TIME_WIDTH       = 64;  // width of the time bus
 	localparam TIP_CTYPE_WIDTH      =  2;  // width of the ctype bus
-	localparam TIP_IRETIRE_WIDTH    =  1;  // width of the iretire bus
+	// Width of the iretire bus. 1 = historical single-retirement (SR)
+	// ingress, where iretire is a STROBE ("one instruction retired on this
+	// beat"). With ct_pkg::CT_EN_BLOCK_TIP the bus becomes the halfword
+	// COUNT of the retired block (RISC-V trace ingress port semantics) and
+	// follows the build knob ct_pkg::CT_IRETIRE_WIDTH. Scoped explicitly
+	// like TIP_IADDRESS_WIDTH above -- no import, no mirrored constant.
+	localparam TIP_IRETIRE_WIDTH    = ct_pkg::CT_EN_BLOCK_TIP
+	                                ? ct_pkg::CT_IRETIRE_WIDTH : 1;
 	localparam TIP_ILASTSIZE_WIDTH  =  2;  // width of the ilastsize bus
 	localparam TIP_ICNT_WIDTH       = 32;  // width of i-cnt
 	localparam TIP_IMPDEF_WIDTH     =  8;  // width of implementation-specific sideband channels
 	localparam TIP_DRETIRE_WIDTH    =  1;
 	localparam TIP_DTYPE_WIDTH      =  4;
-	localparam TIP_DADDRESS_WIDTH   = 32;
+	localparam TIP_DADDRESS_WIDTH   = ct_pkg::CT_XLEN;
 	localparam TIP_DSIZE_WIDTH      =  6;
 	localparam TIP_DATA_WIDTH       = 64;
 	localparam TIP_IADDR_LSBS_WIDTH =  8;
@@ -44,8 +57,16 @@ package tip_pkg;
 	localparam TIP_ISYNC_MAX_WIDTH  =  4;
 	localparam PERFCOUNTER_WIDTH    = 32;
 
-	localparam TIP_DEFAULT_IADDR     = 32'h1ADD_0000;
-	localparam TIP_DEFAULT_DADDR     = 32'hDADD_0000;
+	// Simulation defaults (tip generator / dump readability). Sized to the
+	// address width so a 64-bit build does not zero-extend a 32-bit pattern
+	// into a value that looks like a low-memory address; at 32 the literals
+	// are exactly the historical ones.
+	localparam [TIP_IADDRESS_WIDTH-1:0] TIP_DEFAULT_IADDR =
+		(TIP_IADDRESS_WIDTH > 32) ? TIP_IADDRESS_WIDTH'(64'h1ADD_0000_1ADD_0000)
+		                          : TIP_IADDRESS_WIDTH'(32'h1ADD_0000);
+	localparam [TIP_DADDRESS_WIDTH-1:0] TIP_DEFAULT_DADDR =
+		(TIP_DADDRESS_WIDTH > 32) ? TIP_DADDRESS_WIDTH'(64'hDADD_0000_DADD_0000)
+		                          : TIP_DADDRESS_WIDTH'(32'hDADD_0000);
 	localparam TIP_DEFAULT_DATA      = 64'h1111_2222_DA7A_0000;
 	localparam TIP_DEFAULT_CONTEXT   = 32'hDEFA_0000;
 	localparam TIP_DEFAULT_ILASTSIZE = 2;
@@ -64,7 +85,13 @@ package tip_pkg;
 	typedef logic [TIP_ILASTSIZE_WIDTH-1:0] tip_ilastsize_t;
 	typedef logic [TIP_IMPDEF_WIDTH-1:0]    tip_impdef_t;
 	typedef logic [TIP_ECAUSE_WIDTH-1:0]    tip_ecause_t;
-	typedef logic [31:0]                    tip_ecause_vector_t; // in default configuration only bits 0..15 are used.
+	// One bit per exception cause -- the {MatchChoiceEcauseHigh,
+	// MatchChoiceEcauseLow} CSR pair, which is 64 bits wide in the RDL. The
+	// type used to be 32, i.e. only the LOW register; the High half has
+	// always existed and had no reader. Sizing it to the register pair is
+	// what lets a 6-bit ecause (X8b) index it without another type change;
+	// with the default 4-bit width only bits 0..15 can ever be selected.
+	typedef logic [63:0]                    tip_ecause_vector_t;
 	typedef logic [TIP_DTYPE_WIDTH-1:0]     tip_dtype_t;
 	typedef logic [TIP_ISYNC_MAX_WIDTH-1:0] tip_isync_max_t;
 
@@ -113,19 +140,54 @@ package tip_pkg;
 		ICAUSE_NONE = 15  // For easier interpretation of the simulation chart
 	} icause_e;
 
-	// exception cause
+	// Exception cause -- the RISC-V mcause exception codes (privileged spec
+	// Table "Machine cause register (mcause) values after trap", Interrupt=0).
+	//
+	// X8a: ECAUSE_NONE used to be 15, which IS a real cause -- Store/AMO page
+	// fault. On a bare-metal RV32 without paging that value never occurred, so
+	// the collision stayed invisible; under Sv39 Linux it is one of the most
+	// frequent traps there is (every copy-on-write write takes it), and a
+	// waveform, a filter bitmap or a dump reader would have read the most
+	// common store trap as "no exception". The sentinel therefore moved to a
+	// cause the architecture RESERVES. **14 is the only such code in the 4-bit
+	// space.** The first attempt used 10 and was wrong: with the ratified
+	// H extension, 10 is "Environment call from VS-mode" -- the proof sits in
+	// this program's own target core (`cva6_ref/core/include/riscv_pkg.sv:347`,
+	// `ENV_CALL_VSMODE = 10`). Harmless only as long as no hart runs with
+	// H enabled, i.e. exactly the kind of latent collision X8a set out to
+	// remove (found by the R1.1 audit, B-1). It is the
+	// "sentinel outside the real cause space" resolution, with no wire change whatsoever: ecause only
+	// leaves the encoder on a beat with itype = EXCEPTION_TRAP, where the
+	// adapter supplies a real cause. itype IS the validity signal.
+	// (At the 6-bit width of X8b the sentinel moves to 63, likewise reserved.)
 	typedef enum logic [TIP_ECAUSE_WIDTH-1:0] {
-		MISALIGNED_INSTR  =  0, // Misaligned instruction fetch address
-		INSTR_FETCH_FAULT =  1, // Instruction fetch access fault
-		ILLEGAL_INSTR     =  2, // Illegal instruction
-		BREAKPOINT        =  3, // Breakpoint
-		MISALIGNED_LOAD   =  4, // Misaligned load address
-		LOAD_FAULT        =  5, // Load access fault
-		MISALIGNED_STORE  =  6, // Misaligned store address
-		STORE_FAULT       =  7, // Store access fault
-		ECALL_FROM_M      = 11, // Ecall from M-mode
-		ECAUSE_NONE       = 15  // For easier interpretation of the simulation chart
+		MISALIGNED_INSTR   =  0, // Misaligned instruction fetch address
+		INSTR_FETCH_FAULT  =  1, // Instruction fetch access fault
+		ILLEGAL_INSTR      =  2, // Illegal instruction
+		BREAKPOINT         =  3, // Breakpoint
+		MISALIGNED_LOAD    =  4, // Misaligned load address
+		LOAD_FAULT         =  5, // Load access fault
+		MISALIGNED_STORE   =  6, // Misaligned store address
+		STORE_FAULT        =  7, // Store access fault
+		ECALL_FROM_U       =  8, // Ecall from U-mode
+		ECALL_FROM_S       =  9, // Ecall from S-mode
+		ECALL_FROM_VS      = 10, // Ecall from VS-mode (H extension) -- REAL cause
+		ECALL_FROM_M       = 11, // Ecall from M-mode
+		INSTR_PAGE_FAULT   = 12, // Instruction page fault
+		LOAD_PAGE_FAULT    = 13, // Load page fault
+		ECAUSE_NONE        = 14, // RESERVED by the architecture -- sentinel, see above
+		STORE_PAGE_FAULT   = 15  // Store/AMO page fault
 	} tip_ecause_e;
+
+	// True when this beat carries a meaningful ecause. The TIP contract has
+	// no separate valid line for it: a cause is only defined on a trapping
+	// beat, so itype is the qualifier. Every consumer that samples ecause
+	// (composer eTIP trap arm, comparator filters) already gates on this
+	// condition; the function names it so a reader does not have to
+	// re-derive the contract at each site.
+	function automatic logic TipEcauseIsValid (input tip_itype_e itype);
+		TipEcauseIsValid = (itype == EXCEPTION_TRAP);
+	endfunction
 
 	// context type
 	typedef enum logic [TIP_CTYPE_WIDTH-1:0] {
@@ -184,6 +246,12 @@ package tip_pkg;
 		logic [TIP_SDATA_WIDTH-1:0] sdata; // store data (valid at dretire for STORE)
 		logic [TIP_LRESP_WIDTH-1:0] lresp; // load response: 2=OK, 3=error (valid when lresp[1]=1)
 		logic [TIP_LDATA_WIDTH-1:0] ldata; // load data (valid when lresp[1]=1)
+		// generic event sideband, integrator contract -- adapters
+		// without the signal tie 0; see tip_if.sv for the port semantics)
+		logic           debug_mode; // level: hart is in debug mode
+		logic           evti;       // pulse: external trace trigger event
+		logic           power_down; // level: hart is powered down
+		logic           trigger;    // pulse: watchpoint/trigger marker (SYNC=6)
 		// other
 		tip_impdef_t    impdef;    // implementation defined sideband signals
 	} tip_t;
@@ -252,9 +320,75 @@ package tip_pkg;
 		int cnt_jump_out;
 	} tip_dbranch_t;
 
+	// ------------------------------------------------------------------
+	// Block-ingress derivations (R1.3, ct_pkg::CT_EN_BLOCK_TIP)
+	//
+	// These four are the ONLY places that know whether tip.iretire is a
+	// strobe or a halfword count. Every consumer asks one of them instead
+	// of re-deriving the rule, so the two ingress shapes cannot drift
+	// apart. With CT_EN_BLOCK_TIP = 0 each body reduces -- at elaboration,
+	// the switch is a localparam -- to literally the expression the
+	// consumer used before, so no block logic exists in an OFF build.
+	// ("Identical netlist" would be a claim; the measurement says +16 LUTs /
+	// -8 FFs against the pre-R1.3 baseline, which is restructuring noise --
+	// see the note at ct_pkg::CT_EN_BLOCK_TIP.)
+	//
+	// The block layout follows the ingress definition and the reference
+	// core (CVA6 ITI block_retirement.sv): iaddr names the FIRST
+	// instruction, ilastsize the size of the LAST one, iretire the
+	// halfwords in between including both.
+	// ------------------------------------------------------------------
+
+	// Does this beat retire anything at all? (A trap marker beat with
+	// iretire = 0 is meaningful too -- see TipCFMsgIsValid -- but it
+	// retires nothing.) NEVER write `logic x = tip.iretire`: at a block
+	// width that assignment silently keeps the LSB, so a two-halfword
+	// block reads as "no retirement".
+	function automatic logic TipBeatRetires (input tip_iretire_t iretire);
+		TipBeatRetires = |iretire;
+	endfunction
+
+	// Halfwords of binary this beat represents. SR: the one retired
+	// instruction, 2^ilastsize halfwords. Block: the whole block.
+	// Callers must already have qualified the beat with TipBeatRetires --
+	// on a non-retiring beat the ingress leaves ilastsize undefined.
+	function automatic tip_icnt_t TipBeatHalfwords (input tip_iretire_t   iretire,
+	                                                input tip_ilastsize_t ilastsize);
+		tip_icnt_t last_instr_hw;
+		last_instr_hw    = tip_icnt_t'(1) << ilastsize;
+		TipBeatHalfwords = ct_pkg::CT_EN_BLOCK_TIP ? tip_icnt_t'(iretire)
+		                                           : last_instr_hw;
+	endfunction
+
+	// Address of the LAST retired instruction of the beat -- the one
+	// tip.itype describes, i.e. the SOURCE PC of a control-flow event.
+	// SR: iaddr itself. Block: iaddr advanced past every instruction
+	// before the terminating one.
+	function automatic tip_iaddr_t TipLastIaddr (input tip_iaddr_t     iaddr,
+	                                             input tip_iretire_t   iretire,
+	                                             input tip_ilastsize_t ilastsize);
+		tip_icnt_t hw_before_last;
+		hw_before_last = tip_icnt_t'(iretire) - (tip_icnt_t'(1) << ilastsize);
+		TipLastIaddr   = (ct_pkg::CT_EN_BLOCK_TIP && (|iretire))
+			? iaddr + tip_iaddr_t'(hw_before_last << 1)
+			: iaddr;
+	endfunction
+
+	// Address of the instruction FOLLOWING the beat's last instruction --
+	// the statically next PC (return address of a call, resync anchor).
+	// SR: iaddr + (2 << ilastsize), the historical expression.
+	function automatic tip_iaddr_t TipBlockNextIaddr (input tip_iaddr_t     iaddr,
+	                                                  input tip_iretire_t   iretire,
+	                                                  input tip_ilastsize_t ilastsize);
+		tip_icnt_t span_hw;
+		span_hw           = (ct_pkg::CT_EN_BLOCK_TIP && (|iretire))
+			? tip_icnt_t'(iretire) : (tip_icnt_t'(1) << ilastsize);
+		TipBlockNextIaddr = iaddr + tip_iaddr_t'(span_hw << 1);
+	endfunction
+
 	// Is TIP message pertinent for trace message generation?
 	function logic TipCFMsgIsValid (input tip_iretire_t iretire, input tip_itype_e itype);
-		TipCFMsgIsValid =    iretire
+		TipCFMsgIsValid =    (|iretire)
 						  || (itype == EXCEPTION_TRAP)
 						  || (itype == INTERRUPT);
 	endfunction

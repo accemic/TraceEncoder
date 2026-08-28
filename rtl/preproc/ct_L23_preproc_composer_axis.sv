@@ -28,18 +28,39 @@ import ct_pkg::*;
 import tip_pkg::*;
 
 module ct_L23_preproc_composer_axis (
-	input uwire logic           clk,                    // trace input clock
-	input uwire logic           rst,                    // reset
-	ct_act_cap_if.slave         act_cap_st,
-	tip_if.slave                tip,
-	ct_perfcnt_if.slave_axis    perfcnt,
-	axis_if.master              axis,                   // (wide) AXI Stream to watchdog CPU
-	output delay_t              internal_delay
+	input uwire logic        clk,      // trace input clock
+	input uwire logic        rst,      // reset
+	input uwire tip_time_t   ts_value, // selected timestamp from timestamp unit
+	ct_act_cap_if.slave      act_cap_st,
+	tip_if.slave             tip,
+	ct_perfcnt_if.slave_axis perfcnt,
+	axis_if.master           axis, // (wide) AXI Stream to watchdog CPU
+	output delay_t           internal_delay
 );
 
 	localparam TDATA_WIDTH  = axis.TDATA_WIDTH;
 	localparam TSTRB_WIDTH  = axis.TSTRB_WIDTH;
 	localparam NUM_ELEMENTS = TDATA_WIDTH / ACT_CAP_DATA_WIDTH;
+
+	// ----------------------------------------------------------------
+	// Profile guards (C0a): the AXIS timestamp element is meaningless
+	// without the timestamp unit (ts_value would be a constant 0 marked
+	// valid), and the AXIS sink itself is fed exclusively by the ACT-CAP
+	// command path (same elaboration-$fatal pattern as the etip
+	// composer's watchpoint guard).
+	// ----------------------------------------------------------------
+	if (CT_EN_AXIS_TS && !CT_EN_TIMESTAMP) begin : genAxisTsNeedsTs
+		$fatal(1, "ct_L23_preproc_composer_axis: CT_EN_AXIS_TS requires CT_EN_TIMESTAMP (ts_value has no source without the timestamp unit)");
+		// Structural poison (C0a audit B-1): abc hard-wires -Wno-fatal into
+		// every Verilator run, demoting the $fatal above to %Warning-USERFATAL.
+		// An undeclared module in the taken branch fails elaboration on
+		// EVERY backend; the branch is pruned in legal configurations.
+		ct_elab_guard_violation poison ();
+	end
+	if (CT_EN_AXIS_TS && !CT_EN_ACT) begin : genAxisTsNeedsAct
+		$fatal(1, "ct_L23_preproc_composer_axis: CT_EN_AXIS_TS requires CT_EN_ACT (the AXIS sink is fed by the ACT-CAP command path)");
+		ct_elab_guard_violation poison (); // see genAxisTsNeedsTs
+	end
 
 	logic                               Valid;
 	logic [ACT_CAP_DATA_WIDTH-1:0]      DataElements[NUM_ELEMENTS-1:0];
@@ -95,7 +116,19 @@ module ct_L23_preproc_composer_axis (
 					ct_cs_cpuif__trActCapStCmd_e__ACT_CAP_ST_DAQ_PC_CURR: begin
 						DataElements[0] <= tip.iaddr;
 						DataElements[1] <= DirectDataElem;
-						Strb            <= 8'hFF;
+						if (CT_EN_AXIS_TS) begin
+							// C0a: element 2 = the selected timestamp
+							// (ts_value, i.e. trTsControl.Type/Active/
+							// Count/Prescale -- NOT the delayed
+							// tip._time), so both sinks of an AXIS_NEXUS
+							// command carry the same time base as the
+							// eTIP composer's TSTAMP.
+							DataElements[2] <= ts_value[31:0];
+							Strb            <= 12'hFFF;
+						end
+						else begin
+							Strb            <= 8'hFF;
+						end
 					end
 					ct_cs_cpuif__trActCapStCmd_e__ACT_CAP_ST_DAQ_PC_CURR_LAST: begin
 						DataElements[0] <= tip.iaddr;
@@ -130,7 +163,11 @@ module ct_L23_preproc_composer_axis (
 							perfcnt.data_rd_counter_clr_axis[act_cap_st.cmd.DirectData.value[NUM_PERFCNT_DATA_RD_RANGES_WIDTH:0]] <= '1;
 						end
 						else begin
-							// Todo handle error
+							// Selector out of range: the beat is NOT suppressed and
+							// not reported -- Valid was already raised above and
+							// DataElements/Strb keep the previous beat's contents.
+							// Named limitation, see doc/release-notes.adoc
+							// ("ACT-CAP counter selector out of range").
 						end
 					end
 					ct_cs_cpuif__trActCapStCmd_e__ACT_CAP_ST_DAQ_DATA_WR: begin
@@ -140,7 +177,11 @@ module ct_L23_preproc_composer_axis (
 							perfcnt.data_wr_counter_clr_axis[act_cap_st.cmd.DirectData.value[NUM_PERFCNT_DATA_WR_RANGES_WIDTH:0]] <= '1;
 						end
 						else begin
-							// Todo handle error
+							// Selector out of range: the beat is NOT suppressed and
+							// not reported -- Valid was already raised above and
+							// DataElements/Strb keep the previous beat's contents.
+							// Named limitation, see doc/release-notes.adoc
+							// ("ACT-CAP counter selector out of range").
 						end
 					end
 					ct_cs_cpuif__trActCapStCmd_e__ACT_CAP_ST_DAQ_IFETCH_TH: begin
@@ -150,7 +191,11 @@ module ct_L23_preproc_composer_axis (
 							perfcnt.ifetch_th_counter_clr_axis[act_cap_st.cmd.DirectData.value[NUM_PERFCNT_IFETCH_TH_RANGES_WIDTH:0] ] <= '1;
 						end
 						else begin
-							// Todo handle error
+							// Selector out of range: the beat is NOT suppressed and
+							// not reported -- Valid was already raised above and
+							// DataElements/Strb keep the previous beat's contents.
+							// Named limitation, see doc/release-notes.adoc
+							// ("ACT-CAP counter selector out of range").
 						end
 					end
 					ct_cs_cpuif__trActCapStCmd_e__ACT_CAP_ST_DAQ_DATA_RD_TH: begin
@@ -160,7 +205,11 @@ module ct_L23_preproc_composer_axis (
 							perfcnt.data_rd_th_counter_clr_axis[act_cap_st.cmd.DirectData.value[NUM_PERFCNT_DATA_RD_TH_RANGES_WIDTH:0]] <= '1;
 						end
 						else begin
-							// Todo handle error
+							// Selector out of range: the beat is NOT suppressed and
+							// not reported -- Valid was already raised above and
+							// DataElements/Strb keep the previous beat's contents.
+							// Named limitation, see doc/release-notes.adoc
+							// ("ACT-CAP counter selector out of range").
 						end
 					end
 					default: begin

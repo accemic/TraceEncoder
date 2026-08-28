@@ -4,15 +4,15 @@
 # GitHub CODEOWNERS — review routing.
 # Human-readable maintainer list lives in MAINTAINERS.md.
 #
-# Owners: @accemic (company profile) and @albertschulz (main developer).
+# Owners: @accemic (company profile), @albertschulz and @accemic-weiss (maintainers).
 
 # Default — every change needs a maintainer review.
-*                       @accemic @albertschulz
+*                       @accemic @albertschulz @accemic-weiss
 
 # Legal / CI surface — extra care.
-/LICENSE.md             @accemic @albertschulz
-/LICENSES/              @accemic @albertschulz
-/.github/workflows/     @accemic @albertschulz
-/.github/CODEOWNERS     @accemic @albertschulz
-/CITATION.cff           @accemic @albertschulz
-/.abc.config            @accemic @albertschulz
+/LICENSE.md             @accemic @albertschulz @accemic-weiss
+/LICENSES/              @accemic @albertschulz @accemic-weiss
+/.github/workflows/     @accemic @albertschulz @accemic-weiss
+/.github/CODEOWNERS     @accemic @albertschulz @accemic-weiss
+/CITATION.cff           @accemic @albertschulz @accemic-weiss
+/.abc.config            @accemic @albertschulz @accemic-weiss

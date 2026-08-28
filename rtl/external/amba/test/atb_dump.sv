@@ -1,33 +1,33 @@
-// vim: set ts=4 et:
+// SPDX-FileCopyrightText: 2025 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
 // -*- indent-tabs-mode: t; tab-width: 4 -*-
 `default_nettype none
 /**
-* Copyright (c) 2025 by Accemic Technologies GmbH Kiefersfelden Germany
-* SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
-*
-* @author   Alexander Weiss <aweiss@accemic.com>, Albert Schulz <aschulz@accemic.com>, Alexander Lange <alange@accemic.com>
-*
-* @brief    Writes ATB traffic to a binary dump file
-* @details
-*   Captures ATB bytes on each *accepted* beat (atvalid && atready) and
-*   writes them to `FILEPATH` in binary mode. The final dump path and byte
-*   count are printed at end of simulation so the output location is visible
-*   even when no ATB flush occurs.
-*/
+ * @author   Alexander Weiss <aweiss@accemic.com>, Albert Schulz <aschulz@accemic.com>, Alexander Lange <alange@accemic.com>
+ *
+ * @brief    Writes ATB traffic to a binary dump file
+ * @details
+ *   Captures ATB bytes on each *accepted* beat (atvalid && atready) and
+ *   writes them to `FILEPATH` in binary mode. The final dump path and byte
+ *   count are printed at end of simulation so the output location is visible
+ *   even when no ATB flush occurs.
+ */
 
 module atb_dump #(
-	string	FILEPATH = ""
+	string  FILEPATH = ""
 ) (
-	input uwire logic		atb_atclk, 					// ATB clock
-	input uwire logic		atb_atresetn,				// ATB reset (low active)
-	atb_if.monitor			atb
+	input uwire logic atb_atclk,    // ATB clock
+	input uwire logic atb_atresetn, // ATB reset (low active)
+	atb_if.monitor    atb
 );
 
 	import file_pkg::*;
 	import ct_pkg::*;
 
-	int		fd_dump		= -1;	// file handle for raw dump
-	int		dump_bytes	= 0;
+	int     fd_dump     = -1;   // file handle for raw dump
+	int     dump_bytes  = 0;
 
 	initial begin
 		file_open(FILEPATH, "wb", fd_dump);

@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+# SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+#
+# Red counter-proof job (Klasse 8 / Gate 15): BMC on the P-MSG-1-only
+# build (sv2v -DRED_CLASS8). Run by run_red.sh twice:
+#   - against the CURRENT RTL      -> must PASS (green cross-check)
+#   - against the pre-fix worktree -> must FAIL (the flush clobber)
+
+[options]
+mode bmc
+depth 30
+
+[engines]
+smtbmc bitwuzla
+
+[script]
+read -formal msg_gen_red.v
+prep -top f_msg_check
+
+[files]
+build/msg_gen_red.v

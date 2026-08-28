@@ -1,12 +1,20 @@
+# Opt-in lint rule set (scripts/lint.sh runs with --ruleset=none, so only the
+# rules listed here are active). Per-directory overrides are picked up by
+# --rules_config_search: see rtl/pkg/ and formal/.
+#
+# Deliberately NOT enabled:
+#   plusarg-assignment  Verible rejects every $test$plusargs. The testbenches
+#                       use it for BOOLEAN feature flags, which is exactly what
+#                       it is for; the two places that read a VALUE correctly
+#                       use $value$plusargs. The rule cannot tell the two apart
+#                       and would flag 47 correct uses.
 +always-comb-blocking
 +always-ff-non-blocking=catch_modifying_assignments:on;waive_for_locals:on
 +module-begin-block
 +parameter-name-style=localparam_style:ALL_CAPS;parameter_style:ALL_CAPS
 +module-filename
-+module-parameter   
-+module-begin-block
++module-parameter
 +mismatched-labels
 +invalid-system-task-function
 +forbid-consecutive-null-statements
-+plusarg-assignment
 +void-cast

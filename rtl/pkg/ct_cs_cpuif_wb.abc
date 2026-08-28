@@ -3,7 +3,7 @@
 
 import  @rtl/external/wishbone        : wb_package  wb_to_cpuif
 import  @rtl/external/common          : cpuif_if  signal_cdc strobe_cdc  vector_cdc2
-import  @rtl/pkg : ct_cs_if ct_pkg ct_cs_cpuif ct_cs_cpuif_pkg ct_hwif_ext_signal_cdc
+import  @rtl/pkg : ct_cs_if ct_pkg ct_cs_cpuif ct_cs_micro ct_cs_cpuif_pkg ct_hwif_ext_signal_cdc ct_sync_req_pacer
 
 constraints impl ct_cs_cpuif_wb.xdc
 

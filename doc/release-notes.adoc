@@ -1,0 +1,465 @@
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CC-BY-4.0
+
+= Release notes and known limitations
+
+NOTE: The product name is *CEDARtools.TraceEncoder*, abbreviated *CTTE*.
+The earlier name *C-Trace* is retired from prose; it survives only in the
+`ct_*` identifier prefix (the IP's public API), in board- and
+bundle-visible names (`*_ctrace_kv260`, `ctrace_resmem.dtso`,
+`ctrace-pl-ddr`, the `mbv_ctrace_soc` block design) and in recorded
+captures and evidence files, which are raw data with published checksums.
+See the naming note in the README.
+
+== 1.0.0 (2026-08-28)
+
+The first tagged release. Nothing about the encoder changed for it -- the RTL
+is the one the verdicts below were measured against. What changed is that the
+repository became publishable:
+
+* **Two back ends, one event stream.** N-Trace (IEEE-ISTO 5001-2012 Nexus
+  messages on ATB) and E-Trace 2.0 (`te_inst` packets). Which one an encoder
+  instance speaks is a synthesis parameter (`EN_NTRACE` / `EN_ETRACE`), so a
+  multi-encoder SoC can mix protocols in one netlist -- demonstrated on the
+  KV260 by the `trio` example.
+
+* **Nine worked KV260 integrations** under `examples/kv260/`, four of them
+  gated on real hardware, plus a no-hardware browser dashboard that replays
+  committed captures. The shared MINRES TGC5B building blocks moved to
+  `examples/kv260/common/tgc5b/`; the `tgc5b_soc` example they came from is
+  gone, superseded by `tgc5b2_axis_wp`.
+
+* **Ingress adapters** for AMD MicroBlaze-V (TRACE bus), CVA6 (ITI) and
+  Rocket (TCI), named `*_to_ctte_tip`.
+
+* **Formal property gates** (`formal/`, SymbiYosys) for the emission core, on
+  a licence-free toolchain, now run by GitHub Actions: a fast subset per pull
+  request, the full set nightly.
+
+* **CI that a fresh clone can run.** `make lint` carries 14 drift guards plus
+  Verible over 308 files; `make check-publication` adds the six guards that decide whether
+  the tree is fit to publish (no lab internals, English-only, tutorial paths
+  resolve, no private host or retired repository name and every README link
+  resolves, vendored-CVA6 deltas documented, mbv register map consistent).
+  Five of them used to hang off an internal driver and had therefore never run
+  on a public CI; the sixth came out of the cross-repository audit before the
+  GitHub release.
+
+* **Naming.** The earlier product name *C-Trace* is retired from prose. It
+  survives only where renaming would break something outside this repository
+  -- see the naming note above.
+
+Known limitations are unchanged and listed below; read them before filing a
+bug. What CI cannot run on a hosted runner is stated plainly in
+link:../CONTRIBUTING.md[`CONTRIBUTING.md`]: the 51-gate XSIM battery needs
+Vivado, hardware verdicts need a KV260 board, and the decode verdict needs the
+pinned CTTD reference decoder.
+
+== Current state (2026-08-08)
+
+Verification highlights (details:
+link:verification.adoc[verification]):
+
+* **Hardware robustness campaign all-green** (2026-08-01): 95/95 directed
+  runs on the KV260 reference design (overflow regimes incl. ATB
+  backpressure, feature/mix/sync/window/stop axes, IRQ, BTM, bisection,
+  determinism pair), machine-judged V1–V8 against an RV32 reference
+  model.
+* **Simulation battery 15/15** as measured on 2026-08-01 (robustness
+  gates 01–11 + five compression byte-identity legs), Verilator line
+  coverage 93.42 % measured / 100.00 % effective (waiver-disposed
+  remainder). Both figures carry that date: gates have been added since
+  (the current list is the table in
+  link:verification.adoc[verification]) and the coverage rate has not
+  been re-measured since P9 changed numerator and denominator — so
+  neither number is quoted here as a *current* one.
+* Full-SoC simulation twin (real MicroBlaze V + adapter, 1:1 board
+  clock profile, 343 629 retires, 24 natural overflow recoveries)
+  decodes transitions-exact.
+* **64-bit harts, on hardware** (2026-08-08): Linux boots on cv64a6 and
+  on Rocket in the KV260 PL with the encoder built at `CT_XLEN` = 64. A
+  recorded window of the running cv64a6 kernel decodes with **zero error
+  messages**, 32 413 of 34 453 reconstructed PCs above 2^32, checked
+  against the disassembly by a tool that does not use the decoder. With
+  the current decoder pin the same stream yields 818 663 instructions,
+  bounded by the capture ring rather than by the trace.
+* **The reference decoder was re-pinned twice** (2026-08-08): 64-bit
+  address decode with a per-source width, and a context switch reported
+  as a visible re-anchor instead of a fatal abort — without which no
+  preemptive kernel is decodable past its first task switch. Both
+  re-pins carry byte-neutrality evidence over the frozen 32-bit corpora;
+  the record is link:../bin/README.md[`bin/README.md`].
+
+Functional changes in this cycle:
+
+* **Watchpoint capacity 15 → 1023 + indirect table access** (C0b,
+  2026-08-13). The ACT-ST binary search tree grew from four levels/15
+  slots to **ten levels/1023 slots** (`M0_DIM` 4 → 10); the preproc
+  alignment budget follows (`PREPROC_DELAY_MAX` 20 → 44, charged to
+  `CT_EN_ACT` profiles only) and the truncation class that would have
+  silently mis-aligned ACT-ST at the larger depth is now guarded at
+  elaboration (width guard in `vector_binary_search_2clk`, constant
+  budget guards in `act_st`/`df_range`, poison pattern for backends
+  that demote `$fatal`).
+  **BREAKING CHANGE:** the direct watchpoint memory window at `0x4100`
+  is removed (1023 entries collide with the `df` component at
+  `0x5000`); loading and readback go through `trWpIndex` (`0x400C`) /
+  `trWpDataLow`/`High` (`0x4010`/`0x4014`) / `trWpReadLow`/`High`
+  (`0x4018`/`0x401C`) with hardware auto-increment, and `trWpCap`
+  (`0x4020`) reports the capacity for software discovery. The load
+  registers are Enable-locked; commit is suppressed while tracing is
+  enabled. Migration recipe:
+  link:integration.adoc#wp-indirect[Integration → Indirect watchpoint
+  table access].
+
+* **Trace-pause contract fixed end to end** (encoder + reference
+  decoder): qualifier pipelining aligns the effective
+  `Enable&&InstTracing` level with the delayed instruction beats; a
+  resume gate suppresses position-less beats until the re-anchor sync;
+  the open `next_iaddr` pairing of the last pre-pause control-flow
+  event is captured across the edge; the implicit-return stack is
+  cleared at the pause edge; gap re-anchor syncs are side-effect-free.
+  CTTD treats a correlation as a full decoder unlock (with JTC mirror
+  init) and re-locks anchor-only.
+* **`trTeControl.Empty` is now driven** (was structurally tied
+  inactive): a conservative empty chain per backend tail (2-FF
+  synchronizer + quiet filter into the ATB domain).
+* **Overflow-anchor hardening:** the recovery-sync injector defers
+  emission around any branch retire in the emission cycle
+  (`inject_hold` incl. not-taken branches).
+* Twelve standing SVA invariants (I1–I12) encode the campaign's contract
+  lessons directly in the RTL (simulation-only).
+* **Trace-quota sync cadence** (2026-08-04, `CT_EN_QUOTA_SYNC`):
+  `trTeControl.InstSyncMode` 1 (trace messages) and 4 (trace bytes) are
+  now functional — dedicated counters in all three egress paths bound
+  the decoder re-anchor distance by *emitted volume* (see
+  link:integration.adoc#quota-sync-live[Integration → Live / ring
+  operation]). The TCODE-58 CAPS/ENAB map grew **append-only** from 18
+  to 19 bits (new bit 18, `QUOTA_SYNC`); with the feature compiled out
+  the emitted stream is **byte-identical** to the previous reference
+  family (md5-verified), and the ATB sync-request input now emits
+  `SYNC = 14` (REQ) instead of `PERIODIC`, aligning the wire with the
+  documented request semantics.
+* **Protocol choice is a synthesis parameter** (2026-08-04): the
+  N-Trace/E-Trace decision moved from a runtime select to the
+  `EN_NTRACE`/`EN_ETRACE` parameters of `ct_encoder` — exactly one back
+  end per instance, checked by an elaboration guard. The dual build (both
+  back ends plus an eTIP demux and an ATB mux steered by
+  `trTeProtocolSel`) is **removed**; it was never used in a product and
+  cost a second full back end. `trTeProtocolSel.Protocol` and
+  `trTeImpl.ProtocolMajor` remain at the same addresses with the same
+  encoding but are now **read-only, hardware-driven discovery** of the
+  compiled-in back end, so a mixed SoC (one N-Trace encoder next to an
+  E-Trace one — supported, and gated by
+  `tests/instruction/24_protocol_param`) reports the truth per instance.
+  *Software impact:* a write to `trTeProtocolSel` no longer has an
+  effect; read it instead. Single-protocol builds are byte-identical to
+  the previous reference family (md5-verified), which is what the
+  committed profile has always been.
+
+* **TCI trigger configuration registers and a data-trace drop policy**
+  (2026-08-05, `CT_EN_TRIG_REGS` / `CT_EN_DF_DROP`):
+  `trTeTrigExtInControl` (`0x054`) now selects what a pulse on the
+  external trigger input does — 0 none, 2 trace-on, 3 trace-off, 4
+  trace-notify (TCI Table 20). The historical
+  `trTeControl.InstTrigEnable` path to the `SYNC = 6` marker is
+  **unchanged**; action 4 is an additional *source* of the same
+  one-shot, so enabling both still yields exactly one marker per pulse.
+  `trTeTrigDbgControl` (`0x050`) and `trTeTrigExtOutControl` (`0x058`)
+  read 0 — the answer TCI prescribes for a trigger that does not exist
+  (there is no debug-trigger sideband and no trigger output port).
+  `trTeDataControl.DataDropEna` sheds data-trace messages once the eTIP
+  queue reaches 3/4 fill, to keep the instruction trace intact; each
+  drop episode is announced by ONE `Error`/`QueueOverrun` with
+  `ECODE = 0x02` and, deliberately, *without* the `SYNC = 7` re-anchor
+  of the generic overflow path. CAPS/ENAB grew append-only from 22 to 23
+  bits (new bit 22, `DF_DROP`). `trTeControl.InstStallOrOverflow` and
+  `trTeDataControl.{DataStallOrOverflow,DataDrop}` are implemented as
+  sticky RW1C status (overflow half; the *stall* half has no back
+  channel to the hart and stays unimplemented — see
+  link:trace-format.adoc[trace format → conformance]). With both
+  switches compiled out the emitted stream is byte-identical to the
+  pinned reference family (md5-verified). *Decoder impact:* a stock
+  decoder needs no change to parse the drop marker, but one that treats
+  every `Error` as a full desync loses the instruction trace the marker
+  promises is intact — CTTD now scopes `ECODE = 0x02` to the data-trace
+  reference only.
+
+* **Explicit synchronization request over the TE register**
+  (2026-08-05, `CT_EN_INST_SYNC_REQ`): `trTeControl.InstSyncReq` (bit
+  27, write-1) — the TCI-standard way of asking for an instruction
+  synchronization message — is now effective. It always existed and
+  always auto-cleared; what was missing was a consumer. On the wire it
+  is the explicit-request code `SYNC = 14`, the same one the ACT-CAP
+  `CF_SYNC` command and the ATB sync-request input produce, so **no
+  decoder change is needed**. The field is not tied to a cadence: it
+  works in every `InstSyncMode`, including mode 0. Contract: *one
+  message per request*, with a request depth of one in flight plus one
+  remembered — a write that lands while a request is still outstanding
+  is **not** swallowed, it becomes its own request and gets its own
+  message; only a write on top of an already queued one collapses into
+  it. Measured (`scripts/cli_tesyncreq_test.sh`): one write → one
+  `SYNC = 14`, two back-to-back writes → two, three → still two. A
+  request written while instruction tracing is paused is **deferred**
+  (served after the resume anchor `SYNC = 5`, not dropped), and requests
+  from two sources landing on the same retire are satisfied by that one
+  message. `trTeSyncStatus.SyncReqSource` grew to three bits and reports
+  the new source `4`, kept apart from `1` (ACT-CAP `CF_SYNC`) because
+  the requester is a different actor: the external control bus versus
+  the traced hart. No CAPS bit — the feature adds neither a message type
+  nor a wire field, so the stream is unchanged until software writes the
+  bit; with the switch compiled out the write is accepted and inert
+  again, exactly as before. Byte-neutral in both builds against the
+  pinned reference family — 31 of 31 streams md5-identical with the
+  switch ON as well as OFF. Read that ON run for what it is: none of the
+  reference testbenches ever writes bit 27, so it shows the feature is
+  *dormant* until asked, not that it works. The activity proof is the
+  `req` leg of the system test, which shows the same build with the same
+  stimulus producing exactly one additional message — the `SYNC = 14` —
+  and byte-identical output up to the point where it is inserted.
+  Across a reset of one domain the request behaves asymmetrically, and
+  the asymmetry is contract: it survives a `tip_rst` (the four-phase
+  level handshake re-presents it), and it does *not* survive a `wb_rst`,
+  which clears the pacer's own state. See
+  link:integration.adoc#independent-resets[Integration — resetting one
+  domain without the others] for what is and is not claimed.
++
+*Fixed along the way, same release:* one explicit request could produce
+**two** `SYNC = 14` messages when the hart retired on consecutive
+cycles. The handshake output only drops one cycle after the
+acknowledgement, so the sync arm stayed eligible for one more retire.
+This affected the pre-existing **ATB** request path as well and is
+closed for both (regression gates: the back-to-back-retire legs in
+`rtl/preproc/test/ct_L23_preproc_sync_tb.sv`). Note the scope: that fix
+sits in the shared sync arm, *outside* `CT_EN_INST_SYNC_REQ`, so it is
+in the build with the new feature compiled out too. "Compiled out = the
+pre-P8 build" is true for the request path and for the flop count; it is
+not true for the ATB path, which is one message better off.
+
+* **64-bit addresses are a build knob** (2026-08-08, `ct_pkg::CT_XLEN`,
+  default 32): the architectural address width of the attached hart now
+  has ONE definition instead of a 32 repeated across five packages. It
+  sizes the TIP instruction/data address, the Nexus `F-ADDR`/`U-ADDR`
+  fields and their reference registers, the address comparators, the
+  jump-target-cache index fold, the ACT-ST / DF-range search keys and
+  the eTIP payload. Two things it does *not* do: change a single byte at
+  `CT_XLEN` = 32 (every downstream expression reduces to the historical
+  constant — verified against the pinned reference family), and turn
+  into a runtime mode. The width is a synthesis parameter and is
+  announced on the wire as CAPS bit 23 (`ADDR64`, `CFGVER` unchanged at
+  1), because a decoder cannot infer it from a stream whose address
+  fields are variable-length with leading zeros stripped. Two behaviour
+  changes come with it. The jump-target-cache index folds the whole
+  address at 64 bit instead of stopping at bit 25 — otherwise every Sv39
+  kernel target would hash as if its upper half were zero; the reference
+  decoder mirrors the same fold, switched by the CAPS bit. And the
+  `TR_COMP_SFUNC_PMASK` comparator mode takes its mask from the new
+  register pair `trTeCompSMask{Low,High}` (`0x008`/`0x00C`) instead of
+  from `SMatchHigh`, which is now what the RDL always said it was: bits
+  63:32 of the secondary bound. Software that used the old mask location
+  has to move one register; the reset configuration is unaffected
+  (`SFunction` resets to `EQUAL`). Constraints of this step: comparator
+  bounds and ACT-ST / DF-range keys are CSR-programmable in the low
+  4 GiB only (the CSR side stays a 32-bit word pair — the *compared*
+  address is full width), and an E-Trace instance with `CT_XLEN` = 64 is
+  rejected at elaboration, since the `te_inst` address fields are sized
+  by `CT_ETRACE_ADDR_BITS` = 31 and would truncate silently. Also in this
+  step: the `ECAUSE_NONE` simulation sentinel moved off cause 15, which
+  is the real Store/AMO page fault — under Sv39 Linux the most frequent
+  trap there is — onto the architecturally reserved cause **14**. (An
+  interim revision of this change used cause 10; that was wrong. With the
+  ratified H extension, 10 is "Environment call from VS-mode", so the
+  sentinel would have collided again the moment a hart ran with H enabled.
+  14 is the only code the 4-bit cause space reserves unconditionally.)
+
+* **Trace one process, not one address range** (2026-08-08,
+  `ct_pkg::CT_CONTEXT_WIDTH` default 2, `ct_pkg::CT_EN_FILTER_SYNC`):
+  the context bus `tip._context` is a build knob now, so an integrator
+  can feed it the hart's real process identifier — a RISC-V `satp.ASID`
+  is 16 bits under Sv39/Sv48 and did not fit in the previous fixed 2.
+  Unlike the address width this needs no CAPS bit: the Ownership message
+  carries the value in the 44-bit `PROCESS` field, which goes out as a
+  variable-length field with leading zeros stripped, so the whole value
+  is on the wire and self-delimiting. At the default 2 the emitted bytes
+  are unchanged.
++
+  With that in place, `trTeComp[].PInput` = 1 (context) turns the
+  existing filter bank into a *per-process* trace filter — and that
+  exposed a hole worth naming, because it is a hole in a feature that
+  looked finished. A filtered stream was **not decodable**: the sync
+  generator anchors on any retire, but the message slot that carries the
+  verdict only exists for a retire the filter accepted, so anchors
+  landing on filtered-out instructions were dropped — including the
+  trace-enable anchor. And `region_entered`/`region_exited`, computed by
+  `ct_L23_preproc_cf` since the beginning and routed all the way into the
+  eTIP composer, had no reader there, so coming back into the region
+  produced no re-anchor at all. Measured before the fix, with a context
+  filter selected: not one `ProgTraceSync` in the stream and 0 of 218
+  instructions decoded.
++
+  `CT_EN_FILTER_SYNC` closes both with the vocabulary a software trace
+  pause already uses — Program Trace Correlation (TCODE 33,
+  `EVCODE = Program Trace Disabled`, with the residual `ICNT`/history and
+  a call-stack clear) on region exit, `SYNC = 5` on region entry, and a
+  dropped verdict held for the next qualified retire. **No new message
+  type, no CAPS bit, no decoder change.** The correlation is a second
+  source of the *same* message slot as the trace-off path, so the proven
+  `ETIP_PAR_MSG` bound is untouched. Byte neutrality is structural: the
+  whole block is gated on `trTeInstFilters` being non-zero, and that
+  register resets to 0 ("trace all"). There is deliberately no runtime
+  opt-out — what it replaces is an undecodable stream, not an
+  alternative mode. Note what a filter still does *not* suppress: trap
+  delivery is traced whatever the filter selects (exception/interrupt
+  beats bypass the control-flow qualifier by design), and the
+  correlation says *that* there was a gap, not how long it was.
+
+=== Changed reset value: `trTeControl.InstSyncMax` 0 → 6 (2026-08-12)
+
+The periodic-sync *period* now resets to 2^(6+4)^ = **1024 units**
+instead of 2^(0+4)^ = 16. `InstSyncMode` is unchanged (0 = no periodic
+cadence at all), so a build that never enables the cadence is
+bit-for-bit unaffected. What changes is the *natural* programming path:
+enabling the cadence is one write of `InstSyncMode` and takes the
+period from reset, and that period used to be the tightest the hardware
+has, in whichever unit.
+
+Measured over 100 010 retires with only the period varied (gate
+`tests/instruction/37_sync_cadence`): the old reset cost 97 844 trace
+bytes, the new one 41 072, against 40 060 with the cadence effectively
+off — a factor 2.44 versus 2.5 % overhead. Against a finite sink
+(40 MB/s, same workload) the old reset announced 790 overflows and lost
+5 064 events; the new one is byte-identical to the same run against an
+infinite sink.
+
+Integrators who *program* `InstSyncMax` see no change. Anyone relying
+on the reset now gets a period of 1024 — in mode 4 (trace bytes) that
+is a 1 KiB re-anchor bound, the number a ring consumer wants. The
+minimum period stays available as an explicit stress configuration;
+it is simply no longer what you get by not asking.
+
+== Known limitations (by design — read before filing a bug)
+
+[cols="1,3", options="header"]
+|===
+| Topic | Contract
+
+| One hart per encoder instance
+| An encoder traces exactly one hart, so an N-hart system needs N
+  instances. Both sides of that are in place: the packet-aware merge
+  (`rtl/ct_L1_funnel.sv`, never switching mid-packet, sources told apart by
+  the SRC field) and the per-source split (CTTD `-target`), verified by
+  `tests/instruction/39_dual_src` and board-proven on the KV260
+  (`examples/kv260/duo`). What is *not* covered is following one process as
+  the scheduler migrates it between harts: per-hart streams decode
+  independently, and cross-hart process tracking is host-side work on top.
+
+| `Empty` with a stopped core
+| With `InstTracing=1` and the core halted, exactly one control-flow
+  event is permanently in flight (its successor address can never be
+  observed) — `Empty=0` is the correct report. Close the stream
+  (`InstTracing=0`) while the core still retires, then stop; see
+  link:integration.adoc[integration].
+
+| Byte-level run-to-run determinism under overflow
+| FIFO-overrun drop positions depend on real CDC/ATB phase relations;
+  two identical runs produce equivalent but not byte-identical streams.
+  The verified property is decode equivalence. Byte identity holds in
+  drop-free regimes with timestamps off.
+
+| Trace-off correlation under overflow
+| The correlation is an ordinary message: if the pause edge falls into
+  a drop episode it is lost *announced* (ERROR + recovery sync); the
+  resume re-anchor still recovers the decoder.
+
+| Post-pause position ambiguity
+| After a pause, the first decoded segment may be positionally
+  ambiguous against a full execution reference when the code is
+  homogeneous (the pause length is unknowable from the stream). Content
+  remains fully checkable; tooling should pair by anchor and verify
+  transitions, not force positional alignment.
+
+| Trace-quota window semantics
+| The quota counter rearms when the sync is *emitted*: the sync
+  message's own bytes count into the new window, and no second request
+  is raised while one is pending (no sync avalanche at small quotas).
+  After a FIFO-overrun recovery the counter is *not* re-based — the
+  first post-recovery quota sync can arrive earlier than one full
+  quota (a harmless extra re-anchor, never a late one). With
+  `CT_EN_QUOTA_SYNC = 0`, modes 1/4 stay writable but inert (no WARL
+  clamp — exactly the pre-feature behaviour).
+
+| Non-standard core trace buses
+| Core-side adapters (e.g. MicroBlaze V `TRACE`) are pinned to the
+  characterized core/tool version; the bus is documented as not
+  backward-compatible.
+
+| ACT-CAP counter selector out of range
+| A DAQ counter read (`DAQ_DATA_RD`, `DAQ_DATA_WR`, `DAQ_IFETCH_TH`,
+  `DAQ_DATA_RD_TH`) whose selector in `trActCapStCmd.DirectData` exceeds
+  the number of configured ranges is *not* rejected: on the AXIS sink the
+  beat is still emitted, with `tid` = the command but `tdata`/`tstrb`
+  unchanged from the previous beat, and no error is signalled. Keep the
+  selector inside `0..NUM_PERFCNT_<class>_RANGES`; a host that does is
+  unaffected.
+
+| XSIM waveform debug of encoder internals
+| Vivado XSIM 2026.x crashes with wave instrumentation on this code
+  base (`-debug off` required); use Verilator (with coverage) or the
+  `$display`/counter instrumentation instead.
+|===
+
+== Resource and timing snapshot (2026-08-06, xck26-sfvc784-2LV-c)
+
+[#p10-timing]
+Out-of-context synthesis of `ct_encoder`, **Vivado 2022.1.2** (the
+version `.abc.config` pins), commit `7a0b7b2`, two clock budgets per
+profile. Reproduce with `bash scripts/p10_timing_matrix.sh`. Full table
+with the caveats:
+link:integration.adoc#profile-timing[integration, *Timing per profile*].
+The reports are in the tree — LUTs and flip-flops from
+link:../verification/evidence/P10/nonly/timing_75mhz_util_flat.rpt[`nonly`],
+link:../verification/evidence/P10/eonly/timing_75mhz_util_flat.rpt[`eonly`],
+link:../verification/evidence/P10/featparity_gold/timing_75mhz_util_flat.rpt[`featparity_gold`]
+and
+link:../verification/evidence/P10/slimfull_gold/timing_75mhz_util_flat.rpt[`slimfull_gold`],
+WNS from the `timing_<budget>_summary.rpt` beside each of them, verdict
+in `verification/evidence/P10/timing.log`.
+
+[cols="2,^1,^1,^1,^1", options="header"]
+|===
+| Profile | CLB LUTs | Register as FF | WNS @ 13.333 ns (75 MHz) | WNS @ 5.0 ns (200 MHz)
+
+| full profile / N-Trace | 25 784 | 20 168 | *+4.175 ns* | −4.158 ns
+| full profile / E-Trace | 26 372 | 16 953 | *+1.753 ns* | −6.580 ns
+| `featparity_gold` | 4 938 | 4 824 | *+8.672 ns* | +0.339 ns
+| `slimfull_gold` | 4 290 | 3 984 | *+8.695 ns* | +0.362 ns
+|===
+
+* **At the 75 MHz board budget all profiles meet timing**, smallest
+  margin +1.753 ns (E-Trace). At 200 MHz only the two slim profiles do;
+  200 MHz is not a requirement in this project, the column is headroom.
+* This is a post-synthesis figure with `set_clock_groups -asynchronous`
+  between the five clock domains, not a placed-and-routed one.
+* The slim profiles are no longer the ~2.5 k-LUT builds of seq 22: the
+  gold profiles keep `CT_EN_BTM`, `CT_EN_SYNC_STATUS`,
+  `CT_EN_FIFO_HIST`, `CT_EN_QUOTA_SYNC`, `CT_EN_DEVICE_ID`,
+  `CT_EN_TRIG_REGS` and `CT_EN_INST_SYNC_REQ` on, so everything P2, P4,
+  P7 and P8 added is inside the 4 938 LUTs.
+
+=== Historical snapshot (2026-08-01) — pre-P2..P9, kept as measured
+
+* Full profile with BOTH back ends instantiated, OOC synthesis:
+  **26 123 LUTs / 20 022 FFs / 9.5 BRAM**
+  (`scripts/synth_encoder_ooc.tcl`).
+* Same profile placed in the `mbv_kv260` reference design:
+  **23 428 LUTs / 19 065 FFs**, WNS +2.679 ns at 75 MHz single-clock
+  (corrected 2026-08-14; the previously quoted +2.186 ns was Vivado's
+  router estimate, not the routed timing summary).
+* Historical N-Trace-only full profile (before the E-Trace backend,
+  2026-07-20): 24 354 LUTs — not directly comparable to the two-back-end
+  numbers above. Slim CF-only profiles measure in the ~2.1–2.5 k-LUT
+  class; re-run the OOC script per profile when quoting.
+* NOTE: the two-back-end configuration was retired on 2026-08-04 (P9,
+  protocol = synthesis parameter). The figures above stay as measured,
+  but no current build looks like that; a single-protocol encoder drops
+  the second back end.

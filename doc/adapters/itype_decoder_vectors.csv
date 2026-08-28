@@ -1,0 +1,33 @@
+instr_hex,asm,rd,rs1,funct3,jump_taken,itype,ilastsize,gate
+0x00208463,beq x1,x2,off,1,2,0,0,NOT_TAKEN_BRANCH,1,G2
+0x00208463,beq x1,x2,off,1,2,0,1,TAKEN_BRANCH,1,G2
+0x00209463,bne x1,x2,off,1,2,1,0,NOT_TAKEN_BRANCH,1,G2
+0x00209463,bne x1,x2,off,1,2,1,1,TAKEN_BRANCH,1,G2
+0x0020c463,blt x1,x2,off,1,2,4,0,NOT_TAKEN_BRANCH,1,G2
+0x0020c463,blt x1,x2,off,1,2,4,1,TAKEN_BRANCH,1,G2
+0x0020d463,bge x1,x2,off,1,2,5,0,NOT_TAKEN_BRANCH,1,G2
+0x0020d463,bge x1,x2,off,1,2,5,1,TAKEN_BRANCH,1,G2
+0x0020e463,bltu x1,x2,off,1,2,6,0,NOT_TAKEN_BRANCH,1,G2
+0x0020e463,bltu x1,x2,off,1,2,6,1,TAKEN_BRANCH,1,G2
+0x0020f463,bgeu x1,x2,off,1,2,7,0,NOT_TAKEN_BRANCH,1,G2
+0x0020f463,bgeu x1,x2,off,1,2,7,1,TAKEN_BRANCH,1,G2
+0x0100006f,jal x0,off,0,-,-,n/a,OTHER_INFERABLE_JUMP,1,G2
+0x010000ef,jal x1,off,1,-,-,n/a,INFERRABLE_CALL,1,G2
+0x010002ef,jal x5,off,5,-,-,n/a,INFERRABLE_CALL,1,G2
+0x0100046f,jal x8,off,8,-,-,n/a,OTHER_INFERABLE_JUMP,1,G2
+0x000100e7,jalr x1,0(x2),1,2,0,n/a,UNINFERABLE_CALL,1,G2
+0x000302e7,jalr x5,0(x6),5,6,0,n/a,UNINFERABLE_CALL,1,G2
+0x00008067,jalr x0,0(x1),0,1,0,n/a,RETURN,1,G2
+0x00028067,jalr x0,0(x5),0,5,0,n/a,RETURN,1,G2
+0x00008467,jalr x8,0(x1),8,1,0,n/a,RETURN,1,G2
+0x000080e7,jalr x1,0(x1),1,1,0,n/a,UNINFERABLE_CALL,1,G2
+0x000280e7,jalr x1,0(x5),1,5,0,n/a,CO_ROUTINE_SWAP,1,G2
+0x000082e7,jalr x5,0(x1),5,1,0,n/a,CO_ROUTINE_SWAP,1,G2
+0x00010067,jalr x0,0(x2),0,2,0,n/a,OTHER_UNINFERABLE_JUMP,1,G2
+0x00048467,jalr x8,0(x9),8,9,0,n/a,OTHER_UNINFERABLE_JUMP,1,G2
+0x30200073,mret,-,-,-,n/a,EXCEPTION_IR,1,G2
+0x10200073,sret,-,-,-,n/a,EXCEPTION_IR,1,G2 (S-mode, not MVP)
+0x00000073,ecall,-,-,-,n/a,EXCEPTION_TRAP?,1,G1 (iretire/trap coupling)
+0x00100073,ebreak,-,-,-,n/a,EXCEPTION_TRAP?,1,G1 (iretire/trap coupling)
+0x00000013,addi x0,x0,0 (nop),0,0,-,n/a,OTHER,1,G2
+0x00c58533,add x10,x11,x12,10,11,-,n/a,OTHER,1,G2

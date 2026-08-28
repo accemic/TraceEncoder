@@ -1,0 +1,35 @@
+# REF_FINAL manifest -- minted 2026-08-05 10:37:39, HEAD a04b37b
+# reason     : CAPS 23 -- P4 Device ID (bit 19) + Watchpoint (bit 20) are real (commit 106de0a, P4 audit condition B-1); the HEAD full profile ALSO carries P7's DF_DROP (bit 22, commit 5c20bfe), so the family moves for both reasons. Delta localised as config-message-only: the P4-OFF build differs from this family in the config message alone, and with P7's bit also off the stream reproduces the CAPS-22 family bit-exactly (bld/p4a/B1_mint_and_off.log)
+# supersedes : NEW     : REF_FINAL_06: off=39b1ae54ac46f2ae112ece05b26db81e on=258464dd89f5f52dac8af892e6a618eb nots=d8661d27e971389070b0273efadd62a5
+# previous   : bld/r2_final_manifest.prev.txt / bld/r2_final_mint.prev.log
+1f96aa38a9017ce3bcdd78cc847e1be6  branch_predict_tb/atb_off.bin
+c1d909978d6b3bb356a6e40f2abed0a6  branch_predict_tb/atb_on.bin
+6b99594d8bfbe6124411bca56e621fb0  config_msg_tb/atb_bp.bin
+7f1732cb6507d26f72d728954a5eccc0  config_msg_tb/atb_bpneg.bin
+4a50f19697d9d61593cb20b97615cd5a  config_msg_tb/atb_none.bin
+6b496dcce4e07acf7fe4a93e8bac74e5  config_msg_tb/atb_once.bin
+f7ed0d5c4bdc4db6be34a2cd2377cb08  config_msg_tb/atb_onsync.bin
+40623ed6e63f4c0fd0e849b991ae6a70  debug_events_tb/atb_dbg.bin
+6b768b50f72bd079e27443bd14dbce52  ibhs_tb/atb_off.bin
+719f16ca21e73d2cabfb2a874263c683  ibhs_tb/atb_on.bin
+4a8ed3e8bf5bf24b5d457d47be5d17e7  implicit_return_tb/atb_nots.bin
+f010e3491a9ae9fd7c8acd45d981dc49  implicit_return_tb/atb_off.bin
+a992c06cde932bbb1bdf945c42fe1a81  implicit_return_tb/atb_on.bin
+765cb1e26236e24b6869fcc9c3bc8355  jtc_tb/atb_off.bin
+238a1245181c19e19e9288f483cd7127  jtc_tb/atb_on.bin
+445561a376294a00504e8b5207873911  repeat_branch_tb/atb_off.bin
+5ce07cfaff7c9895225e0ac657c967b5  repeat_branch_tb/atb_on.bin
+7c7efd1dfd3a7dcdb4f73e85ccd70477  repeat_instr_tb/atb_off.bin
+c5de39b520e56aff65e64d4ef5f5cc81  repeat_instr_tb/atb_on.bin
+1f46cef3b7d40a62407e6216552233e7  repeat_instr_tb/atb_rh.bin
+17c8e03636285a1f4ed16c61db8f88f0  repeated_history_tb/atb_off.bin
+43a7b38d0ae0e1be15110a4ef5b5ed08  repeated_history_tb/atb_on.bin
+d43e56f0866e45550fb47cdcb6190811  repeated_history_tb/atb_onw.bin
+009ca91dd5e70de332953f57a9ebcbda  robustness_tb/atb_all.bin
+b0cb9ca8668a4a7605bcd5c85c5aecc2  robustness_tb/atb_bpf.bin
+0bd2af552985bc482a8a8634f97f6ab0  robustness_tb/atb_hist.bin
+2d7603a4485b7e1edd7b69974f475191  robustness_tb/atb_off.bin
+c3029e68538a6729ea302645138a9c68  trig_seq_own_tb/atb_off.bin
+76b23a6117729f4add53b2747618595f  trig_seq_own_tb/atb_own.bin
+84e3fce67a3c7ed96bb3e9c7c583ad1d  trig_seq_own_tb/atb_seq.bin
+70ec63a956fd995ab83928e9646193d3  trig_seq_own_tb/atb_trig.bin

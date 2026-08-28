@@ -132,7 +132,7 @@ module overrun_recovery_tb;
 		env.csr.Set_te_trTeControl_InstTracing     (1'b1);
 		env.csr.Set_te_trTeDataControl_DataTracing (1'b1);
 		env.csr.Set_te_trTeControl_Active          (1'b1);
-		env.wait_cycles(20);
+		env.cpu.idle(20);
 
 		// ============================================================
 		// Phase A: clean baseline (CF + data, no stall).
@@ -147,7 +147,7 @@ module overrun_recovery_tb;
 		env.cpu.branch_not_taken();                                         // BD fall-through
 		env.cpu.load_data (.addr(BUF_H), .size(DSIZE_H));                   // halfword load
 		env.cpu.run(.n_bytes(16));                                          // 4 L
-		env.wait_cycles(500);
+		env.cpu.idle(500);
 		bytes_after_A = env.atb_bytes_seen;
 		$display("[overrun_recovery_tb] phase A bytes = %0d", bytes_after_A);
 		if (bytes_after_A == 0)
@@ -175,32 +175,40 @@ module overrun_recovery_tb;
 		$display("[overrun_recovery_tb] %0t: phase B — bridge + ATB stall + CF storm", $time);
 		env.cpu.uninferable_jump(.target(PHASE_B_PC));
 		env.atb_force_stall = 1'b1;
-		// 300 pairs = 600 back-to-back TAKEN branches. The composer's
-		// next_iaddr FIFO (256 deep) + ETIP CDC FIFO need ~400 entries
-		// of CF pressure to guarantee the QueueOverrun injection path
-		// fires; 600 branches gives comfortable margin (matches the
-		// historical 01_run_overflow_reset test sizing). Data tracing
-		// stays on across the test so phases A / D / E exercise the DF
-		// path, but the storm itself is pure CF — interleaving a data
-		// access at the storm's cur_pc would clash with the BD pcinfo
-		// already recorded there.
+		// Storm events must be INDIRECT jumps: since the composer-side
+		// HIST accumulation (compression suite) direct TAKEN branches
+		// compact ~32:1 into ResourceFull slots and can no longer
+		// saturate the eTIP path (measured: a 2400-branch storm raised
+		// only 372 slots, max fill 125/128, zero drops). Every
+		// uninferable_jump raises one CF slot PLUS one next_iaddr
+		// sideband entry, so the storm saturates the sideband FIFO under
+		// ATB backpressure — the QueueOverrun injection path this test
+		// exists to exercise. 300 pairs = 600 JI events cover the
+		// sideband depth (256) plus consumption with clear margin in
+		// every full profile.
+		// The storm ping-pongs on a dedicated pad (+0x4000/+0x4400) whose
+		// addresses carry ONLY JI pcinfo: reusing PHASE_B_PC (also the
+		// drain's branch_taken site) or any phase address would create the
+		// L/BD/JI pcinfo conflicts this TB's comments warn about.
+		env.cpu.uninferable_jump(.target(PHASE_B_PC + 32'h0000_4000)); // enter pad
 		repeat (300) begin
-			env.cpu.branch_taken(.target(PHASE_B_PC + 32'h0000_0080));
-			env.cpu.branch_taken(.target(PHASE_B_PC));
+			env.cpu.uninferable_jump(.target(PHASE_B_PC + 32'h0000_4400));
+			env.cpu.uninferable_jump(.target(PHASE_B_PC + 32'h0000_4000));
 		end
+		env.cpu.uninferable_jump(.target(PHASE_B_PC + 32'h0000_0040)); // leave pad
 		// Drain to a fresh PC so phase D's jump_to source is not a BD site
 		// (avoids an L/BD/JD pcinfo conflict at PHASE_B_PC).
 		env.cpu.branch_taken(.target(PHASE_B_PC + 32'h0000_0080));
 		env.cpu.branch_not_taken();   // BD at PHASE_B_PC+0x80, falls through to +0x84
 		// Hold stall briefly so the injector definitely fires.
-		env.wait_cycles(200);
+		env.cpu.idle(200);
 
 		// ============================================================
 		// Phase C: release stall, let the recovery sync emit, NO reset.
 		// ============================================================
 		$display("[overrun_recovery_tb] %0t: phase C — release stall, recovery sync emits", $time);
 		env.atb_force_stall = 1'b0;
-		env.wait_cycles(15000);  // generous drain window so phase D's CFs
+		env.cpu.idle(15000);  // generous drain window so phase D's CFs
 		                          // enter a settled (Forwarding) composer.
 		                          // A heavy storm (600 CFs + data) takes
 		                          // longer to drain than the smaller
@@ -229,7 +237,7 @@ module overrun_recovery_tb;
 		env.cpu.uninferable_jump(.target(PHASE_D_INDIRECT_TARGET));         // JI — the hot check
 		env.cpu.run(.n_bytes(32));                                          // 8 L at indirect target
 
-		env.wait_cycles(500);
+		env.cpu.idle(500);
 		bytes_after_D = env.atb_bytes_seen;
 		$display("[overrun_recovery_tb] phase D bytes = %0d (delta = %0d)",
 			bytes_after_D, bytes_after_D - bytes_after_C);
@@ -247,12 +255,12 @@ module overrun_recovery_tb;
 		// ============================================================
 		$display("[overrun_recovery_tb] %0t: phase E — soft reset + clean run", $time);
 		env.cpu.exit_trace();
-		env.wait_cycles(200);
+		env.cpu.idle(200);
 
 		env.ct_cs_rst = 1'b1;
-		env.wait_cycles(20);
+		env.cpu.idle(20);
 		env.ct_cs_rst = 1'b0;
-		env.wait_cycles(20);
+		env.cpu.idle(20);
 
 		env.csr.clear();
 		env.csr.Set_te_trTeControl_InstSyncMode    (ITR_SYNC_CLK_CYCLES);
@@ -261,7 +269,7 @@ module overrun_recovery_tb;
 		env.csr.Set_te_trTeControl_InstTracing     (1'b1);
 		env.csr.Set_te_trTeDataControl_DataTracing (1'b1);
 		env.csr.Set_te_trTeControl_Active          (1'b1);
-		env.wait_cycles(20);
+		env.cpu.idle(20);
 
 		env.cpu.enter(.start_pc(PHASE_E_PC));
 		env.cpu.run(.n_bytes(32));                                          // 8 L
@@ -272,7 +280,7 @@ module overrun_recovery_tb;
 		                   .data(64'h1234_5678));                           // word store
 		env.cpu.run(.n_bytes(16));                                          // 4 L
 		env.cpu.exit_trace();
-		env.wait_cycles(500);
+		env.cpu.idle(500);
 		bytes_after_E = env.atb_bytes_seen;
 		$display("[overrun_recovery_tb] phase E bytes = %0d (delta = %0d)",
 			bytes_after_E, bytes_after_E - bytes_after_D);
@@ -280,15 +288,15 @@ module overrun_recovery_tb;
 			$error("[overrun_recovery_tb] phase E produced no additional ATB output — encoder did not recover from soft reset");
 
 		// ---- Trace-off drain ----
-		env.wait_cycles(50);
+		env.cpu.idle(50);
 		env.csr.Set_te_trTeControl_InstTracing (1'b0);
-		env.wait_cycles(200);
+		env.cpu.idle(200);
 		env.csr.Set_te_trTeControl_Enable      (1'b0);
 		env.atb_force_flush = 1'b1;
-		env.wait_cycles(4000);
+		env.cpu.idle(4000);
 		env.atb_force_flush = 1'b0;
 		env.csr.Set_te_trTeControl_Active      (1'b0);
-		env.wait_cycles(5000);
+		env.cpu.idle(5000);
 
 		if (env.cpu.event_count() == 0)
 			$error("[overrun_recovery_tb] cpu_model event log empty");

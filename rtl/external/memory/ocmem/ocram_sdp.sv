@@ -1,10 +1,11 @@
+// SPDX-FileCopyrightText: 2018-2025 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
 // -*- indent-tabs-mode:t; tab-width:4
-// vim: tabstop=4:noexpandtab
+// vim: set ts=4 noet:
+// -*- indent-tabs-mode: t; tab-width: 4 -*-
 `default_nettype none
 /**
- * SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
- * Copyright (c) 2018-2025 by Accemic Technologies GmbH Kiefersfelden Germany
- *
  * @author   Thomas B. Preußer <tpreusser@accemic.com>,
  *           Albert Schulz <aschulz@accemic.com>,
  *           Alexander Weiss <aweiss@accemic.com>
@@ -39,25 +40,25 @@
 
 module ocram_sdp #(
 	/// Number of Address Bits
-	parameter int A_BITS,
+	parameter int                              A_BITS,
 
 	/// Data Type stored in the OCRAM
-	type T = logic [7:0],
+	type                                       T                                  = logic [7:0],
 
 	/// Optional packed initial memory contents used when ENABLE_INIT is set.
-	parameter logic [(2**A_BITS)*$bits(T)-1:0] INIT = '0,
+	parameter logic [(2**A_BITS)*$bits(T)-1:0] INIT                               = '0,
 
 	/// Enable initialization from INIT in simulation. Default off.
-	bit ENABLE_INIT = 1'b0,
+	bit                                        ENABLE_INIT                        = 1'b0,
 
 	/// Desired RAM Implementation Style
-	parameter RAM_STYLE = "block", // alternatives: distributed, registers, ultra, auto
+	parameter                                  RAM_STYLE                          = "block", // alternatives: distributed, registers, ultra, auto
 
 	/// Adds additional output register for data from memory.
-	bit USE_ADDITIONAL_OUTPUT_REG = 1'b0,
+	bit                                        USE_ADDITIONAL_OUTPUT_REG          = 1'b0,
 
 	/// If set, Clock Enable for the Output Register is controlled by the read_if.regce signal.
-	bit ENABLE_SEPARATED_CE_FOR_OUTPUT_REG = 1'b0)
+	bit                                        ENABLE_SEPARATED_CE_FOR_OUTPUT_REG = 1'b0)
 (
   ocram_write_if.impl  write_port,
   ocram_read_if.impl   read_port

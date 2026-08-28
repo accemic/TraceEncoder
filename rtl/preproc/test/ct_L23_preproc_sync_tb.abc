@@ -1,11 +1,25 @@
 # SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
 # SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
 
-import	@rtl/pkg : tip_if tip_pkg ct_cs_if ct_cs_cpuif_pkg
+import	@rtl/pkg : tip_if tip_pkg ct_cs_if ct_cs_cpuif_pkg ct_sync_req_pacer
 import	@tests/lib/pkg : tip_utils_pkg
 import	@rtl/preproc : ct_L23_preproc_sync
 import  @rtl/external/testtools          : tt
 
 # Check Simulation
+#
+# RUNNER (P8 re-check RC-2): scripts/cli_preprocsync_test.sh, registered in
+# scripts/run_gates.sh as the gate `preprocsync`. Until 2026-08-06 this
+# header claimed the testbench ran through scripts/run_gates.sh while nothing
+# there touched it -- 28 assertions over freshly changed RTL that could not
+# go red.
+#
+# BACKEND NOTE (P8 audit C-5): it is exercised with XSIM. Under the
+# repository default backend `verilator` it does NOT pass: before P8 it did
+# not even elaborate (`Did not find virtual interface trigger`), now it
+# elaborates and reports a failing testcase. Neither state is a statement
+# about the DUT -- the testbench uses virtual-interface constructs the free
+# front end does not implement. The gate script therefore asks abc for
+# `--sim-backend vivado` and drives xvlog/xelab/xsim itself.
 read_sim	ct_L23_preproc_sync_tb.sv
 simulate	ct_L23_preproc_sync_tb

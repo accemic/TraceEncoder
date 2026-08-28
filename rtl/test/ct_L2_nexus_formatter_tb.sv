@@ -1,4 +1,7 @@
-// vim: set ts=4 et:
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
 // -*- indent-tabs-mode: t; tab-width: 4 -*-
 `default_nettype none
 
@@ -6,7 +9,7 @@
  * @file    ct_L2_nexus_formatter_tb.sv
  * @brief   Unit test for ct_L2_nexus_formatter -- normal operation.
  *
- * @description Drives a realistic message sequence through the formatter
+ * @details Drives a realistic message sequence through the formatter
  *   and verifies every output field (name, type, data, width) for each
  *   supported tcode.  RefAddr / UADDR compression is verified across the
  *   sequence since each address-bearing message updates RefAddr.
@@ -69,7 +72,6 @@ module ct_L2_nexus_formatter_tb;
 		cs_proc.trTeInstMode     = ct_cs_cpuif__te__trTeControl__trTeInstMode_e__ITR_BRANCH_HIST;
 		cs_proc.trTeInstSyncMode = ct_cs_cpuif__te__trTeControl__trTeInstSyncMode_e__ITR_SYNC_TRACE_MSG;
 		cs_proc.trTeInstSyncMax  = '0;
-		cs_proc.trTeInstSyncReq  = '0;
 		cs_proc.trTeContext      = '0;
 		cs_proc.trTeDataAddrCompress = ct_cs_cpuif__te__trTeDataControl__trTeDataAddrCompress_e__DTR_ADDR_FULL;
 		cs_proc.trTeNexusMdoBits = 5'd6;
@@ -109,8 +111,8 @@ module ct_L2_nexus_formatter_tb;
 		input nexus_sync_reason_e    sync_reason,
 		input nexus_btype_e          btype,
 		input nexus_rcode_e          rcode,
-		input logic [31:0]           curr_iaddr,
-		input logic [31:0]           next_iaddr,
+		input nexus_addr_t           curr_iaddr,
+		input nexus_addr_t           next_iaddr,
 		input nexus_icnt_t           icnt,
 		input nexus_rdata_t          rdata0,
 		input nexus_rdata_t          rdata1,
@@ -138,7 +140,7 @@ module ct_L2_nexus_formatter_tb;
 		input nexus_tcode_e          tcode,
 		input nexus_dsz_e            dsz,
 		input nexus_elsz_e           elsz,
-		input logic [31:0]           addr_idtag,
+		input nexus_addr_t           addr_idtag,
 		input logic [NEXUS_MSG_DATA_WIDTH-1:0] data,
 		input logic [63:0]           ts
 	);
@@ -211,7 +213,7 @@ module ct_L2_nexus_formatter_tb;
 	initial begin
 		tt_testcase tc;
 		int idx;
-		logic [31:0] expected_ref_addr;
+		nexus_addr_t expected_ref_addr;
 
 		rst      = 1'b1;
 		ready_in = 1'b1;
@@ -239,7 +241,7 @@ module ct_L2_nexus_formatter_tb;
 		check_field(tc, "SYNC", 2, SYNC,     VENDOR_FIXED,    NEXUS_SYNC_EXIT_FROM_SYS_RST, $size(nexus_sync_reason_e));
 		check_field(tc, "SYNC", 3, ICNT,     VARIABLE,        8'd5, LengthWoLeadingZeros(8'd5));
 		begin
-			automatic logic [31:0] faddr = 32'h0000_1000 >> NEXUS_MSG_PC_ADDR_SHIFT;
+			automatic nexus_addr_t faddr = 32'h0000_1000 >> NEXUS_MSG_PC_ADDR_SHIFT;
 			check_field(tc, "SYNC", 4, PC_FADDR, VARIABLE,    faddr, LengthWoLeadingZeros(faddr));
 		end
 		begin
@@ -258,8 +260,8 @@ module ct_L2_nexus_formatter_tb;
 		// ================================================================
 		tc = create_testcase("INDIRECT_BRANCH");
 		begin
-			automatic logic [31:0] next_addr = 32'h0000_2080;
-			automatic logic [31:0] exp_uaddr = (next_addr >> NEXUS_MSG_PC_ADDR_SHIFT) ^ expected_ref_addr;
+			automatic nexus_addr_t next_addr = 32'h0000_2080;
+			automatic nexus_addr_t exp_uaddr = (next_addr >> NEXUS_MSG_PC_ADDR_SHIFT) ^ expected_ref_addr;
 			drive(make_cf(
 				.tcode(NEXUS_MSG_PROGRAM_TRACE_INDIRECT_BRANCH),
 				.sync_reason(NEXUS_SYNC_NONE),
@@ -312,7 +314,7 @@ module ct_L2_nexus_formatter_tb;
 		// ================================================================
 		tc = create_testcase("DIRECT_BRANCH_SYNC");
 		begin
-			automatic logic [31:0] next_addr = 32'h0000_3000;
+			automatic nexus_addr_t next_addr = 32'h0000_3000;
 			drive(make_cf(
 				.tcode(NEXUS_MSG_PROGRAM_TRACE_DIRECT_BRANCH_SYNC),
 				.sync_reason(NEXUS_SYNC_PERIODIC),
@@ -326,7 +328,7 @@ module ct_L2_nexus_formatter_tb;
 			check_field(tc, "DBS", 2, SYNC,     VENDOR_FIXED,    NEXUS_SYNC_PERIODIC, $size(nexus_sync_reason_e));
 			check_field(tc, "DBS", 3, ICNT,     VARIABLE,        8'd1, LengthWoLeadingZeros(8'd1));
 			begin
-				automatic logic [31:0] faddr = next_addr >> NEXUS_MSG_PC_ADDR_SHIFT;
+				automatic nexus_addr_t faddr = next_addr >> NEXUS_MSG_PC_ADDR_SHIFT;
 				check_field(tc, "DBS", 4, PC_FADDR, VARIABLE,    faddr, LengthWoLeadingZeros(faddr));
 			end
 			begin
@@ -344,7 +346,7 @@ module ct_L2_nexus_formatter_tb;
 		// ================================================================
 		tc = create_testcase("INDIRECT_BRANCH_SYNC");
 		begin
-			automatic logic [31:0] next_addr = 32'hFFFF_FFFC;
+			automatic nexus_addr_t next_addr = 32'hFFFF_FFFC;
 			drive(make_cf(
 				.tcode(NEXUS_MSG_PROGRAM_TRACE_INDIRECT_BRANCH_SYNC),
 				.sync_reason(NEXUS_SYNC_TRACE_ENABLE),
@@ -359,7 +361,7 @@ module ct_L2_nexus_formatter_tb;
 			check_field(tc, "IBS", 3, BTYPE,    VENDOR_FIXED,    NEXUS_BTYPE_EXCEPTION_INTERRUPT, $size(nexus_btype_e));
 			check_field(tc, "IBS", 4, ICNT,     VARIABLE,        8'hFF, LengthWoLeadingZeros(8'hFF));
 			begin
-				automatic logic [31:0] faddr = next_addr >> NEXUS_MSG_PC_ADDR_SHIFT;
+				automatic nexus_addr_t faddr = next_addr >> NEXUS_MSG_PC_ADDR_SHIFT;
 				check_field(tc, "IBS", 5, PC_FADDR, VARIABLE,    faddr, LengthWoLeadingZeros(faddr));
 			end
 			begin
@@ -373,12 +375,56 @@ module ct_L2_nexus_formatter_tb;
 		drive(make_none());
 
 		// ================================================================
+		// T5b: INDIRECT_BRANCH_SYNC at the TOP of the address space (X2a).
+		// T5 above pins the 32-bit corner (0xFFFF_FFFC) in EVERY build; this
+		// one is its 64-bit sibling and therefore only runs when the address
+		// path is that wide -- at CT_XLEN = 32 it would be a duplicate of T5
+		// that shifts the reference address and every field index after it,
+		// i.e. it would change the 32-bit run for nothing.
+		// What it actually catches: an F-ADDR field whose leading-zero
+		// suppression still assumes 32 bits emits 32 bits here and the whole
+		// upper half of the address vanishes without a single failing
+		// comparison downstream.
+		// ================================================================
+		if (ct_pkg::CT_ADDR64) begin
+			tc = create_testcase("INDIRECT_BRANCH_SYNC_TOP64");
+			begin
+				automatic nexus_addr_t next_addr = ~nexus_addr_t'(3); // all ones, 4-byte aligned
+				drive(make_cf(
+					.tcode(NEXUS_MSG_PROGRAM_TRACE_INDIRECT_BRANCH_SYNC),
+					.sync_reason(NEXUS_SYNC_TRACE_ENABLE),
+					.btype(NEXUS_BTYPE_EXCEPTION_INTERRUPT), .rcode(NEXUS_RCODE_NONE),
+					.curr_iaddr('0), .next_iaddr(next_addr),
+					.icnt(8'hFF), .rdata0('0), .rdata1('0),
+					.ts(64'h0)
+				));
+				check_field(tc, "IBS64", 0, TCODE,    FIXED,           NEXUS_MSG_PROGRAM_TRACE_INDIRECT_BRANCH_SYNC, 6);
+				check_field(tc, "IBS64", 1, SRC,      VENDOR_FIXED,    cs_proc.trTeSrcID, cs_proc.trTeSrcBits);
+				check_field(tc, "IBS64", 2, SYNC,     VENDOR_FIXED,    NEXUS_SYNC_TRACE_ENABLE, $size(nexus_sync_reason_e));
+				check_field(tc, "IBS64", 3, BTYPE,    VENDOR_FIXED,    NEXUS_BTYPE_EXCEPTION_INTERRUPT, $size(nexus_btype_e));
+				check_field(tc, "IBS64", 4, ICNT,     VARIABLE,        8'hFF, LengthWoLeadingZeros(8'hFF));
+				begin
+					automatic nexus_addr_t faddr = next_addr >> NEXUS_MSG_PC_ADDR_SHIFT;
+					check_field(tc, "IBS64", 5, PC_FADDR, VARIABLE,    faddr, LengthWoLeadingZeros(faddr));
+				end
+				begin
+					automatic logic [63:0] d = ts_abs(64'h0);
+					check_field(tc, "IBS64", 6, TSTAMP, VENDOR_VARIABLE, d, LengthWoLeadingZeros(d));
+				end
+				check_invalid_from(tc, "IBS64", 7);
+				expected_ref_addr = next_addr >> NEXUS_MSG_PC_ADDR_SHIFT;
+			end
+
+			drive(make_none());
+		end
+
+		// ================================================================
 		// T6: INDIRECT_BRANCH_HISTORY
 		// ================================================================
 		tc = create_testcase("INDIRECT_BRANCH_HISTORY");
 		begin
-			automatic logic [31:0] next_addr = 32'h0000_4000;
-			automatic logic [31:0] exp_uaddr = (next_addr >> NEXUS_MSG_PC_ADDR_SHIFT) ^ expected_ref_addr;
+			automatic nexus_addr_t next_addr = 32'h0000_4000;
+			automatic nexus_addr_t exp_uaddr = (next_addr >> NEXUS_MSG_PC_ADDR_SHIFT) ^ expected_ref_addr;
 			automatic nexus_rdata_t hist = 30'h1555_5555;  // alternating pattern with stop bit
 			drive(make_cf(
 				.tcode(NEXUS_MSG_PROGRAM_TRACE_INDIRECT_BRANCH_HISTORY),

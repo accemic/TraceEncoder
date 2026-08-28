@@ -1,9 +1,10 @@
-// vim: set ts=4 sw=4 et:
+// SPDX-FileCopyrightText: 2018 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
 // -*- indent-tabs-mode: t; tab-width: 4 -*-
 /**
-* Copyright (c) 2018 by Accemic Technologies GmbH Kiefersfelden Germany
-* SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
-*/
+ */
 
 /**
  * @brief     Helper functions to write testbenches
@@ -18,10 +19,10 @@
  *            tc.tt_assert(overflow, "Overflow should happen");
  *            tc.tt_assert_eq_int(result, 'x, "Result should not have any valid value");
  *
- *            final tt::tt_evaluate(); // Make sure your Testbench gets terminated with a $finish() call
+ *            final tt::tt_evaluate(); // Make sure your Testbench gets terminated with a $finish call
  *
- * @author	Albert Schulz <aschulz@accemic.com>
- * @author	Thomas B. Preußer <tpreusser@accemic.com>
+ * @author  Albert Schulz <aschulz@accemic.com>
+ * @author  Thomas B. Preußer <tpreusser@accemic.com>
  */
 package tt;
 
@@ -61,15 +62,15 @@ package tt;
 		// Plain assertion with statistics update
 		function bit tt_assert0(input bit cond);
 			checked_assertions++;
-			if(!cond)	failed_assertions++;
-			return	cond;
+			if(!cond)   failed_assertions++;
+			return  cond;
 		endfunction : tt_assert0
 
 		// Enqueue an error message (without statistics update)
 		function void tt_error0(input string msg);
 			errors.push_back(msg);
 			$error(msg);
-			if(stop_on_error)	$stop;
+			if(stop_on_error)   $stop;
 		endfunction : tt_error0
 
 		function bit tt_assert_eq_int(input longint value, input longint expected, input string msg, input print_style_t print_style = DEC);
@@ -81,7 +82,7 @@ package tt;
 
 				tt_error0($sformatf(fmt, expected, value, msg));
 			end
-			return	cond;
+			return  cond;
 		endfunction
 
 		// Greater than or equal
@@ -94,28 +95,28 @@ package tt;
 
 				tt_error0($sformatf(fmt, expected, value, msg));
 			end
-			return	cond;
+			return  cond;
 		endfunction
 
 
 		/// Assert a string value (case sensitive)
 		function bit tt_assert_eq_str(input string value, input string expected, input string msg);
 			automatic bit cond = tt_assert0(value == expected);
-			if(!cond)	tt_error0($sformatf("Assertion failed. Expected %p, but got %p. Message: %s", expected, value, msg));
-			return	cond;
+			if(!cond)   tt_error0($sformatf("Assertion failed. Expected %p, but got %p. Message: %s", expected, value, msg));
+			return  cond;
 		endfunction
 
 		function bit tt_assert_neq_int(input integer value, input integer forbidden, input string msg);
 			automatic bit cond = tt_assert0(value !== forbidden);
-			if(!cond)	tt_error0($sformatf("Assertion failed. Forbade %p, but got %p. Message: %s", forbidden, value, msg));
-			return	cond;
+			if(!cond)   tt_error0($sformatf("Assertion failed. Forbade %p, but got %p. Message: %s", forbidden, value, msg));
+			return  cond;
 		endfunction
 
 		// Assert condition & display message on failure
 		function bit tt_assert(input bit cond, input string msg);
 			void'(tt_assert0(cond));
-			if(!cond)	tt_error0(msg);
-			return	cond;
+			if(!cond)   tt_error0(msg);
+			return  cond;
 		endfunction
 
 		// Throw simulation error with message
@@ -149,7 +150,7 @@ package tt;
 	endfunction
 
 	function bit tt_assert0(input bit cond);
-		return	global_context.tt_assert0(cond);
+		return  global_context.tt_assert0(cond);
 	endfunction : tt_assert0
 
 	function void tt_error0(input string msg);

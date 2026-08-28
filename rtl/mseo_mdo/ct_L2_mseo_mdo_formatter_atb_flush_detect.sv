@@ -10,7 +10,7 @@
  *
  * @brief    ATB-domain flush detector
  *
- * @description
+ * @details
  *   Watches transmitted ATB chunks for the legacy flush marker and holds
  *   `afready` high until the external flush request is released.
  */
@@ -19,14 +19,14 @@ module ct_L2_mseo_mdo_formatter_atb_flush_detect #(
 	int unsigned MDO_WIDTH  = 4, // number of MDO payload bits per chunk
 	int unsigned MSEO_WIDTH = 2  // number of MSEO bits per chunk
 ) (
-	input uwire logic   clk,
-	input uwire logic   rst,
-	input uwire logic   atvalid,
-	input uwire logic   afvalid,
+	input uwire logic                      clk,
+	input uwire logic                      rst,
+	input uwire logic                      atvalid,
+	input uwire logic                      afvalid,
 	input uwire logic [((atb_pkg::ATDATA_WIDTH >= (MDO_WIDTH+MSEO_WIDTH))
 		? (atb_pkg::ATDATA_WIDTH / (MDO_WIDTH+MSEO_WIDTH))
-		: 1) * (MDO_WIDTH+MSEO_WIDTH)-1:0]  atb_payload,
-	output uwire logic  afready
+		: 1) * (MDO_WIDTH+MSEO_WIDTH)-1:0] atb_payload,
+	output uwire logic                     afready
 );
 	localparam int unsigned CHUNK_WIDTH = MDO_WIDTH + MSEO_WIDTH;
 	localparam int unsigned NUM_CHUNKS_PER_ATB_BEAT =

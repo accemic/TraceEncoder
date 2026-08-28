@@ -10,7 +10,7 @@
  *
  * @brief    CEDARtools.TraceEncoder L2 MSEO/MDO formatter (Nexus message -> ATB chunks)
  *
- * @description
+ * @details
  *   The module accepts one `nexus_message_t` whenever `ready_out` is high,
  *   slices/encodes it into MDO/MSEO chunks, packs chunks to ATB beats, and
  *   crosses into the ATB clock domain.
@@ -22,16 +22,31 @@ module ct_L2_mseo_mdo_formatter #(
 	int unsigned MDO_WIDTH,                                                             // number of MDO payload bits per chunk (no default — caller must set)
 	int unsigned ATB_CDC_FIFO_DEPTH         = 8                                         // min depth of proc->atb CDC fifo
 ) (
-	input uwire logic                  proc_clk,                  // trace processing clock
-	input uwire logic                  proc_rst,                  // trace processing reset
-	input uwire logic                  atb_atclk,                 // ATB clock
-	input uwire logic                  atb_atresetn,              // ATB reset (low active)
-	input nexus::nexus_message_t       nexus_msg,                 // formatted nexus message input
-	ct_cs_procclk_if.slave             cs_proc,                   // control / status interface (proc_clk domain)
-	ct_cs_atbclk_if.slave              cs_atb,                    // control / status interface (atb_atclk domain)
-	atb_if.master                      atb,                       // ATB output
-	output logic                       synq_req_trace_byte_count, // sync request pulse (kept for interface compatibility)
-	output logic                       ready_out                  // backpressure to previous pipeline stage
+	input uwire logic            proc_clk,                  // trace processing clock
+	input uwire logic            proc_rst,                  // trace processing reset
+	input uwire logic            atb_atclk,                 // ATB clock
+	input uwire logic            atb_atresetn,              // ATB reset (low active)
+	input nexus::nexus_message_t nexus_msg,                 // formatted nexus message input
+	ct_cs_procclk_if.slave       cs_proc,                   // control / status interface (proc_clk domain)
+	ct_cs_atbclk_if.slave        cs_atb,                    // control / status interface (atb_atclk domain)
+	atb_if.master                atb,                       // ATB output
+	// Trace-output quota (P2): HELD overflow levels toward the sync
+	// generator (proc_clk domain; vector_cdc2-crossed inside preproc_sync)
+	// plus the crossed SyncCntClr rearm input. See the quota-counter block.
+	output logic                 synq_req_trace_byte_count, // byte-quota overflow level (InstSyncMode 4)
+	output logic                 synq_req_trace_msg_count,  // message-quota overflow level (InstSyncMode 1)
+	input  uwire logic           quota_cnt_clr,             // crossed SyncCntClr (proc_clk domain, rearm)
+	output logic                 ready_out,                 // backpressure to previous pipeline stage
+	// trTeControl.Empty chain: upstream_empty means every PRECEDING stage is
+	// empty (eTIP / next_iaddr FIFOs, msg_gen). This module appends its own
+	// stages (formatter output, msg_buffer, slicer, chunk packer, CDC FIFO)
+	// and synchronizes the result conservatively into the ATB domain: a
+	// two-flop synchronizer plus a quiet filter, so Empty only asserts after
+	// 16 consecutive idle ATB cycles. Entries still in flight through the
+	// gray-code crossing become visible as atvalid before that and reset the
+	// filter.
+	input uwire logic            upstream_empty,
+	output uwire logic           chain_empty                // atb_atclk domain
 );
 	import nexus::*;
 
@@ -105,7 +120,54 @@ module ct_L2_mseo_mdo_formatter #(
 		return count;
 	endfunction
 
-	assign synq_req_trace_byte_count = 1'b0;
+	// ----------------------------------------------------------------
+	// Trace-output quota counter (P2, D2/D3). ONE dedicated counter serves
+	// both quota modes (mutually exclusive and quasi-static under swwel --
+	// InstSyncMode is writable only while Enable=0): mode 4 counts emitted
+	// bytes at packer_wr (whole ATB beats, step ATB_BEAT_BYTES -- alignment
+	// padding and flush idle beats count toward the quota, N10), mode 1
+	// counts on-wire message ends at slice_fire && eom_pulse (the FLUSH
+	// pseudo-message never passes the slicer, so it does not count).
+	// Deliberately NOT counter.sv: its add path flags overflow only at '>',
+	// so a step-4 byte count landing EXACTLY on the threshold would widen
+	// the window by one beat (formal finding F-1). This counter compares
+	// '>=', saturates at the threshold and holds `ovf` as a LEVEL (CDC-
+	// safe) until the crossed SyncCntClr clears it; clr has priority over
+	// the increment. Mode gate INSIDE the module: in any other mode the
+	// counter neither counts nor asserts, so the exported levels stay
+	// semantically clean for SyncReqSource=3 and the OFF/other-mode stream
+	// is byte-neutral by construction. Events during an asserted clr are
+	// not counted -- part of the documented CDC delta of the window bound
+	// (D7: <= 2^(Max+4) + Delta).
+	// ----------------------------------------------------------------
+	if (ct_pkg::CT_EN_QUOTA_SYNC) begin : genQuotaCnt
+		localparam ct_cs_cpuif_pkg::ct_cs_cpuif__te__trTeControl__trTeInstSyncMode_e_e
+			QUOTA_MODE_MSG   = ct_cs_cpuif_pkg::ct_cs_cpuif__te__trTeControl__trTeInstSyncMode_e__ITR_SYNC_TRACE_MSG,
+			QUOTA_MODE_BYTES = ct_cs_cpuif_pkg::ct_cs_cpuif__te__trTeControl__trTeInstSyncMode_e__ITR_SYNC_TRACE_BYTES;
+		uwire logic quota_mode_bytes = (cs_proc.trTeInstSyncMode == QUOTA_MODE_BYTES);
+		uwire logic quota_mode_msg   = (cs_proc.trTeInstSyncMode == QUOTA_MODE_MSG);
+		uwire ct_pkg::ct_synccnt_counter_t quota_max = 1 << (cs_proc.trTeInstSyncMax + 4);
+		uwire logic quota_byte_ev = packer_wr;               // one accepted ATB beat
+		uwire logic quota_msg_ev  = slice_fire && eom_pulse; // last chunk of a message
+		ct_pkg::ct_synccnt_counter_t QuotaCnt = '0;
+		uwire logic quota_ovf = (QuotaCnt >= quota_max);
+		always_ff @(posedge proc_clk) begin
+			if (proc_rst || quota_cnt_clr || !(quota_mode_bytes || quota_mode_msg))
+				QuotaCnt <= '0;
+			else if (!quota_ovf) begin
+				if      (quota_mode_bytes && quota_byte_ev) QuotaCnt <= QuotaCnt + ATB_BEAT_BYTES;
+				else if (quota_mode_msg   && quota_msg_ev)  QuotaCnt <= QuotaCnt + 1'b1;
+			end
+		end
+		assign synq_req_trace_byte_count = quota_ovf && quota_mode_bytes;
+		assign synq_req_trace_msg_count  = quota_ovf && quota_mode_msg;
+	end
+	else begin : genNoQuotaCnt
+		// Compiled out: zero cost, tie-offs like the pre-P2 state.
+		assign synq_req_trace_byte_count = 1'b0;
+		assign synq_req_trace_msg_count  = 1'b0;
+		uwire logic unused_quota_cnt_clr = quota_cnt_clr;
+	end
 	assign msg_in = nexus_msg;
 	assign ready_out = msg_ready;
 	assign msg_num_fields = count_valid_fields(msg_in);
@@ -199,15 +261,30 @@ module ct_L2_mseo_mdo_formatter #(
 	assign atb_cdc_d.d = packer_payload;
 	assign atb_cdc_d.wr = packer_wr;
 
-	fifo2clk_fwft #(
-		.T(atb_data_t),
-		.MIN_DEPTH(ATB_CDC_FIFO_DEPTH),
-		.FIFO_STYLE("distributed"),
-		.SAFE_RESETS(1)
-	) atb_cdc_fifo (
-		.d(atb_cdc_d),
-		.q(atb_q)
-	);
+	// proc_clk -> atb_clk. In a single-clock build the ATB/AXIS handshake's
+	// downstream AXI(S) FIFO owns any real clock transfer, so a plain
+	// single-clock FIFO suffices here.
+	if (ct_pkg::CT_SINGLE_CLOCK) begin : genAtbFifo1clk
+		fifo1clk_fwft #(
+			.T(atb_data_t),
+			.MIN_DEPTH(ATB_CDC_FIFO_DEPTH),
+			.FIFO_STYLE("auto")
+		) atb_cdc_fifo (
+			.d(atb_cdc_d),
+			.q(atb_q)
+		);
+	end
+	else begin : genAtbFifo2clk
+		fifo2clk_fwft #(
+			.T(atb_data_t),
+			.MIN_DEPTH(ATB_CDC_FIFO_DEPTH),
+			.FIFO_STYLE("auto"),
+			.SAFE_RESETS(1)
+		) atb_cdc_fifo (
+			.d(atb_cdc_d),
+			.q(atb_q)
+		);
+	end
 
 	assign atb_q.ack = atb_fire;
 	assign atb.atvalid = atb_valid;
@@ -234,6 +311,53 @@ module ct_L2_mseo_mdo_formatter #(
 	);
 
 	assign atb.afready = atb_afready;
+
+	// ----------------------------------------------------------------
+	// trTeControl.Empty chain: registered on the proc side (a glitch-free
+	// CDC source), two-flop synchronized, then quiet-filtered in the ATB
+	// domain. Conservative by construction -- Empty drops IMMEDIATELY on any
+	// visible activity and only rises after 16 consecutive idle ATB cycles.
+	// ----------------------------------------------------------------
+	logic       ProcEmptyQ    = 1'b0;
+	logic [1:0] EmptySyncQ    = '0;
+	logic [3:0] EmptyQuietCnt = '0;
+	logic       ChainEmptyQ   = 1'b0;
+
+	always_ff @(posedge proc_clk) begin
+		if (proc_rst) ProcEmptyQ <= 1'b0;
+		else ProcEmptyQ <= upstream_empty && !msg_valid && !buf_valid
+		                   && !slice_valid && packer_idle;
+	end
+
+	always_ff @(posedge atb_atclk) begin
+		if (atb_rst) begin
+			EmptySyncQ    <= '0;
+			EmptyQuietCnt <= '0;
+			ChainEmptyQ   <= 1'b0;
+		end
+		else begin
+			EmptySyncQ <= {EmptySyncQ[0], ProcEmptyQ};
+			if (EmptySyncQ[1] && !atb_q.valid) begin
+				if (&EmptyQuietCnt) ChainEmptyQ <= 1'b1;
+				else                EmptyQuietCnt <= EmptyQuietCnt + 1'b1;
+			end
+			else begin
+				EmptyQuietCnt <= '0;
+				ChainEmptyQ   <= 1'b0;
+			end
+		end
+	end
+	assign chain_empty = ChainEmptyQ;
+
+	// I8 (Empty contract, simulation only): Empty implies an idle ATB
+	// output -- any remaining visible substance must drop Empty immediately.
+	// pragma translate_off
+`ifndef SYNTHESIS
+	a_i8_empty_no_data: assert property (@(posedge atb_atclk) disable iff (atb_rst)
+		ChainEmptyQ |-> !atb_q.valid)
+		else $error("%m I8: trTeEmpty=1 while atb_q.valid=1");
+`endif
+	// pragma translate_on
 
 	// Keep the compatibility tie-off explicit so lint does not flag the read.
 	if (1) begin : blkCompat

@@ -744,7 +744,7 @@ def generate_helper_module(
         lines.append(f"\t\twrite({addr_expr}, data);")
         lines.append("\tendtask")
 
-        # Read task (immer generiert)
+        # Read task (always generated)
         if is_array and stride != 0:
             lines.append("")
             lines.append(

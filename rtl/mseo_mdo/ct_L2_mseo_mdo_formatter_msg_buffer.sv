@@ -12,17 +12,17 @@
 module ct_L2_mseo_mdo_formatter_msg_buffer #(
 	int unsigned NEXUS_MAX_FIELDS = nexus_vendor::NEXUS_MAX_FIELDS
 ) (
-	input  var logic clk,
-	input  var logic rst,
+	input  var logic                              clk,
+	input  var logic                              rst,
 
-	input  var logic                             msg_valid,
-	output logic                                 msg_ready,
-	input  var nexus::nexus_message_t  msg_in,
+	input  var logic                              msg_valid,
+	output logic                                  msg_ready,
+	input  var nexus::nexus_message_t             msg_in,
 	input  var logic [$clog2(NEXUS_MAX_FIELDS):0] msg_num_fields,
 
-	output logic                                 buf_valid,
-	input  var logic                             buf_ready,
-	output nexus::nexus_message_t       msg_out,
+	output logic                                  buf_valid,
+	input  var logic                              buf_ready,
+	output nexus::nexus_message_t                 msg_out,
 	output logic [$clog2(NEXUS_MAX_FIELDS):0]     msg_num_fields_out
 );
 	import nexus::*;

@@ -1,0 +1,58 @@
+Accemic Trade Mark Permission
+=============================
+
+This permission covers the Accemic word marks, the CEDARtools(R) mark and the
+Accemic figurative marks (logos) as distributed in this repository. It is a
+TRADE MARK permission, not a copyright licence, and it exists because the two
+must not be confused.
+
+WHY THIS FILE EXISTS
+
+Everything else in this repository is offered under an open-source licence,
+and those licences deliberately permit modification. A trade mark is the one
+thing that must not be modified: its entire purpose is to tell a reader who
+stands behind a thing. A permissive copyright licence on a logo would allow
+anyone to alter it and keep calling it ours -- which is precisely what trade
+mark law prevents, and what this repository's TRADEMARKS.md relies on.
+
+Open-source projects that ship their own marks handle this the same way; the
+Linux Foundation, Mozilla and the Rust Foundation each separate the code
+licence from the mark permission for this reason.
+
+WHAT YOU MAY DO
+
+  * Reproduce the mark UNALTERED to identify Accemic, Accemic products or
+    Accemic technology -- for example in documentation, a paper, a slide, a
+    comparison, a press article, or a user interface built on this software
+    that says truthfully where the software comes from.
+  * Scale it proportionally and place it on a background that keeps it
+    legible. That is not a modification.
+
+WHAT YOU MAY NOT DO
+
+  * Modify the mark: no re-drawing, re-colouring, re-proportioning, adding to
+    or removing from it, and no derivative marks based on it.
+  * Use it as a badge of origin for anything that is not Accemic's -- on your
+    own product, your fork, your distribution, your service, or your company.
+  * Use it in a way that suggests Accemic endorses, sponsors or certifies you
+    or your work, when it does not.
+  * Register it, or anything confusingly similar to it, anywhere.
+
+FORKS
+
+You may keep the mark in an unmodified copy of this repository, because there
+it still identifies the origin truthfully. If you modify the software and
+distribute it, remove the marks from your distribution -- the open-source
+licences give you every right to the code, and none to the name. That is not
+a restriction on the code; it is the ordinary condition of every open-source
+project that has a name worth protecting.
+
+QUESTIONS
+
+Anything this text does not answer -- co-branding, a use you are unsure about,
+a permission beyond the above -- is decided case by case. Ask:
+info@accemic.com.
+
+Nothing here narrows any right you have under applicable trade mark law,
+including nominative fair use: naming us in order to refer to us needs no
+permission from anyone.

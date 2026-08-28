@@ -5,16 +5,18 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Maintainers
 
-This file lists the people who maintain CEDARtools.TraceEncoder. Maintainers have
+This file lists the people who maintain CEDARtools.TraceEncoder (CTTE).
+Maintainers have
 write access, review and merge PRs, and steer the project's
 direction. For machine-readable review routing, see
 [`.github/CODEOWNERS`](.github/CODEOWNERS).
 
 ## Active maintainers
 
-| Name           | GitHub     | Contact                          | Focus                  |
-|----------------|------------|----------------------------------|------------------------|
-| Albert Schulz  | [@albertschulz](https://github.com/albertschulz) | <aschulz@accemic.com> | Architecture, RTL, RDL |
+| Name             | GitHub     | Contact                          | Focus                            |
+|------------------|------------|----------------------------------|----------------------------------|
+| Albert Schulz    | [@albertschulz](https://github.com/albertschulz) | <aschulz@accemic.com> | Architecture, RTL, RDL |
+| Alexander Weiss  | [@accemic-weiss](https://github.com/accemic-weiss) | <aweiss@accemic.com> | Encoder core, verification, tooling |
 
 ## Becoming a maintainer
 

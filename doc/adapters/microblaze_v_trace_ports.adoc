@@ -1,0 +1,108 @@
+// SPDX-FileCopyrightText: 2026 Accemic Technologies GmbH
+// SPDX-License-Identifier: CC-BY-4.0
+
+= MicroBlaze V `TRACE` bus -- confirmed port list (G0 ground truth)
+
+Migrated 2026-08 from an internal predecessor repository; see
+link:../../rtl/adapters/README.md[`rtl/adapters/README.md`] for the
+package-level provenance.
+
+[NOTE]
+====
+**Empirically confirmed** via Vivado block-design introspection,
+2026-07-15. Version-bound (R1/AD-07): Vivado **2026.1**, IP
+**`xilinx.com:ip:microblaze_riscv:1.0`**, `CONFIG.C_TRACE=1`. Re-measure on
+a version change. This is the source of truth for the real signal names --
+it **corrects/extends** the original integration report §17.1 (which was
+written from documentation/assumption).
+====
+
+== Bit order (R4 -- now concretely confirmed)
+
+All multi-bit `TRACE` ports are **VHDL `(0 to N)` ascending** -> Vivado
+reports them as `[0:N]` (bit 0 = MSB). The adapter's SV side uses `[N-1:0]`
+(bit N-1 = MSB). `mbv_trace_normalizer` must establish the mapping
+bit-exactly and verify it against the object dump
+(`sw/.../*.oracle.csv`).
+
+== Program-flow ports (MVP-carrying) -- all DIR=O (observer, no backpressure)
+
+[cols="2,1,3,4", options="header"]
+|===
+| AMD port | Width | -> TIP field | Note
+
+| `Trace_PC` | `[0:31]` | `iaddr` | mirror the bit order (R4)
+| `Trace_Instruction` | `[0:31]` | instr decode -> `itype` |
+| `Trace_Valid_Instr` | 1 | `iretire` (+ trap rules) | **retirement semantics: G1**
+| `Trace_Jump_Taken` | 1 | cond. branch TAKEN/NOT |
+| `Trace_Exception_Taken` | 1 | trap-entry flag | **G1 measured** (rounds 1+2)
+| `Trace_Exception_Kind` | `[0:5]` | **bit 5 = interrupt flag; bits[4:0] = RISC-V cause** | **6 bit; encoding G1-confirmed**
+|===
+
+[NOTE]
+====
+**G1 finding (2026-07-16):** `Trace_Exception_Kind[5]` distinguishes an
+**interrupt (1)** from a **synchronous exception (0)**; `[4:0]` carries the
+RISC-V `mcause` low value directly. Measured: ecall=0x0b, ebreak=0x03,
+external interrupt (MEXT)=0x2b. Details + coupling:
+link:microblaze_v_trace_semantics.adoc[`microblaze_v_trace_semantics.adoc`]
+"Measurement results".
+====
+
+== NEW vs. the original integration report §17.1 -- pipeline/halt signals (G1 retirement aid)
+
+[cols="2,1,5", options="header"]
+|===
+| AMD port | Width | Use
+
+| `Trace_OF_PipeRun` | 1 | operand-fetch stage runs (not stalled) -- **the only stall indicator** in the measured load
+| `Trace_EX_PipeRun` | 1 | execute stage runs -- **measured: constant 1** (never stalled)
+| `Trace_MEM_PipeRun` | 1 | memory stage runs -- **measured: constant 1** (never stalled)
+| `Trace_Halted` | 1 | core halted (debug)
+|===
+
+**G1 round-4 finding (full-cycle measurement, `data_trace_test`):**
+`Trace_OF_PipeRun=0` marks fetch stalls (295x in the settled window,
+**exactly 1 cycle each**, 26.8 % of cycles); `EX/MEM_PipeRun` stayed
+constant 1. **Important:** `Valid_Instr=1` occurred **68x while
+`OF_PipeRun=0`** => PipeRun is **not** a retirement signal and must not
+enter the `iretire` path
+(link:microblaze_v_trace_semantics.adoc[`microblaze_v_trace_semantics.adoc`]
+round 4). Workload-scoped: under cache/AXI load, `EX/MEM_PipeRun` could
+well stall.
+
+== MISSING vs. the original integration report §17.1 (a real correction)
+
+[cols="2,4", options="header"]
+|===
+| Assumed port | Status on microblaze_riscv:1.0
+
+| `Trace_Privilege_Mode` | **not exposed** -> the `priv` mapping is unavailable this way. MVP: constant M-mode.
+| `Trace_PID_Reg` | **not exposed** -> the `_context` mapping does not apply. MVP: `_context=0`.
+|===
+
+Not critical for the M-mode program-flow MVP, but documented in the adapter
+manifest + `microblaze_v_supported_configurations.adoc`. Should
+privilege/context tracing become necessary later (P2), a different source
+(instruction-decode CSR accesses / an IP config option) needs to be
+investigated.
+
+== Data-flow ports (P2/P3 -- not MVP; §4.2)
+
+`Trace_Data_Access` (1), `Trace_Data_Address [0:31]`, `Trace_Data_Read` (1),
+`Trace_Data_Write` (1), `Trace_Data_Write_Value [0:31]`,
+`Trace_Data_Byte_Enable [0:3]`, `Trace_Reg_Write` (1), `Trace_Reg_Addr
+[0:4]`, `Trace_New_Reg_Value [0:31]`. Store is derivable; the load value is
+ambiguous (§4.2).
+
+== Bundled interface
+
+The core additionally exposes a bundled `TRACE` interface (`get_bd_intf_pins
+mbv/TRACE`) -- exposed externally in the G0 SoC
+(`make_bd_intf_pins_external`) for ILA/sim observation.
+
+== Adapter consequence
+
+`rtl/adapters/amd_microblaze_v/mbv_trace_if.sv` (written against this list
+and `xvlog`-elaborated) carries exactly these signals;
+`Trace_Privilege_Mode`/`Trace_PID_Reg` are deliberately NOT included.

@@ -1,24 +1,24 @@
-// vim: set ts=4 et:
+// SPDX-FileCopyrightText: 2025 Accemic Technologies GmbH
+// SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
+
+// vim: set ts=4 noet:
 // -*- indent-tabs-mode: t; tab-width: 4 -*-
 
 /**
-* Copyright (c) 2025 by Accemic Technologies GmbH Kiefersfelden Germany
-* SPDX-License-Identifier: CERN-OHL-S-2.0 OR LicenseRef-Accemic-Commercial
-*
-* @brief    AXI4 Stream Interface Definition
-* @author   Albert Schulz <aschulz@accemic.com>, Alexander Weiss <aweiss@accemic.com>
-*/
+ * @brief    AXI4 Stream Interface Definition
+ * @author   Albert Schulz <aschulz@accemic.com>, Alexander Weiss <aweiss@accemic.com>
+ */
 
 interface axis_if #(
-	parameter int TDATA_WIDTH  = 32,                // width of tdata in bits
-	parameter int TSTRB_WIDTH  = TDATA_WIDTH/8,     // width of tstrb in bits
-	parameter int TKEEP_WIDTH  = TDATA_WIDTH/8,     // width of tkeep in bits
-	parameter int TID_WIDTH    = 8,                 // width of tid in bits
-	parameter int TDEST_WIDTH  = 8,                 // width of tdest in bits
-	parameter int TUSER_WIDTH  = 1                  // width of tuser in bits
+	parameter int TDATA_WIDTH = 32,            // width of tdata in bits
+	parameter int TSTRB_WIDTH = TDATA_WIDTH/8, // width of tstrb in bits
+	parameter int TKEEP_WIDTH = TDATA_WIDTH/8, // width of tkeep in bits
+	parameter int TID_WIDTH   = 8,             // width of tid in bits
+	parameter int TDEST_WIDTH = 8,             // width of tdest in bits
+	parameter int TUSER_WIDTH = 1              // width of tuser in bits
 ) (
-	input  uwire logic aclk,       // global clock
-	input  uwire logic aresetn     // active-low reset
+	input  uwire logic aclk,   // global clock
+	input  uwire logic aresetn // active-low reset
 );
 
 	// data and control signals
